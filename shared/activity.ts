@@ -20,20 +20,22 @@ export const ROLES: Record<Role, RoleInfo> = {
   design: { label: 'Design', icon: '🎨', color: '#FF6FA8', type: 'designer', what: 'Pages web soignées, maquettes, visuels, mise en forme.' },
   redaction: { label: 'Rédaction', icon: '✍️', color: '#A98BFF', type: 'redacteur', what: 'Posts, e-mails, articles, scripts vidéo, rapports.' },
   analyse: { label: 'Analyse', icon: '📊', color: '#FFC93D', type: 'analyste', what: 'Cherche sur internet, analyse et rédige tes rapports marketing et communication, en suivant les références de son tiroir.' },
+  hares: { label: 'Hares · finance', icon: '🛡️', color: '#E5484D', type: 'hares', what: 'Interroge ta base 43 WACC : échantillons de sociétés cotées, médianes et quartiles, valeurs aberrantes, CMPC et multiples.' },
   renfort: { label: 'Renfort', icon: '🤖', color: '#9AA3B5', type: '', what: 'Un coup de main sur une tâche à part.' },
 };
 
 /** Les métiers présents dans l'open space (les autres coins restent vides pour l'instant). */
-export const ACTIVE_ROLES: Role[] = ['chef', 'analyse'];
+export const ACTIVE_ROLES: Role[] = ['chef', 'analyse', 'hares'];
 
 /** Les outils de chaque métier. */
 export const ROLE_TOOLS: Record<Role, string[]> = {
-  chef: ['Plan', 'Analyste', 'Read', 'Write', 'Skill'],
+  chef: ['Plan', 'Analyste', 'Hares', 'Read', 'Write', 'Skill'],
   recherche: [],
   code: [],
   design: [],
   redaction: [],
   analyse: ['WebSearch', 'WebFetch', 'Read', 'Write', 'Edit', 'Skill', 'Tiroir'],
+  hares: ['Base43', 'Read', 'Write', 'Edit', 'Skill'],
   renfort: [],
 };
 
@@ -42,6 +44,8 @@ export const TOOL_INFO: Record<string, string> = {
   Plan: 'écrit et coche le plan', Analyste: 'confie une tâche à l’analyste', Read: 'lit un fichier', Write: 'crée un fichier',
   Edit: 'retouche un fichier', WebSearch: 'cherche sur internet', WebFetch: 'lit une page web', Skill: 'applique un skill installé',
   Tiroir: 'range une info à retenir dans son tiroir',
+  Base43: 'interroge ta base 43 WACC (sociétés, pays, industries, taux, CMPC)',
+  Hares: 'confie une tâche à Hares',
 };
 
 /** Le métier d'un agent, d'après le type d'agent que le chef a appelé. */
@@ -58,6 +62,7 @@ export const NAMES: Record<Role, string[]> = {
   design: ['Frida', 'Coco', 'Henri', 'Sonia', 'Saul'],
   redaction: ['Colette', 'Victor', 'Simone', 'Jules', 'George'],
   analyse: ['Marie', 'Blaise', 'Émilie', 'Gaspard', 'Inès'],
+  hares: ['Hares'],
   renfort: ['Bob', 'Lulu', 'Gaston', 'Nina', 'Momo', 'Kiki'],
 };
 
@@ -104,6 +109,7 @@ export function describeAct(tool: string, input: Record<string, unknown> | undef
     case 'TodoWrite': return { kind: 'plan', label: 'Je mets le plan à jour', detail: '' };
     case 'Skill': return { kind: 'skill', label: `J’applique le skill ${cut(i.skill ?? i.name, 24)}`, detail: String(i.args ?? '') };
     case 'Tiroir': return { kind: 'write', label: 'Je range une note dans mon tiroir', detail: String(i.value ?? '') };
+    case 'Base43': return { kind: 'read', label: `J’interroge la base 43 WACC${i.source ? ` (${cut(i.source, 16)})` : ''}`, detail: JSON.stringify(i) };
     case 'ToolSearch': return { kind: 'other', label: 'Je cherche le bon outil', detail: String(i.query ?? '') };
   }
   if (tool.startsWith('mcp__')) {

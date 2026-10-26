@@ -290,11 +290,20 @@ function sideWalls(g: G) {
   g.fillStyle = 'rgba(8,6,16,0.25)';
   g.fillRect(T, 3 * T, 2, H - 4 * T);
   g.fillRect(W - T - 2, 3 * T, 2, H - 4 * T);
-  // la porte de la salle de pause, dans le mur de droite
-  sideDoor(g, W - T, ANNEX_DOOR.row, 'right');
+  // la porte de la Break room, dans le mur de gauche (son écriteau est posé par-dessus les meubles : doorSign)
+  sideDoor(g, 0, ANNEX_DOOR.row, 'left');
 }
 
-/** Une porte dans un mur de côté (deux cases de haut), avec l'écriteau « PAUSE » ou « BUREAU ». */
+/** L'écriteau lumineux au-dessus d'une porte de côté (« BREAK ROOM » ou « BUREAU »). */
+export function doorSign(g: G, x0: number, row: number, side: 'left' | 'right', label: string, color: string, light: string) {
+  const w = textWidth(label) + 6;
+  const sx = side === 'right' ? x0 - w + T - 1 : x0 + 1, sy = row * T - 18;
+  rect(g, sx, sy, w, 9, '#120f19');
+  hline(g, sx, sy, w, color);
+  pixelText(g, label, sx + 3, sy + 2, light);
+}
+
+/** Une porte dans un mur de côté (deux cases de haut). */
 export function sideDoor(g: G, x0: number, row: number, side: 'left' | 'right') {
   const y = row * T - 6, h = 2 * T + 6;
   // l'ouverture, et le couloir qu'on devine derrière
@@ -304,13 +313,6 @@ export function sideDoor(g: G, x0: number, row: number, side: 'left' | 'right') 
   // le chambranle
   rect(g, x0, y - 2, T, 2, '#3b3550');
   vline(g, side === 'right' ? x0 : x0 + T - 1, y - 2, h + 2, '#4d4666');
-  // l'écriteau lumineux au-dessus
-  const label = side === 'right' ? 'PAUSE' : 'BUREAU';
-  const w = textWidth(label) + 6;
-  const sx = side === 'right' ? x0 - w + T - 1 : x0 + 1, sy = y - 12;
-  rect(g, sx, sy, w, 9, '#120f19');
-  hline(g, sx, sy, w, side === 'right' ? '#ff6fa8' : P.orange);
-  pixelText(g, label, sx + 3, sy + 2, side === 'right' ? '#ffc2dd' : P.orangeLight);
 }
 
 function frontWall(g: G) {

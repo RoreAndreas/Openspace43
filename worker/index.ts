@@ -4,6 +4,7 @@
 //   POST /api/search  une recherche sur internet (Tavily si une clé est configurée, sinon DuckDuckGo)
 //   POST /api/fetch   le texte d'une page web (nettoyé et raccourci)
 //   GET  /api/ping    vérifie le code d'accès
+//   GET  /api/wacc43  la base 43 WACC de Hares (la page publiée de WACC43, relayée telle quelle : le navigateur l'extrait)
 // Les missions, les rapports, le tiroir et les skills restent dans le navigateur de l'utilisatrice.
 import { readPage, searchWeb, WebError } from '../shared/web.ts';
 
@@ -14,6 +15,8 @@ interface Env {
   ACCESS_CODE?: string;
   /** facultatif : une clé Tavily pour une recherche web plus fiable */
   TAVILY_KEY?: string;
+  /** l'adresse du site WACC43, dont la page embarque la base de Hares (variable du Worker) */
+  WACC43_URL?: string;
 }
 
 /** Les modèles autorisés (le premier est celui par défaut). */
@@ -50,6 +53,7 @@ export default {
 
     try {
       if (url.pathname === '/api/ping') return json({ ok: true, models: MODELS, search: env.TAVILY_KEY ? 'tavily' : 'duckduckgo' });
+      if (url.pathname === '/api/wacc43') return await wacc43(env);
       if (req.method !== 'POST') return fail(405, 'Méthode non autorisée.');
       const raw = await req.text();
       if (raw.length > MAX_BODY) return fail(413, 'Demande trop longue.');
@@ -66,6 +70,16 @@ export default {
     }
   },
 };
+
+// ── La base 43 WACC (Hares) ──
+// Le Worker ne la lit pas (8 Mo de JSON dépasseraient son temps de calcul gratuit) : il relaie la page de WACC43,
+// gardée une heure dans le cache de Cloudflare ; c'est le navigateur qui en extrait la base et l'interroge.
+async function wacc43(env: Env) {
+  const src = env.WACC43_URL || 'https://43wacc.pages.dev/';
+  const r = await fetch(src, { cf: { cacheTtl: 3600, cacheEverything: true } } as RequestInit);
+  if (!r.ok || !r.body) return fail(502, 'La base 43 WACC ne répond pas (site WACC43).');
+  return new Response(r.body, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'private, max-age=900', 'X-Content-Type-Options': 'nosniff' } });
+}
 
 // ── L'IA ──
 const ACTION_SCHEMA = {

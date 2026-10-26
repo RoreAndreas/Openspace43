@@ -14,6 +14,7 @@ import { countStats, emptyStats } from '../shared/activity.ts';
 import type { ClaudeInfo, FileInfo, Logged, MissionInfo, OfficeEvent, Quota, Role, ServerMsg, Settings, TeamEntry, TeamInput, VersionInfo } from '../shared/protocol.ts';
 import { ClaudeProcess, Normalizer, type ClaudeBinary, type TurnResult } from './claude.ts';
 import { agentsJson, ALWAYS_ALLOWED, chefPrompt, CLAUDE_MODELS, SESSION_TOOLS } from './team.ts';
+import { writeWacc43 } from './wacc43.ts';
 
 const README = `# L'open space
 
@@ -194,6 +195,8 @@ export class Bureau {
       busySince: Date.now(), stopAsked: false, lastChefText: '', team: cleanTeam(team),
     };
     await writeSkills(folder, cur.team.skills);
+    // la base 43 WACC de Hares, en fichiers lisibles (en arrière-plan : elle pèse quelques Mo)
+    void writeWacc43(folder);
     this.current = cur;
     this.watch(cur);
     this.broadcast({ t: 'mission', mission });

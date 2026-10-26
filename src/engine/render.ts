@@ -4,10 +4,10 @@
 // Tout se dessine sur une toute petite image (352 × 256 pixels), agrandie sans flou : ça ne coûte presque rien.
 import type { ActKind } from '../../shared/protocol.ts';
 import { furniturePlacement } from './furniture.ts';
-import { BOARD, CLOCK, FURNITURE, H, NEON, T, W, WINDOWS, type Furn } from './layout.ts';
+import { ANNEX_DOOR, BOARD, CLOCK, FURNITURE, H, NEON, T, W, WINDOWS, type Furn } from './layout.ts';
 import { g2d, makeCanvas, P, rgba, rng, type G } from './pixels.ts';
 import { ANCHOR_X, ANCHOR_Y, eyeColor, robotSprite } from './robots.ts';
-import { drawRoom, neon, signs, type TimeOfDay } from './room.ts';
+import { doorSign, drawRoom, neon, signs, type TimeOfDay } from './room.ts';
 import { ROLES } from '../../shared/activity.ts';
 import type { Actor, World } from './world.ts';
 
@@ -75,6 +75,8 @@ export class Renderer {
     for (const it of items) it.draw();
 
     if (t < world.discoUntil) this.discoBall(g, t);
+    // l'écriteau de la Break room, par-dessus les meubles qui le cacheraient
+    doorSign(g, 0, ANNEX_DOOR.row, 'left', 'BREAK ROOM', '#ff6fa8', '#ffc2dd');
     world.fx.draw(g);
     if (tod === 'day') this.sunbeams(g);
     else this.lighting(g, world, tod, atDesk, t);
@@ -167,7 +169,7 @@ export class Renderer {
         g.fillRect(p.x + 5, p.y + 7 + i * 4, 1, 1);
       }
     }
-    if (f.kind === 'jukebox') this.jukeboxLights(g, p, world, t);
+    if (f.kind === 'jukebox') jukeboxLights(g, p.x, p.y, world.musicOn, world.musicLevel, t);
     if (f.kind === 'lever') this.lever(g, p, world, t);
     if (f.kind === 'note') {
       // le post-it scintille doucement : on peut cliquer dessus
@@ -205,34 +207,6 @@ export class Renderer {
     g.fillRect(p.x + 3, p.y + 16, 3, 3);
     g.fillStyle = free && blink ? '#3ddc97' : '#1f3e2e';
     g.fillRect(p.x + 10, p.y + 16, 3, 3);
-  }
-
-  /** Les néons de l'arche du jukebox : éteints au repos, ils défilent et pulsent sur la musique. */
-  private jukeboxLights(g: G, p: Placed, world: World, t: number) {
-    const on = world.musicOn;
-    const arcs: [number, string, string][] = [[11, '#ff5fa2', '#5a2a3e'], [9, P.orange, '#5a3a24'], [7, '#3fd8ff', '#1f3e4a']];
-    arcs.forEach(([r, col, dim], i) => {
-      for (let a = 0; a <= 16; a++) {
-        const ang = Math.PI + (a / 16) * Math.PI;
-        const x = p.x + 16 + Math.round(Math.cos(ang) * r);
-        const y = p.y + 15 + Math.round(Math.sin(ang) * r);
-        const lit = on && (Math.floor(t * 8) + a + i * 3) % 6 !== 0;
-        g.fillStyle = lit ? col : dim;
-        g.fillRect(x, y, 1, 1);
-      }
-    });
-    if (on) {
-      // le disque tourne
-      const a = t * 8;
-      g.fillStyle = P.orangeLight;
-      g.fillRect(p.x + 16 + Math.round(Math.cos(a) * 3), p.y + 20 + Math.round(Math.sin(a) * 1.5), 1, 1);
-      // les barres du vumètre
-      for (let i = 0; i < 5; i++) {
-        const h = 1 + Math.round((world.musicLevel * 4) * (0.6 + 0.4 * Math.sin(t * 9 + i * 1.7)));
-        g.fillStyle = i % 2 ? '#ff5fa2' : P.orange;
-        g.fillRect(p.x + 7 + i * 4, p.y + 32 - h, 2, h);
-      }
-    }
   }
 
   /** La boule à facettes du mode soirée. */
@@ -443,5 +417,33 @@ export class Renderer {
       g.fillRect(x + 1, y + 1, 2, 1);
       if (a.status === 'working' && Math.floor(t * 2 + i) % 2) { g.fillStyle = '#ff8a3d'; g.fillRect(x + 1, y + 1, 1, 1); }
     });
+  }
+}
+
+/** Les néons de l'arche du jukebox : éteints au repos, ils défilent et pulsent sur la musique. */
+export function jukeboxLights(g: G, x: number, y: number, on: boolean, level: number, t: number) {
+  const p = { x, y };
+  const arcs: [number, string, string][] = [[11, '#ff5fa2', '#5a2a3e'], [9, P.orange, '#5a3a24'], [7, '#3fd8ff', '#1f3e4a']];
+  arcs.forEach(([r, col, dim], i) => {
+    for (let a = 0; a <= 16; a++) {
+      const ang = Math.PI + (a / 16) * Math.PI;
+      const x = p.x + 16 + Math.round(Math.cos(ang) * r);
+      const y = p.y + 15 + Math.round(Math.sin(ang) * r);
+      const lit = on && (Math.floor(t * 8) + a + i * 3) % 6 !== 0;
+      g.fillStyle = lit ? col : dim;
+      g.fillRect(x, y, 1, 1);
+    }
+  });
+  if (on) {
+    // le disque tourne
+    const a = t * 8;
+    g.fillStyle = P.orangeLight;
+    g.fillRect(p.x + 16 + Math.round(Math.cos(a) * 3), p.y + 20 + Math.round(Math.sin(a) * 1.5), 1, 1);
+    // les barres du vumètre
+    for (let i = 0; i < 5; i++) {
+      const h = 1 + Math.round((level * 4) * (0.6 + 0.4 * Math.sin(t * 9 + i * 1.7)));
+      g.fillStyle = i % 2 ? '#ff5fa2' : P.orange;
+      g.fillRect(p.x + 7 + i * 4, p.y + 32 - h, 2, h);
+    }
   }
 }

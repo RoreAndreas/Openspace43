@@ -5,7 +5,8 @@
 Un bureau en pixel art où une petite équipe d'agents IA travaille pour une responsable marketing et communication :
 
 - **Roré**, le chef de projet, lit ta demande, écrit le plan, confie le travail et vérifie le rendu ;
-- **un analyste**, qui cherche sur internet, analyse et rédige les rapports.
+- **un analyste**, qui cherche sur internet, analyse et rédige les rapports ;
+- **Hares**, le financier, qui interroge ta base 43 WACC (le site WACC43) : échantillons de sociétés cotées comparables, médianes et quartiles, valeurs aberrantes, multiples et CMPC.
 
 Chaque bulle montre ce que l'agent fait vraiment, à cet instant : une recherche, une page lue, un fichier écrit.
 
@@ -43,7 +44,14 @@ ton compte : c'est prévu et autorisé.
 - **Les rendus** : chaque rapport se lit dans le bureau ou se télécharge, avec l'historique de ses versions. Une mission entière se télécharge en `.zip`.
 - **Les missions précédentes** (touche `H`) : on peut les rejouer.
 - **La note « Comment ça marche »** : le post-it jaune, à côté du bureau de Roré.
-- **La salle de pause** (la porte « PAUSE », le bouton ☕ ou la touche `D`) : une cuisine et une salle de loisirs où tous les personnages se retrouvent. Chacun y fait ce qu'il aime (café, frigo, repas, console, arcade, bibliothèque, danse, sieste), ils discutent entre eux et jouent à deux au ping-pong ou au baby-foot. Clique sur l'un d'eux : il te parle.
+- **La Break room**, à gauche du bureau (la porte « BREAK ROOM », le bouton ☕ ou la touche `D`) : une cuisine et une salle de loisirs où tous les personnages se retrouvent. Chacun y fait ce qu'il aime (café, frigo, repas, console, arcade, bibliothèque, danse, sieste), ils discutent entre eux et jouent à deux au ping-pong ou au baby-foot. Clique sur l'un d'eux : il te parle. Quand le jukebox joue, il s'anime là-bas aussi, et on y danse plus volontiers.
+
+### Hares et la base 43 WACC
+
+Hares travaille sur la base du site WACC43 (8 000 sociétés cotées S&P Capital IQ, primes de risque pays et bêtas sectoriels Damodaran, taux US Treasury). Roré lui confie tout ce qui touche à la finance : un échantillon de comparables, un CMPC, une valorisation par les multiples. Trois skills tirés de l'onglet HARES de WACC43 sont installés d'office : `hares-echantillon`, `hares-cmpc`, `hares-multiples`.
+
+- **En ligne** : le Worker relaie la page publiée de WACC43 (variable `WACC43_URL` dans `wrangler.jsonc`, par défaut https://43wacc.pages.dev/), derrière le code d'accès, gardée une heure en cache. C'est le navigateur qui en extrait la base et l'interroge (`shared/wacc43.ts`) : le Worker gratuit n'a pas le temps de lire 8 Mo de JSON.
+- **Sur ton ordinateur** : le serveur local lit ta page WACC43 sur le disque (`WACC43_HTML`, sinon le dépôt `43` rangé à côté de l'open space), sinon le site publié. Avec Claude Code, la base est déposée dans le dossier caché `.wacc43` de la mission, une société par ligne.
 - **Prendre les commandes de Roré** : double-clic sur lui, puis les flèches pour le faire marcher (la caméra le suit). `Échap` lui rend la main.
 - **Un coin par métier, chacun son style** : le code en futuriste (métal sombre, néons cyan, tapis en circuit imprimé), le design en flashy (laqué rose, chaises jaunes, confettis), la recherche en bibliothèque d'explorateur, la rédaction en bureau d'écrivain, l'analyse en corporate (bleu nuit et or).
 - **Les idées de mission** : des bulles grises au-dessus du chat. Après une mission, des idées de retouche.

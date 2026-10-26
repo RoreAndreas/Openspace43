@@ -27,7 +27,8 @@ export type Part =
   | 'chestLight' | 'toolbelt'
   | 'bun' | 'tie' | 'tablet'
   | 'pompadour' | 'sunglasses' | 'puffy' | 'tape'
-  | 'hairTuft' | 'goggles' | 'backpack' | 'holo';
+  | 'hairTuft' | 'goggles' | 'backpack' | 'holo'
+  | 'crest' | 'spear' | 'shield';
 
 /** Une tenue : les couleurs du robot et ses pièces. Les couleurs absentes gardent celles du robot blanc. */
 export interface Outfit {
@@ -54,7 +55,7 @@ interface Look {
 }
 
 /** Ce qui cache l'antenne. */
-const HATS: Part[] = ['beret', 'explorerHat', 'hood', 'wizardHat', 'bun', 'pompadour', 'hairTuft'];
+const HATS: Part[] = ['beret', 'explorerHat', 'hood', 'wizardHat', 'bun', 'pompadour', 'hairTuft', 'crest'];
 
 /** Les robots de métier, tels qu'ils étaient : blancs, la couleur du métier, un accessoire. */
 function roleOutfit(role: Role): Outfit {
@@ -271,6 +272,20 @@ function drawHeadParts(g: CanvasRenderingContext2D, L: Look, dir: Dir, bob: numb
       if (dir === 'up') rect(g, 4, 4 + y, 12, 3, c);
     }
   }
+  if (has('crest')) { // le casque corinthien : une aigrette rouge d'avant en arrière, des paragnathides de bronze
+    const c = L.c('crest', '#c0392b'), hi = lighten(c, 0.3), bronze = L.c('bronze', '#b8863b');
+    if (side) {
+      rect(g, 4, 1 + y, 10, 2, c);
+      rect(g, 3, 2 + y, 2, 3, c);
+      rect(g, 6, 1 + y, 7, 1, hi);
+      rect(g, 8, 3 + y, 4, 1, bronze);
+    } else {
+      rect(g, 8, 0 + y, 4, 4, c);
+      rect(g, 9, 0 + y, 1, 4, hi);
+      rect(g, 7, 3 + y, 6, 1, bronze);
+      if (dir === 'down') { rect(g, 4, 9 + y, 2, 4, bronze); rect(g, 14, 9 + y, 2, 4, bronze); }
+    }
+  }
   if (has('goggles') && dir !== 'up') { // des lunettes d'aviateur relevées sur le front
     const band = L.c('strap', '#57483c'), lens = L.c('lens', '#43748a');
     if (side) {
@@ -397,6 +412,13 @@ function drawBodyParts(g: CanvasRenderingContext2D, L: Look, dir: Dir, limbs: Li
     px(g, 7, y + 2, c);
   }
   if (has('holo')) { const [x, ay, h] = limbs.ra; rect(g, x, ay + bob + h - 2, 2, 1, L.c('holo', '#9fe8ff')); }
+  if (has('shield')) { // l'hoplon de bronze frappé du lambda, au bras gauche
+    const b = L.c('bronze', '#b8863b'), rim = darken(b, 0.3), mark = L.c('crest', '#c0392b');
+    rect(g, 2, y, 6, 6, b);
+    rect(g, 3, y - 1, 4, 8, b);
+    rect(g, 2, y, 1, 6, rim); rect(g, 7, y, 1, 6, rim);
+    px(g, 5, y + 1, mark); px(g, 4, y + 2, mark); px(g, 4, y + 3, mark); px(g, 6, y + 2, mark); px(g, 6, y + 3, mark); px(g, 3, y + 4, mark); px(g, 7, y + 4, mark);
+  }
   if (has('tablet')) { // la tablette tenue contre elle
     const c = L.c('tablet', '#2c2c4e');
     rect(g, 5, y + 1, 4, 4, c);
@@ -488,9 +510,16 @@ function drawBodySide(g: CanvasRenderingContext2D, L: Look, frame: number, walki
 
 /** Le bâton du mage : il le tient à côté de lui ; son cristal scintille une image sur deux au repos. */
 function drawStaff(g: CanvasRenderingContext2D, L: Look, dir: Dir, frame: number, bob: number, glint: boolean) {
+  const x = dir === 'up' ? 3 : 16;
+  if (L.parts.has('spear')) { // la lance de Hares : une hampe et une pointe de bronze
+    const tip = L.c('bronze', '#b8863b');
+    rect(g, x, 3 + bob, 1, 19 - bob, L.c('wood', '#7a5230'));
+    rect(g, x - 1, 1 + bob, 3, 2, tip);
+    px(g, x, 0 + bob, lighten(tip, 0.4));
+    return;
+  }
   if (!L.parts.has('staff')) return;
   const wood = L.c('wood', '#7a5230'), gem = L.c('rune', '#3fe0c8');
-  const x = dir === 'up' ? 3 : 16;
   rect(g, x, 4 + bob, 1, 17 - bob, wood);
   rect(g, x - 1, 1 + bob, 3, 3, glint && frame % 2 ? lighten(gem, 0.5) : gem);
   px(g, x - 1, 1 + bob, '#ffffff');

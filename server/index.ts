@@ -16,6 +16,7 @@ import type { ClientMsg, ServerMsg } from '../shared/protocol.ts';
 import { readPage, searchWeb, WebError } from '../shared/web.ts';
 import { Bureau } from './bureau.ts';
 import { findClaude } from './claude.ts';
+import { wacc43Html } from './wacc43.ts';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = path.join(ROOT, 'dist');
@@ -129,6 +130,14 @@ function readBody(req: http.IncomingMessage, max = 400_000): Promise<string> {
   });
 }
 
+/** La base 43 WACC de Hares : la page WACC43 de cet ordinateur si elle est là (WACC43_HTML, sinon le dépôt 43
+ *  rangé à côté de l'open space), sinon le site publié (WACC43_URL). */
+async function wacc43Page(res: http.ServerResponse) {
+  const html = await wacc43Html();
+  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
+  res.end(html);
+}
+
 /** Relaie une demande à Ollama (sans limite de temps : un gros modèle peut réfléchir longtemps). */
 function ollama(method: 'GET' | 'POST', p: string, body: string | null, res: http.ServerResponse) {
   const r = http.request({ hostname: OLLAMA.hostname, port: OLLAMA.port || 11434, path: p, method, headers: { 'Content-Type': 'application/json' } }, (up) => {
@@ -150,6 +159,7 @@ async function localApi(req: http.IncomingMessage, url: URL, res: http.ServerRes
   try {
     if (url.pathname === '/api/ping') { sendJson(res, 200, { ok: true, models: [], search: process.env.TAVILY_KEY ? 'tavily' : 'duckduckgo' }); return; }
     if (url.pathname === '/api/ollama/tags') { ollama('GET', '/api/tags', null, res); return; }
+    if (url.pathname === '/api/wacc43') { await wacc43Page(res); return; }
     if (req.method !== 'POST') { sendJson(res, 405, { error: 'Méthode non autorisée.' }); return; }
     const raw = await readBody(req);
     if (url.pathname === '/api/ollama/chat') { ollama('POST', '/api/chat', raw, res); return; }

@@ -3,7 +3,7 @@ import { ROLES } from '../../shared/activity.ts';
 import type { Role } from '../../shared/protocol.ts';
 import { textWidth } from './font.ts';
 import { furniturePlacement } from './furniture.ts';
-import { ANNEX_DOOR, BOARD, CLOCK, DOOR, FURNITURE, NEON, POSTER, T, W, WINDOWS, ZONES } from './layout.ts';
+import { ANNEX_DOOR, BOARD, CLOCK, DOOR, FURNITURE, NEON, POSTER, T, WINDOWS, ZONES } from './layout.ts';
 import type { World } from './world.ts';
 
 export type Hit =
@@ -68,7 +68,7 @@ export function hitAt(world: World, x: number, y: number): Hit | null {
   if (inRect(x, y, POSTER)) return { kind: 'object', id: 'poster', label: 'L’affiche des objectifs' };
   for (const w of WINDOWS) if (inRect(x, y, { x: w.x - 3, y: w.y - 3, w: w.w + 6, h: w.h + 8 })) return { kind: 'object', id: 'window', label: 'La fenêtre (jour, soir ou nuit)' };
   if (inRect(x, y, DOOR)) return { kind: 'object', id: 'door', label: 'La porte : c’est par là qu’arrive l’équipe' };
-  if (inRect(x, y, { x: W - T, y: ANNEX_DOOR.row * T - 18, w: T, h: 2 * T + 18 })) return { kind: 'object', id: 'annexDoor', label: 'La salle de pause : la cuisine et les loisirs (touche D)' };
+  if (inRect(x, y, { x: 0, y: ANNEX_DOOR.row * T - 18, w: T + 30, h: 9 }) || inRect(x, y, { x: 0, y: ANNEX_DOOR.row * T - 6, w: T, h: 2 * T + 6 })) return { kind: 'object', id: 'annexDoor', label: 'La Break room : la cuisine et les loisirs (touche D)' };
   for (const z of ZONES) {
     const w = textWidth(ZONE_SIGN[z.role] ?? z.label) + 10;
     const sx = z.x * T + 4, sy = z.role === 'chef' ? (z.y + z.h) * T - 12 : z.y * T + 3;

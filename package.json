@@ -1,6 +1,6 @@
 {
   "name": "openspace",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "description": "L'open space : Roré, le chef, et son analyste, une équipe d'agents IA qui travaille sous tes yeux dans un bureau en pixel art, pour une responsable marketing et communication. En ligne sur Cloudflare (IA gratuite ou clé API Claude), ou sur ton ordinateur avec Claude Code et ton compte Claude, ou avec Ollama (IA gratuite). D'après « Le Bureau des agents » de VibesMoney (MIT).",
   "license": "MIT",

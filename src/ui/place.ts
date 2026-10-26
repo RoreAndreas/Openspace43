@@ -1,4 +1,4 @@
-// Le bureau et la salle de pause : on passe de l'un à l'autre par leurs portes, le bouton ☕ ou la touche D.
+// Le bureau et la Break room : on passe de l'un à l'autre par leurs portes, le bouton ☕ ou la touche D.
 // Si tu diriges Roré et qu'il franchit une porte, il change de pièce avec toi.
 import { sfx } from '../audio/sfx.ts';
 import type { Annex, AnnexHit } from '../engine/annex.ts';
@@ -35,7 +35,7 @@ export function goRoom(room: Room) {
 /** La pièce où tu diriges Roré (celle qu'on voit). */
 export const activeRoom = (): typeof world | Annex => (useOffice.getState().room === 'annex' ? annex : world);
 
-/** Un clic dans la salle de pause. */
+/** Un clic dans la Break room. */
 export function interactAnnex(hit: AnnexHit) {
   if (hit.kind === 'door') { goRoom('office'); return; }
   if (hit.kind === 'pal') {

@@ -1,5 +1,5 @@
 // Tu prends les commandes de Roré : double-clic sur lui, puis les flèches pour le faire marcher (dans le
-// bureau ou dans la salle de pause ; Espace, dans la salle de pause, pour parler au collègue le plus proche).
+// bureau ou dans la Break room ; Espace, dans la Break room, pour parler au collègue le plus proche).
 // Échap (ou un nouveau double-clic sur lui) lui rend la main : en pleine mission, il retourne à son bureau.
 import { sfx } from '../audio/sfx.ts';
 import { annex, camera } from '../engine/instance.ts';

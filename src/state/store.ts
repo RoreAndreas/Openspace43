@@ -121,7 +121,7 @@ interface S {
   filming: boolean;
   /** tu diriges Roré au clavier (double-clic sur lui) */
   driving: boolean;
-  /** la pièce affichée : le bureau, ou la salle de pause (touche D) */
+  /** la pièce affichée : le bureau, ou la Break room (touche D) */
   room: 'office' | 'annex';
   sound: boolean;
   tod: Tod;

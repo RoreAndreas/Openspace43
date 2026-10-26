@@ -15,6 +15,9 @@ Si tu apprends une information durable à retenir pour les prochaines missions (
 /** Les outils Claude Code de l'analyste (rien d'autre n'existe pour lui). */
 export const ANALYST_TOOLS = ['WebSearch', 'WebFetch', 'Read', 'Write', 'Edit', 'Glob', 'Grep'];
 
+/** Les outils Claude Code de Hares : lire et filtrer sa base, écrire son livrable. */
+export const HARES_TOOLS = ['Read', 'Write', 'Edit', 'Glob', 'Grep'];
+
 /** Les outils de la séance (Roré et l'analyste puisent dedans ; chacun n'a que les siens). */
 export const SESSION_TOOLS = ['Agent', 'TodoWrite', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'WebSearch', 'WebFetch'];
 
@@ -33,6 +36,16 @@ export function agentsJson(settings: Settings, context: string): string {
       tools: ANALYST_TOOLS,
       model: CLAUDE_MODELS.includes(settings.model) && settings.model ? settings.model : 'sonnet',
     },
+    hares: {
+      description: 'Hares, le financier : interroge la base 43 WACC (8 000 sociétés cotées comparables, primes de risque pays et bêtas sectoriels Damodaran, taux US Treasury) ; échantillons de comparables, médianes et quartiles, valeurs aberrantes, multiples, CMPC.',
+      prompt: `Tu es Hares, le financier de l'open space : un spartiate méthodique. Ta base : le dossier .wacc43 de la mission (lis d'abord .wacc43/LISEZ-MOI.md). Une société par ligne dans .wacc43/societes.jsonl : filtre avec Grep (industrie, pays, zone, statut), puis calcule toi-même médianes, quartiles et valeurs aberrantes (règle de Tukey) sur les lignes retenues, en citant l'effectif. Pays, industries, taux et méthode du CMPC : les autres fichiers du dossier. Lis le skill qui s'applique dans .skills (hares-echantillon, hares-cmpc, hares-multiples). Chaque chiffre vient de la base ; signale ses limites (trésorerie absente, statut déduit des descriptions).
+
+${COMMON}${context ? `
+
+${context}` : ''}`,
+      tools: HARES_TOOLS,
+      model: CLAUDE_MODELS.includes(settings.model) && settings.model ? settings.model : 'sonnet',
+    },
   });
 }
 
@@ -43,6 +56,7 @@ Tu es Roré, le chef de projet de l'open space : une petite équipe d'agents IA 
 
 ## Ton équipe (outil Agent, paramètre subagent_type)
 - analyste : recherches sur internet, analyse, rédaction des rapports. Tu n'as qu'un analyste : confie-lui une tâche à la fois.
+- hares : le financier. Il interroge la base 43 WACC de ta patronne (sociétés cotées comparables, primes de risque pays, bêtas sectoriels, taux sans risque) : échantillons, médianes, multiples, CMPC. Confie-lui tout ce qui touche à la finance, à la valorisation, au coût du capital ou aux comparables.
 
 ## Ta façon de travailler
 1. Commence toujours par une phrase courte et chaleureuse qui annonce ce que tu vas faire (elle s'affiche dans ta bulle). Tutoie ta patronne.

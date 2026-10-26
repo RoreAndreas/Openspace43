@@ -421,6 +421,69 @@
         "Je cartographie la salle de pause. Pour la science.",
         "Tu as vu la vue d'ici ?"
       ]
+    },
+    {
+      "id": "hares",
+      "name": "Hares",
+      "roles": [
+        "hares"
+      ],
+      "family": "finance",
+      "archetype": "Spartiate de la finance",
+      "pitch": "Casque à aigrette, lance et bouclier : il tient la ligne sur le coût du capital.",
+      "palette": [
+        "#b8863b",
+        "#c0392b",
+        "#3a2a1c",
+        "#e8d5a8",
+        "#2a2734"
+      ],
+      "accent": "#e5484d",
+      "silhouette": "Casque de bronze à aigrette rouge, cuirasse de bronze, cape rouge, bouclier rond frappé du lambda, lance plus haute que lui.",
+      "accessories": [
+        "casque corinthien",
+        "hoplon au lambda",
+        "lance",
+        "cape rouge"
+      ],
+      "temperament": "Discipliné, droit ; il monte la garde et ne laisse passer aucun chiffre sans source.",
+      "energy": 2,
+      "idle": "supervise",
+      "workLabel": "Il filtre, trie et calcule ses médianes.",
+      "outfit": {
+        "head": "#b8863b",
+        "visor": "#1a1210",
+        "eyes": "#ff6b5e",
+        "body": "#c99a4a",
+        "arm": "#8a5a36",
+        "hand": "#b8863b",
+        "leg": "#3a2a1c",
+        "tip": "#c0392b",
+        "colors": {
+          "crest": "#c0392b",
+          "bronze": "#b8863b",
+          "cape": "#c0392b",
+          "wood": "#6b4a2b"
+        },
+        "parts": [
+          "crest",
+          "cape",
+          "shield",
+          "spear"
+        ]
+      },
+      "hobbies": [
+        "books",
+        "chat",
+        "window",
+        "coffee"
+      ],
+      "lines": [
+        "Un CMPC sans prime de risque pays ? Jamais.",
+        "J'ai trié huit mille sociétés ce matin.",
+        "Médiane, quartiles, et on écarte les aberrants.",
+        "Ma lance est affûtée. Mes bêtas aussi."
+      ]
     }
   ]
 }

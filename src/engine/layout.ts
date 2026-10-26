@@ -127,7 +127,7 @@ export const CLOCK = { x: 232, y: 13 };
 export const POSTER = { x: 252, y: 12, w: 10, h: 14 };
 export const DOOR = { x: 160, y: 228, w: 32, h: 28 };
 
-/** La porte de la salle de pause : dans le mur de droite, sur deux cases (rangées 9 et 10). */
+/** La porte de la Break room : dans le mur de gauche, sur deux cases (rangées 9 et 10). */
 export const ANNEX_DOOR = { row: 9 };
 
 /** La grille des cases où l'on peut marcher. */
@@ -140,9 +140,9 @@ export function walkGrid(): boolean[][] {
   // la porte
   g[15][10] = true;
   g[15][11] = true;
-  // la porte de la salle de pause (Roré peut la passer quand tu le diriges)
-  g[ANNEX_DOOR.row][21] = true;
-  g[ANNEX_DOOR.row + 1][21] = true;
+  // la porte de la Break room (Roré peut la passer quand tu le diriges)
+  g[ANNEX_DOOR.row][0] = true;
+  g[ANNEX_DOOR.row + 1][0] = true;
   for (const f of FURNITURE) {
     for (let y = f.ty; y < f.ty + f.h; y++) for (let x = f.tx; x < f.tx + f.w; x++) if (g[y]?.[x] !== undefined) g[y][x] = false;
   }

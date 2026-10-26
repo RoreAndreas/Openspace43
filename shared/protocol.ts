@@ -3,7 +3,7 @@
 // ce fichier est lu tel quel par Node (sans compilation) et par Vite.
 
 /** Les métiers du bureau. « chef » = l'agent principal, celui à qui tu parles. */
-export type Role = 'chef' | 'recherche' | 'code' | 'design' | 'redaction' | 'analyse' | 'renfort';
+export type Role = 'chef' | 'recherche' | 'code' | 'design' | 'redaction' | 'analyse' | 'hares' | 'renfort';
 
 /** Ce que fait un agent à un instant : sert à l'animation, à l'icône et à la bulle. */
 export type ActKind = 'search' | 'web' | 'read' | 'write' | 'edit' | 'bash' | 'plan' | 'skill' | 'mcp' | 'other';

@@ -16,5 +16,7 @@
     "run_worker_first": ["/api/*"]
   },
   "ai": { "binding": "AI" },
+  // la base 43 WACC de Hares : la page publiée de WACC43
+  "vars": { "WACC43_URL": "https://43wacc.pages.dev/" },
   "observability": { "enabled": false }
 }

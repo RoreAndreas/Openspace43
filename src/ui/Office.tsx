@@ -65,7 +65,7 @@ export function Office() {
   const scaleRef = useRef(scale);
   scaleRef.current = scale;
 
-  // Les flèches, quand tu diriges Roré ; les portes entre le bureau et la salle de pause
+  // Les flèches, quand tu diriges Roré ; les portes entre le bureau et la Break room
   useEffect(() => installDriving(), []);
   useEffect(() => installDoors(), []);
   const room = useOffice((s) => s.room);
@@ -135,8 +135,10 @@ export function Office() {
       world.leverFree = st.engine === 'ollama' || (st.engine === 'cloud' && modelInfo(st.settings.model)?.provider !== 'claude');
       if (!cap && acc < (active || camMoving ? 1 / 24 : 1 / 8)) return;
       const t0 = performance.now();
-      // le bureau et la salle de pause vivent tous les deux ; on dessine celle où tu es
+      // le bureau et la Break room vivent tous les deux ; on dessine celle où tu es
       active = world.update(acc) || inAnnex;
+      annex.musicOn = world.musicOn;
+      annex.musicLevel = world.musicLevel;
       annex.update(acc);
       acc = 0;
       if (inAnnex) annexRenderer.draw(lg, annex, timeOfDay(todRef.current));
@@ -226,13 +228,13 @@ export function Office() {
   );
 }
 
-/** Dans la salle de pause : où tu es, et comment revenir au bureau. */
+/** Dans la Break room : où tu es, et comment revenir au bureau. */
 function RoomBadge() {
   const room = useOffice((s) => s.room);
   if (room !== 'annex') return null;
   return (
     <button className="room-badge" onClick={(e) => { e.stopPropagation(); goRoom('office'); }} title="Retour au bureau (touche D)">
-      ☕ Salle de pause <span>← Retour au bureau</span>
+      ☕ Break room <span>Retour au bureau →</span>
     </button>
   );
 }

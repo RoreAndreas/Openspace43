@@ -7,6 +7,7 @@ import type { OfficeEvent, PlanItem } from '../../shared/protocol.ts';
 import { api, ApiError, type ChatMsg } from './api.ts';
 import { drawerPrompt, useDrawer } from './drawer.ts';
 import { findSkill, skillsPrompt } from './skills.ts';
+import { askWacc43 } from './wacc43.ts';
 
 /** Les fichiers de la mission (un petit dossier virtuel, rangé dans le navigateur). */
 export interface MissionFiles {
@@ -260,17 +261,90 @@ async function runAnalyst(ctx: TeamCtx, title: string, instructions: string): Pr
   }
 }
 
+// ── Hares, le financier ──
+function haresPrompt(ctx: TeamCtx): string {
+  return `Tu es Hares, le financier de l'open space : un spartiate méthodique. Tu travailles sur la base 43 WACC de ta patronne (le site WACC43) : 8 000 sociétés cotées (exports S&P Capital IQ, montants en millions), les primes de risque pays et les bêtas sectoriels Damodaran, les taux US Treasury. Roré, le chef de projet, t'a confié une tâche précise. Tout ce que tu fais s'affiche en direct dans un bureau en pixel art.
+Nous sommes le ${today()}.
+
+${FORMAT}
+
+Actions :
+- base43 {"source": "resume"} : ce que contient la base (zones, industries, champs). Commence par là si tu ne connais pas les noms exacts.
+- base43 {"source": "societes", "filtres": {"industrie": "Telecom", "continent": "Afrique", "zone": "...", "pays": "...", "statut": "groupe|filiale", "nom": "...", "activite": "mot de la description"}, "min": {"marge_ebitda": 0.1}, "max": {"levier": 4}, "exclure": ["nom de société"], "aberrants": ["ve_ebitda"], "tri": "capitalisation", "ordre": "desc|asc", "garder": 20, "stats": ["beta_u", "gearing", "ve_ebitda"], "colonnes": ["capitalisation", "marge_ebitda"], "limite": 15} : un échantillon de sociétés, ses médianes et quartiles, et un tableau. Champs : capitalisation, dette, fonds_propres, ca, ebitda, rn, marge_ebitda, marge_nette, croissance_ca, levier, gearing, ve, ve_ebitda, ve_ca, per, beta_u, beta_3ans, beta_1an, is_effectif. Les demandes ne se cumulent pas : redonne tous les filtres à chaque fois.
+- base43 {"source": "pays", "nom": "Côte d'Ivoire"} : prime de risque pays, spread de défaut, taux d'IS.
+- base43 {"source": "industries", "nom": "Telecom"} : bêta désendetté et D/E sectoriels (Damodaran). Sans "nom" : la liste.
+- base43 {"source": "taux", "annee": 2026, "maturite": "30"} : le taux US Treasury moyen.
+- base43 {"source": "cmpc", "pays": "...", "industrie": "...", "annee": 2026, "maturite": "30", "prime_taille": 0, "prime_specifique": 0, "inflation_locale": 0.03, "inflation_ref": 0.025, "comparables": {"filtres": {...}}, "gearing_cible": 0.4} : le CMPC, méthode indirecte, détaillé (comme WACC43). Avec "comparables", le bêta et le gearing sont les médianes de l'échantillon.
+${FILE_ACTIONS}
+- edit_file {"name": "...", "find": "texte exact à remplacer", "replace": "nouveau texte"} : retoucher un fichier.
+- final {"report": "..."} : rendre ton rapport à Roré et terminer. 10 lignes au plus : les chiffres clés, le nom du fichier écrit, les limites.
+
+Ta façon de travailler :
+1. Lis d'abord le skill qui s'applique (use_skill), puis interroge la base : 3 à 8 demandes base43 suffisent.
+2. Chaque chiffre vient de la base : cite la demande qui l'a produit (filtres, effectif). N'invente rien. Signale les limites de la base : la trésorerie manque (levier en dette brute), le statut groupe ou filiale est déduit des descriptions.
+3. Écris le livrable dans un fichier Markdown de la mission (write_file) : la méthode, l'échantillon, les tableaux, les médianes, les sociétés écartées et pourquoi.
+4. Réponds en français.
+
+${context(ctx)}`;
+}
+
+/** Hares fait sa tâche sur la base 43 WACC et rend son rapport. */
+async function runHares(ctx: TeamCtx, title: string, instructions: string): Promise<string> {
+  const id = `hares-${Date.now().toString(36)}`;
+  const t0 = Date.now();
+  const usage: Usage = { tokens: 0 };
+  let tools = 0;
+  ctx.emit({ k: 'hire', id, role: 'hares', type: 'hares', name: 'Hares', task: cut(title || 'Base 43 WACC', 48), prompt: cut(instructions, 2000) });
+  const messages: ChatMsg[] = [
+    { role: 'system', content: haresPrompt(ctx) },
+    { role: 'user', content: `Ta tâche, confiée par Roré :\n${instructions}` },
+  ];
+  const leave = (ok: boolean) => ctx.emit({ k: 'leave', who: id, ok, tokens: usage.tokens, tools, ms: Date.now() - t0 });
+  try {
+    for (let step = 0; step < ANALYST_STEPS; step++) {
+      ctx.emit({ k: 'think', who: id });
+      const { act: a, raw } = await think(ctx, messages, usage);
+      messages.push({ role: 'assistant', content: raw });
+      if (a.say.trim()) ctx.emit({ k: 'say', who: id, text: cut(a.say, 220) });
+      if (a.action === 'final' || a.action === 'report') {
+        const report = str(a.input.report ?? a.input.message ?? a.say, 20_000).trim() || 'Travail terminé.';
+        ctx.emit({ k: 'report', who: id, text: report });
+        leave(true);
+        return report;
+      }
+      tools++;
+      let result: string | null;
+      if (a.action === 'base43' || a.action === 'wacc43' || a.action === 'base') {
+        result = await act(ctx, id, 'Base43', a.input, () => askWacc43(a.input))
+          .catch((e) => `La base 43 WACC n’a pas répondu : ${e instanceof Error ? e.message : e}`);
+      } else result = await common(ctx, id, a);
+      if (result === null) { tools--; result = 'Action inconnue. Actions possibles : base43, read_file, write_file, edit_file, use_skill, final.'; }
+      messages.push({ role: 'user', content: `Résultat de ${a.action} :\n${clip(result, Math.max(MAX_RESULT, 6000))}` });
+    }
+    const report = 'J’ai atteint ma limite d’actions. Le travail fait est dans les fichiers de la mission.';
+    ctx.emit({ k: 'report', who: id, text: report });
+    leave(true);
+    return report;
+  } catch (e) {
+    leave(false);
+    throw e;
+  }
+}
+
 // ── Roré, le chef ──
 export function chefPrompt(ctx: TeamCtx): string {
   return `Tu es Roré, le chef de projet de l'open space : une équipe d'agents IA au service d'une responsable marketing et communication (ta patronne). Tout ce que tu fais s'affiche en direct dans un bureau en pixel art.
 Nous sommes le ${today()}.
-Ton équipe : un seul analyste. Il cherche sur internet, analyse et rédige les rapports. Tu lui confies le travail avec "delegate" et tu reçois son rapport.
+Ton équipe :
+- l'analyste : il cherche sur internet, analyse et rédige les rapports marketing et communication ;
+- Hares, le financier : il interroge la base 43 WACC de ta patronne (sociétés cotées comparables, primes de risque pays, bêtas sectoriels, taux sans risque) et calcule médianes, multiples et CMPC. Confie-lui tout ce qui touche à la finance, à la valorisation, au coût du capital ou aux comparables.
+Tu leur confies le travail avec "delegate" et tu reçois leur rapport.
 
 ${FORMAT}
 
 Actions :
 - plan {"steps": [{"text": "...", "status": "pending|in_progress|completed"}]} : écrire ou mettre à jour le plan (3 à 5 étapes courtes).
-- delegate {"title": "2 à 4 mots", "instructions": "consignes précises : quoi chercher, quoi rendre, sous quelle forme, nom du fichier à écrire"} : confier une tâche à l'analyste.
+- delegate {"to": "analyste" ou "hares", "title": "2 à 4 mots", "instructions": "consignes précises : quoi chercher, quoi rendre, sous quelle forme, nom du fichier à écrire"} : confier une tâche à l'analyste ou à Hares.
 ${FILE_ACTIONS}
 - final {"message": "..."} : terminer la mission. 5 lignes au plus : ce qui a été fait, le nom du fichier rendu, la prochaine étape que tu conseilles.
 
@@ -328,11 +402,16 @@ export async function runChef(ctx: TeamCtx, history: ChatMsg[], userText: string
       }
       case 'delegate':
       case 'delegate_to_analyst':
-      case 'analyst': {
+      case 'analyst':
+      case 'hares':
+      case 'delegate_to_hares': {
         const instructions = str(i.instructions ?? i.task ?? i.prompt, 6000).trim();
         if (!instructions) { result = 'Il manque « instructions ».'; break; }
-        const report = await runAnalyst(ctx, str(i.title ?? i.description, 60), instructions);
-        result = `Rapport de l'analyste :\n${report}`;
+        const toHares = a.action.includes('hares') || /hares|financ/i.test(str(i.to ?? i.agent ?? i.who, 40));
+        const report = toHares
+          ? await runHares(ctx, str(i.title ?? i.description, 60), instructions)
+          : await runAnalyst(ctx, str(i.title ?? i.description, 60), instructions);
+        result = `Rapport ${toHares ? 'de Hares' : "de l'analyste"} :\n${report}`;
         break;
       }
       default:

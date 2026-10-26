@@ -6,7 +6,7 @@ import { Cat } from './cat.ts';
 import { characterInfo, idleEffect, lookFor, onLooks } from './characters.ts';
 import { Fx } from './fx.ts';
 import { iconFor } from './icons.ts';
-import { ANNEX_DOOR, CHEF_SEAT, SEATS, SPOTS, T, W, WINDOWS, tileFeet, walkGrid, type Seat } from './layout.ts';
+import { ANNEX_DOOR, CHEF_SEAT, SEATS, SPOTS, T, WINDOWS, tileFeet, walkGrid, type Seat } from './layout.ts';
 import { findPath, type Tile } from './path.ts';
 import type { Dir, Eyes, Pose } from './robots.ts';
 
@@ -252,7 +252,8 @@ export class World {
   // ── Les places ──
   private assignSeat(role: Role): Seat | null {
     const free = (r: Role | null) => SEATS.find((s) => (r === null || s.role === r) && !this.seatOf.has(s.id)) ?? null;
-    return free(role) ?? (role === 'renfort' ? free(null) : null);
+    // Hares s'installe au coin Analyse (la finance y est chez elle)
+    return free(role) ?? (role === 'hares' ? free('analyse') : null) ?? (role === 'renfort' ? free(null) : null);
   }
 
   private overflowSpot(): Tile {
@@ -573,30 +574,30 @@ export class World {
     if (ok(nx, ny) || !ok(a.x, a.y)) { a.x = nx; a.y = ny; }
     else if (dx && ok(nx, a.y)) a.x = nx;
     else if (dy && ok(a.x, ny)) a.y = ny;
-    // jamais hors de la pièce, sauf par la porte de la salle de pause
+    // jamais hors de la pièce, sauf par la porte de la Break room (à gauche)
     const row = Math.floor((a.y - 2) / T);
     const atDoor = row >= ANNEX_DOOR.row && row <= ANNEX_DOOR.row + 1;
-    a.x = Math.max(T + 4, Math.min(atDoor ? W - 2 : 21 * T - 4, a.x));
+    a.x = Math.max(atDoor ? 2 : T + 4, Math.min(21 * T - 4, a.x));
     a.y = Math.max(3 * T + 8, Math.min(15 * T + 15, a.y));
     a.moving = true;
     a.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up';
     this.strollAt = this.time + IDLE_STROLL;
-    // il franchit la porte : direction la salle de pause
-    if (atDoor && a.x > 21 * T + 6) this.onDoor?.();
+    // il franchit la porte : direction la Break room
+    if (atDoor && a.x < 8) this.onDoor?.();
   }
 
   /** Roré passe une porte en marchant (pour changer de pièce avec lui). */
   onDoor?: () => void;
 
-  /** Roré revient de la salle de pause par sa porte : il réapparaît juste devant. */
+  /** Roré revient de la Break room par sa porte : il réapparaît juste devant. */
   chefAtDoor(y: number) {
     const chef = this.chef;
     chef.seated = false;
     chef.cur = null;
     chef.path = [];
-    chef.x = 21 * T - 4;
+    chef.x = T + 4;
     chef.y = Math.max(ANNEX_DOOR.row * T + 6, Math.min((ANNEX_DOOR.row + 2) * T - 2, y));
-    chef.dir = 'left';
+    chef.dir = 'right';
   }
 
   /** Les endroits où Roré aime passer, et ce qu’il y fait. */

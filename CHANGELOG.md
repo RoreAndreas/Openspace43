@@ -1,5 +1,13 @@
 # Les versions
 
+## Open space v0.6.0 (26 octobre 2026)
+
+- **Hares rejoint l'équipe** : un spartiate de la finance (casque à aigrette, bouclier au lambda, lance), assis au coin Analyse. Roré lui confie les échantillons de comparables, les CMPC et les valorisations par les multiples.
+- **Hares interroge ta base 43 WACC**, en ligne comme en local : 8 000 sociétés cotées, primes de risque pays, bêtas sectoriels, taux US. Filtres, seuils, valeurs aberrantes (Tukey), médianes et quartiles, CMPC calculé comme dans WACC43.
+- **Trois skills tirés de HARES** : `hares-echantillon`, `hares-cmpc`, `hares-multiples`.
+- **La salle de pause devient la Break room**, et passe à gauche du bureau.
+- **Le jukebox s'anime aussi dans la Break room** quand la musique joue : ses néons, ses notes, et on y danse plus volontiers.
+
 ## Open space v0.5.0 (26 octobre 2026)
 
 - **La salle de pause**, à côté du bureau : une cuisine (frigo, machine à café, plaques, grande table) et une salle de loisirs (canapé et console, bornes d'arcade, ping-pong, baby-foot, poufs, jukebox, bibliothèque). On y entre par la porte « PAUSE » du bureau, le bouton ☕ ou la touche `D`.
