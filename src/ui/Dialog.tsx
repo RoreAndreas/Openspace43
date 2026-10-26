@@ -1,10 +1,11 @@
-// En bas de l'écran, comme dans un jeu de rôle : Lilou te parle (son texte s'écrit lettre par lettre),
+// En bas de l'écran, comme dans un jeu de rôle : Roré te parle (son texte s'écrit lettre par lettre),
 // et tu lui réponds : au clavier ou à la voix. C'est le seul endroit où taper : une demande, et l'équipe s'y met.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { ROLES } from '../../shared/activity.ts';
 import { sfx } from '../audio/sfx.ts';
 import { world } from '../engine/instance.ts';
+import { characterPortrait } from '../engine/characters.ts';
 import { robotSprite } from '../engine/robots.ts';
 import { getCode, HEAVY_MODEL, modelInfo } from '../local/api.ts';
 import { useOffice } from '../state/store.ts';
@@ -43,7 +44,7 @@ const stripMd = (s: string) =>
   tidy(s).replace(/```[\s\S]*?```/g, ' ').replace(/!\[[^\]]*\]\([^)]*\)/g, '').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
     .replace(/[*_`#>]+/g, '').replace(/^\s*[-•]\s+/gm, '• ').replace(/\n{2,}/g, '\n').trim();
 
-/** Le texte de Lilou, qui s'écrit lettre par lettre, avec un petit « bip » (comme dans les vieux jeux). */
+/** Le texte de Roré, qui s'écrit lettre par lettre, avec un petit « bip » (comme dans les vieux jeux). */
 function useTypewriter(text: string, cps = 55) {
   const [n, setN] = useState(0);
   const shown = useRef('');
@@ -65,7 +66,7 @@ function useTypewriter(text: string, cps = 55) {
   return { out, done: n >= text.length };
 }
 
-/** Le visage de Lilou, en grand, qui cligne des yeux (et sourit quand c'est fini). */
+/** Le visage de Roré, en grand, qui cligne des yeux (et sourit quand c'est fini). */
 function Portrait({ happy }: { happy: boolean }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
@@ -76,7 +77,10 @@ function Portrait({ happy }: { happy: boolean }) {
       const chef = world.chef;
       const eyes = happy ? 'happy' : blink > 0 ? 'blink' : chef.eyes === 'blink' ? 'open' : chef.eyes === 'happy' ? 'happy' : chef.eyes;
       g.clearRect(0, 0, 64, 64);
-      g.drawImage(robotSprite('chef', 'stand', 'down', 0, eyes), 2, 0, 16, 16, 0, 0, 64, 64);
+      // son personnage PixelLab s'il en a un (il respire), sinon la tête du robot qui cligne des yeux
+      const face = characterPortrait(chef.character);
+      if (face) g.drawImage(face, 0, 0, 16, 16, 0, (Math.floor(performance.now() / 1200) % 2) * 4, 64, 64);
+      else g.drawImage(robotSprite('chef', 'stand', 'down', 0, eyes), 2, 0, 16, 16, 0, 0, 64, 64);
       if (blink > 0) blink--;
       else if (Math.random() < 0.02) blink = 2;
     };
@@ -105,8 +109,8 @@ export function Dialog() {
   else if (engine === 'claude-code' && claude && !claude.found) text = 'Je ne trouve pas Claude Code sur cet ordinateur. Installe-le (claude.com/claude-code), lance « claude » une fois pour te connecter à ton compte Claude, puis relance « npm start ». En attendant, tire le levier à côté du serveur : on travaillera avec l’IA gratuite (Ollama).';
   else if (engine === 'ollama' && claude && !claude.found) text = 'Je ne trouve pas Ollama, l’IA gratuite de ton ordinateur. Ouvre l’application Ollama (ou installe-la sur ollama.com, sans droits d’administrateur), installe un modèle (par exemple : ollama pull qwen3:4b), puis recharge la page. Ou abaisse le levier, à côté du serveur, pour revenir sur Claude.';
   else if (engine === 'ollama' && !mission && (modelInfo(settingsModel)?.size ?? 0) > HEAVY_MODEL) text = `Attention : le modèle « ${settingsModel.replace('ollama:', '')} » est trop lourd pour la mémoire de la plupart des ordinateurs portables. Ouvre les réglages (⚙️) et clique sur « Installer Qwen 3, 4B » : il est léger et rapide. Ensuite, dis-moi ce dont tu as besoin.`;
-  else if (engine === 'cloud' && !mission && !getCode()) text = 'Salut ! Moi, c’est Lilou, la cheffe de l’open space. Pour commencer, entre le code d’accès dans les réglages (⚙️ en haut à droite).';
-  else if (!mission) text = `Salut ! Moi, c’est Lilou, la cheffe de l’open space. Dis-moi ce dont tu as besoin : je confie le travail à mon analyste, et tu le regardes faire.${engine === 'ollama' ? ' Aujourd’hui, on travaille avec l’IA gratuite de ton ordinateur : c’est plus lent, sois patiente.' : ''}`;
+  else if (engine === 'cloud' && !mission && !getCode()) text = 'Salut ! Moi, c’est Roré, le chef de l’open space. Pour commencer, entre le code d’accès dans les réglages (⚙️ en haut à droite).';
+  else if (!mission) text = `Salut ! Moi, c’est Roré, le chef de l’open space. Dis-moi ce dont tu as besoin : je confie le travail à mon analyste, et tu le regardes faire.${engine === 'ollama' ? ' Aujourd’hui, on travaille avec l’IA gratuite de ton ordinateur : c’est plus lent, sois patiente.' : ''}`;
   else if (chef.typing) text = stripMd(chef.typing);
   else if (final && !busy) text = stripMd(final.text) || (final.ok ? 'C’est prêt !' : 'Mission arrêtée.');
   else if (chef.say) text = stripMd(chef.say);
@@ -121,7 +125,7 @@ export function Dialog() {
       <div className="dialog-box">
         <div className="dialog-face"><Portrait happy={!!final?.ok && !busy} /></div>
         <div className="dialog-main">
-          <div className="dialog-name">Lilou <span>cheffe de projet</span>{replaying && <em className="pill replay">Rediffusion</em>}</div>
+          <div className="dialog-name">Roré <span>chef de projet</span>{replaying && <em className="pill replay">Rediffusion</em>}</div>
           <div className="dialog-text" ref={box}>{out}<span className="caret" /></div>
         </div>
       </div>
@@ -136,7 +140,7 @@ export function AskBar() {
   const send = useOffice((s) => s.send);
   const a = asks[0];
   if (!a) return null;
-  const who = a.who === 'chef' ? 'Lilou' : agents[a.who]?.name ?? 'Un agent';
+  const who = a.who === 'chef' ? 'Roré' : agents[a.who]?.name ?? 'Un agent';
   const role = a.who === 'chef' ? 'chef' : agents[a.who]?.role ?? 'renfort';
   const answer = (allow: boolean) => { sfx(allow ? 'yes' : 'no'); send({ t: 'answer', requestId: a.requestId, allow }); };
   return (
@@ -177,8 +181,8 @@ function Composer() {
 
   const mode: 'new' | 'steer' | 'retouch' = !mission ? 'new' : busy ? 'steer' : 'retouch';
   const placeholder = mode === 'new'
-    ? 'Dis à Lilou ce que tu veux… (par exemple : analyse 3 concurrents de ma marque)'
-    : mode === 'steer' ? 'Une précision pour Lilou ? Elle la lira entre deux étapes.' : 'Demande une retouche à Lilou… ou lance une nouvelle mission.';
+    ? 'Dis à Roré ce que tu veux… (par exemple : analyse 3 concurrents de ma marque)'
+    : mode === 'steer' ? 'Une précision pour Roré ? Il la lira entre deux étapes.' : 'Demande une retouche à Roré… ou lance une nouvelle mission.';
 
   const submit = () => {
     const t = text.trim();

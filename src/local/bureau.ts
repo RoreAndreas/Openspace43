@@ -1,5 +1,5 @@
 // Le bureau, côté navigateur (il remplace le serveur local de la version d'origine). Il reçoit les demandes
-// de l'interface (ClientMsg), fait travailler Lilou et l'analyste, et renvoie au bureau ce qui se passe
+// de l'interface (ClientMsg), fait travailler Roré et l'analyste, et renvoie au bureau ce qui se passe
 // (ServerMsg), exactement comme le faisait le pont avec Claude Code : le reste du bureau ne voit pas la différence.
 // Tout est rangé dans ce navigateur (IndexedDB) : missions, fichiers, enregistrements. Rien sur le serveur.
 import { countStats, emptyStats, NAMES } from '../../shared/activity.ts';
@@ -148,7 +148,7 @@ class LocalBureau {
   // ── Les missions ──
   async start(prompt: string) {
     const text = prompt.trim();
-    if (!text) throw new Error('Dis à Lilou ce que tu veux.');
+    if (!text) throw new Error('Dis à Roré ce que tu veux.');
     if (this.local) {
       if (!this.models().length) await this.refreshOllama();
       if (!this.settings.model) { useOffice.setState({ settingsOpen: true }); throw new Error('Ollama n’est pas lancé, ou n’a aucun modèle. Ouvre l’application Ollama, installe un modèle (par exemple : ollama pull qwen3:4b), puis réessaie.'); }

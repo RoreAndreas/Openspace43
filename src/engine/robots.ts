@@ -1,5 +1,5 @@
 // Les robots du bureau : des cubes-robots, comme le logo de VibesMoney (visière noire, yeux orange).
-// Lilou, la cheffe, a la tête noire du logo et une veste blanche sur un haut orange ; l'équipe est blanche, avec la couleur de son métier
+// Roré, le chef, a la tête noire du logo et une veste blanche sur un haut orange ; l'équipe est blanche, avec la couleur de son métier
 // et un accessoire (le béret du designer, les lunettes de l'analyste…). Tout est dessiné en code,
 // pose par pose, puis gardé en mémoire.
 import type { Role } from '../../shared/protocol.ts';
@@ -29,7 +29,7 @@ function lookOf(role: Role): Look {
     return {
       chef: true, role,
       top: '#77718a', front: '#4a4658', shade: '#33303f', visor: '#0b0910', visorHi: '#4a4566',
-      // la veste blanche de Lilou (et ses manches)
+      // la veste blanche de Roré (et ses manches)
       body: '#f1eff7', bodyHi: '#ffffff', bodyShade: '#c6c1d4', arm: '#e4e1ec', hand: '#3d3a4a', leg: '#2a2734', tip: P.orange,
     };
   }

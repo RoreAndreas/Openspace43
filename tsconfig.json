@@ -11,6 +11,7 @@
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
+    "resolveJsonModule": true,
     "noUnusedLocals": true,
     "noFallthroughCasesInSwitch": true,
     "types": ["vite/client"]

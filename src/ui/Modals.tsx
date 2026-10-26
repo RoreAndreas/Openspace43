@@ -14,7 +14,7 @@ import { fmtDate, fmtDuration, plural } from './format.ts';
 import { mdToHtml } from './md.ts';
 import { tidy } from './tidy.ts';
 
-/** La mission est rendue : Lilou te présente le travail de l'équipe. */
+/** La mission est rendue : Roré te présente le travail de l'équipe. */
 export function FinalCard() {
   const show = useOffice((s) => s.showFinal);
   const final = useOffice((s) => s.final);
@@ -97,7 +97,7 @@ export function Viewer() {
                 <option value="">Version actuelle</option>
                 {versions.slice(1).map((v, i) => (
                   <option key={v.id} value={v.id}>
-                    v{versions.length - 1 - i} · {new Date(v.at).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' })} · {v.by === 'chef' ? 'Lilou' : agents[v.by]?.name ?? 'l’équipe'}
+                    v{versions.length - 1 - i} · {new Date(v.at).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' })} · {v.by === 'chef' ? 'Roré' : agents[v.by]?.name ?? 'l’équipe'}
                   </option>
                 ))}
               </select>

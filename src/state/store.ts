@@ -1,5 +1,5 @@
 // La mémoire du bureau, côté navigateur : la mission en cours, l'équipe, le plan, les rendus, ce que
-// dit Lilou. Chaque événement venu du bureau est rangé ici, puis transmis au moteur du jeu (les robots).
+// dit Roré. Chaque événement venu du bureau est rangé ici, puis transmis au moteur du jeu (les robots).
 import { create } from 'zustand';
 import { countStats, emptyStats } from '../../shared/activity.ts';
 import type {
@@ -62,8 +62,10 @@ export type Modal =
   | { kind: 'skills' }
   /** le règlement du bureau (qui est la patronne, comment travailler pour elle) */
   | { kind: 'rules' }
-  /** « Comment ça marche » (la note posée près du bureau de Lilou) */
-  | { kind: 'howto' };
+  /** « Comment ça marche » (la note posée près du bureau de Roré) */
+  | { kind: 'howto' }
+  /** la galerie des personnages ; avec `pick`, on choisit celui d'un agent */
+  | { kind: 'characters'; pick?: { role: Role; name: string; agent?: string } };
 
 interface S {
   connection: 'connecting' | 'live' | 'offline' | 'demo';
@@ -105,11 +107,11 @@ interface S {
   planHistory: { at: number; items: PlanItem[] }[];
   /** le jukebox (tes liens YouTube) */
   music: { playing: boolean; index: number; volume: number; list: { id: string; title: string }[]; repeat: 'off' | 'all' | 'one'; shuffle: boolean; loaded: boolean; error: string };
-  /** la voix de la cheffe (désactivée : pas de fichiers audio, pour alléger) */
+  /** la voix du chef (désactivée : pas de fichiers audio, pour alléger) */
   voiceOn: boolean;
   /** en mode tournage, la caméra suit l'action toute seule */
   cameraAuto: boolean;
-  /** la visite guidée en cours (le texte que Lilou dit) */
+  /** la visite guidée en cours (le texte que Roré dit) */
   tour: { step: number; text: string } | null;
   historyOpen: boolean;
   settingsOpen: boolean;
@@ -257,7 +259,7 @@ export const useOffice = create<S>((set, get) => ({
       const line: FeedLine = { id: ++feedId, at, who, text, kind };
       return [...get().feed, line].slice(-MAX_FEED);
     };
-    const agentName = (who: string) => (who === 'chef' ? 'Lilou' : s.agents[who]?.name ?? 'Un agent');
+    const agentName = (who: string) => (who === 'chef' ? 'Roré' : s.agents[who]?.name ?? 'Un agent');
     switch (ev.k) {
       case 'start': {
         const first = s.feed.length === 0;
@@ -279,7 +281,7 @@ export const useOffice = create<S>((set, get) => ({
         else if (s.agents[ev.who]) set({ agents: { ...s.agents, [ev.who]: { ...s.agents[ev.who], say: ev.text, sayAt: at } } });
         break;
       case 'say':
-        if (ev.who === 'chef') set({ chef: { ...s.chef, say: ev.text, sayAt: at, typing: '' }, feed: feed('Lilou', ev.text, 'chef') });
+        if (ev.who === 'chef') set({ chef: { ...s.chef, say: ev.text, sayAt: at, typing: '' }, feed: feed('Roré', ev.text, 'chef') });
         else if (s.agents[ev.who]) set({ agents: { ...s.agents, [ev.who]: { ...s.agents[ev.who], say: ev.text, sayAt: at } } });
         break;
       case 'plan':
@@ -295,7 +297,7 @@ export const useOffice = create<S>((set, get) => ({
         const stats = { ...s.stats };
         countStats(stats, ev);
         const firstOfRound = !s.order.some((id) => s.agents[id]?.status === 'working' || s.agents[id]?.status === 'reporting');
-        set({ agents: { ...s.agents, [ev.id]: a }, order: [...s.order, ev.id], stats, feed: feed('Lilou', `appelle ${ev.name} : ${ev.task}`, 'hire') });
+        set({ agents: { ...s.agents, [ev.id]: a }, order: [...s.order, ev.id], stats, feed: feed('Roré', `appelle ${ev.name} : ${ev.task}`, 'hire') });
         if (live) sfx('spawn');
         if (live && firstOfRound) void say('equipe');
         break;
@@ -322,7 +324,7 @@ export const useOffice = create<S>((set, get) => ({
       case 'report': {
         const a = s.agents[ev.who];
         if (!a) break;
-        set({ agents: { ...s.agents, [ev.who]: { ...a, report: ev.text, status: 'reporting' } }, feed: feed(a.name, 'rend son rapport à Lilou', 'report') });
+        set({ agents: { ...s.agents, [ev.who]: { ...a, report: ev.text, status: 'reporting' } }, feed: feed(a.name, 'rend son rapport à Roré', 'report') });
         if (live) sfx('paper');
         break;
       }
@@ -354,16 +356,16 @@ export const useOffice = create<S>((set, get) => ({
         const workMs = s.workMs + (s.busySince ? Math.max(0, at - s.busySince) : 0);
         set({
           final: { ok: ev.ok, text: ev.text, ms: ev.ms, stopped: ev.stopped, at }, busySince: null, workMs, asks: {},
-          showFinal: false, feed: feed('Lilou', ev.ok ? 'Mission accomplie !' : ev.stopped ? 'Mission arrêtée.' : 'La mission s’est mal terminée.', 'end'),
+          showFinal: false, feed: feed('Roré', ev.ok ? 'Mission accomplie !' : ev.stopped ? 'Mission arrêtée.' : 'La mission s’est mal terminée.', 'end'),
         });
         if (live) sfx(ev.ok ? 'done' : 'error');
         if (live && ev.ok) setTimeout(() => { void say('accomplie', true); }, 900);
-        // d'abord Lilou fait la fête (confettis), puis la carte du rendu s'ouvre
+        // d'abord Roré fait la fête (confettis), puis la carte du rendu s'ouvre
         if (live && ev.ok) setTimeout(() => { if (get().final?.at === at) set({ showFinal: true }); }, 3200);
         break;
       }
       case 'error':
-        set({ feed: feed('Lilou', ev.message, 'error') });
+        set({ feed: feed('Roré', ev.message, 'error') });
         if (live) get().toast('error', ev.message);
         break;
     }

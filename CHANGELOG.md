@@ -1,5 +1,14 @@
 # Les versions
 
+## Open space v0.4.0 (26 octobre 2026)
+
+- **Roré, le chef de projet**, remplace Lilou : un commandant spatial en uniforme blanc, avec une cape orange.
+- **Des personnages en pixel art** (générés avec PixelLab) remplacent les robots : Nyx la hacker, Merlain le mage du code, Boulon le robot ingénieur, Margaux l'analyste, Zaza la styliste, Rook l'explorateur. Chacun a sa silhouette, sa palette et sa façon d'attendre : Nyx trépigne, les runes de Merlain scintillent, l'écran de Boulon cligne, Rook regarde autour de lui, Roré surveille l'équipe.
+- **La galerie des personnages** (panneau de droite) : leur caractère, leurs accessoires, leur palette, un aperçu animé.
+- **Changer le personnage d'un agent**, depuis sa fiche ; il le garde d'une mission à l'autre. Roré aussi, depuis la galerie.
+- Ajouter un personnage : une entrée dans `src/characters/catalog.json`, puis `python scripts/characters.py` (voir le README).
+- Le robot de chaque métier reste là quand un personnage n'est pas encore chargé, ou si on le choisit.
+
 ## Open space v0.3.2 (26 octobre 2026)
 
 - Claude Code : une version ancienne (sans l'option `--restricted` ni le mode « auto ») démarre quand même ; une erreur de version ou de connexion donne un message clair.

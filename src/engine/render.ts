@@ -6,6 +6,7 @@ import type { ActKind } from '../../shared/protocol.ts';
 import { furniturePlacement } from './furniture.ts';
 import { BOARD, CLOCK, FURNITURE, H, NEON, T, W, WINDOWS, type Furn } from './layout.ts';
 import { g2d, makeCanvas, P, rgba, rng, type G } from './pixels.ts';
+import { characterFrame, lookGlow } from './characters.ts';
 import { ANCHOR_X, ANCHOR_Y, robotSprite } from './robots.ts';
 import { drawRoom, neon, signs, type TimeOfDay } from './room.ts';
 import { ROLES } from '../../shared/activity.ts';
@@ -86,15 +87,34 @@ export class Renderer {
     const x = Math.round(a.x);
     // sur la musique, ceux qui ne marchent pas hochent la tête en rythme
     const y = Math.round(a.y) - (world.musicOn && world.time < world.bobUntil && !a.moving ? 1 : 0);
+    // son personnage PixelLab, s'il en a un et que ses images sont chargées ; sinon le robot de son métier
+    const f = a.character ? characterFrame(a.character, { pose: a.pose, dir: seated ? 'down' : a.dir, moving: a.moving, seated, animT: a.animT, t: world.time + a.phase }) : null;
     g.globalAlpha = a.alpha;
     if (!seated) {
+      const w = f ? 6 : 5;
       g.fillStyle = 'rgba(8,6,16,0.32)';
-      g.fillRect(x - 5, y - 1, 10, 2);
-      g.fillRect(x - 4, y - 2, 8, 1);
+      g.fillRect(x - w, y - 1, w * 2, 2);
+      g.fillRect(x - w + 1, y - 2, w * 2 - 2, 1);
     }
-    const sprite = robotSprite(a.role, a.pose, seated ? 'down' : a.dir, a.frame, a.eyes);
-    g.drawImage(sprite, x - ANCHOR_X, y - ANCHOR_Y);
+    if (f) {
+      g.drawImage(f.c, x + f.x, y + f.y);
+      if (a.carrying && a.dir !== 'up') this.paper(g, x + (a.dir === 'right' ? 4 : a.dir === 'left' ? -4 : 0), y - 15);
+    } else {
+      const sprite = robotSprite(a.role, a.pose, seated ? 'down' : a.dir, a.frame, a.eyes);
+      g.drawImage(sprite, x - ANCHOR_X, y - ANCHOR_Y);
+    }
     g.globalAlpha = 1;
+  }
+
+  /** Le rapport qu'un personnage apporte au chef, tenu devant lui. */
+  private paper(g: G, cx: number, y: number) {
+    g.fillStyle = P.ink;
+    g.fillRect(cx - 4, y - 1, 8, 9);
+    g.fillStyle = P.paper;
+    g.fillRect(cx - 3, y, 6, 7);
+    g.fillStyle = P.paperLine;
+    g.fillRect(cx - 2, y + 2, 4, 1);
+    g.fillRect(cx - 2, y + 4, 3, 1);
   }
 
   /** Les parties vivantes des meubles : écrans allumés, voyants, imprimante, rapports sur le bureau du chef. */
@@ -382,14 +402,15 @@ export class Renderer {
       const sx = a.seat!.x, sy = a.seat!.y - 12;
       add(sx, sy, on ? 26 : 18, a.role === 'design' && on ? '#ff9fd0' : col, on ? 0.75 : 0.35);
     }
-    // un projecteur doux suit Lilou (le patron reste toujours bien visible)
+    // un projecteur doux suit Roré (le patron reste toujours bien visible)
     const chef = world.chef;
     add(chef.x, (chef.seated && chef.seat ? chef.seat.y : chef.y) - 8, 26, '#ffe2c4', 0.42);
-    // les yeux des robots
-    for (const a of world.actors.values()) {
-      if (a.alpha < 0.3) continue;
-      add(a.x, (a.seated && a.seat ? a.seat.y : a.y) - 13, 7, P.orange, 0.55);
-    }
+    // les yeux des robots, la visière du hacker, le cristal du mage…
+    const glows = [...world.actors.values()].flatMap((a) => {
+      const gl = a.alpha < 0.3 ? null : lookGlow(a.character, a.seated && !!a.seat);
+      return gl ? [{ x: a.x, y: (a.seated && a.seat ? a.seat.y : a.y) - gl.y, color: gl.color }] : [];
+    });
+    for (const gl of glows) add(gl.x, gl.y, 7, gl.color, 0.55);
     g.globalCompositeOperation = 'multiply';
     g.drawImage(this.light, 0, 0);
     // un léger halo sur ce qui brille
@@ -402,7 +423,7 @@ export class Renderer {
       g.fillRect(x - r, y - r, r * 2, r * 2);
     };
     glow(NEON.x + 12, NEON.y + 12, 20, neonCol, 0.32 * flick);
-    for (const a of world.actors.values()) if (a.alpha > 0.3) glow(a.x, (a.seated && a.seat ? a.seat.y : a.y) - 13, 4, P.orange, 0.35);
+    for (const gl of glows) glow(gl.x, gl.y, 4, gl.color, 0.35);
     for (const a of atDesk.values()) if (t - a.actAt < 9) glow(a.seat!.x, a.seat!.y - 6, 8, a.act ? SCREEN[a.act] : '#ffffff', 0.18);
     g.globalCompositeOperation = 'source-over';
   }

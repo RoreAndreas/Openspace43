@@ -1,4 +1,4 @@
-// Le bouton du son coupe tout : les bruitages, la musique du jukebox et la voix de Lilou.
+// Le bouton du son coupe tout : les bruitages, la musique du jukebox et la voix de Roré.
 import { useOffice } from '../state/store.ts';
 import { jukebox } from './music.ts';
 import { setMuted } from './sfx.ts';

@@ -1,5 +1,5 @@
 // L'écran du bureau : la barre du haut, le bureau en pixel art (avec le panneau de l'équipe à droite),
-// et Lilou en bas, à qui tu parles. Le cadre vertical (9:16) sert à filmer un reel.
+// et Roré en bas, à qui tu parles. Le cadre vertical (9:16) sert à filmer un reel.
 import { useEffect, useRef, useState } from 'react';
 import { jukebox } from './audio/music.ts';
 import { sfx } from './audio/sfx.ts';

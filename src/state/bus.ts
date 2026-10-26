@@ -9,7 +9,7 @@ const resetters = new Set<() => void>();
 export const bus = {
   on(fn: Fn) { listeners.add(fn); return () => { listeners.delete(fn); }; },
   emit(ev: OfficeEvent, live: boolean) { for (const fn of listeners) fn(ev, live); },
-  /** nouvelle mission, rediffusion : le bureau se vide, Lilou revient à l'accueil */
+  /** nouvelle mission, rediffusion : le bureau se vide, Roré revient à l'accueil */
   onReset(fn: () => void) { resetters.add(fn); return () => { resetters.delete(fn); }; },
   reset() { for (const fn of resetters) fn(); },
 };

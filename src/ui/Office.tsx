@@ -29,7 +29,7 @@ function placeBubbles(scale: number) {
     if (!a) continue;
     const seated = a.seated && !!a.seat;
     const x = Math.round(a.x * scale);
-    const y = Math.round(((seated ? a.seat!.y : a.y) - (seated ? 19 : 22)) * scale);
+    const y = Math.round(((seated ? a.seat!.y : a.y) - a.top) * scale);
     // au même rang de bureaux, une bulle sur deux monte un peu plus haut (elles se chevauchent moins)
     const lift = seated && Math.round(a.seat!.x / 32) % 2 === 0 ? 1 : 0;
     el.style.transform = `translate3d(${x}px, ${y}px, 0)`;
@@ -236,7 +236,7 @@ function Bubbles() {
   {
     const boxes: { x: number; y: number; w: number }[] = [];
     const chefActor = world.actors.get('chef');
-    if (chefActor) boxes.push({ x: chefActor.x, y: (chefActor.seated && chefActor.seat ? chefActor.seat.y : chefActor.y) - 20, w: 86 });
+    if (chefActor) boxes.push({ x: chefActor.x, y: (chefActor.seated && chefActor.seat ? chefActor.seat.y : chefActor.y) - chefActor.top + 2, w: 86 });
     const cands = ids.filter((id) => id !== 'chef' && world.actors.get(id)?.seated)
       .map((id) => ({ id, at: agents[id]?.act?.at ?? 0, label: agents[id]?.act?.label ?? '' }))
       .filter((x) => now - x.at < 2800)
@@ -245,7 +245,7 @@ function Bubbles() {
       if (fresh.size >= (vertical ? 2 : 3)) break;
       const a = world.actors.get(c.id)!;
       const lift = Math.round(a.seat!.x / 32) % 2 === 0 ? 12 : 0;
-      const box = { x: a.seat!.x, y: a.seat!.y - 20 - lift, w: Math.min(80, short(c.label).length * 3.1 + 14) };
+      const box = { x: a.seat!.x, y: a.seat!.y - a.top - 1 - lift, w: Math.min(80, short(c.label).length * 3.1 + 14) };
       if (boxes.some((b) => Math.abs(b.x - box.x) < (b.w + box.w) / 2 + 2 && Math.abs(b.y - box.y) < 24)) continue;
       boxes.push(box);
       fresh.add(c.id);
@@ -258,7 +258,7 @@ function Bubbles() {
     const isChef = id === 'chef';
     const a = isChef ? null : agents[id];
     const role = isChef ? 'chef' : a?.role ?? actor?.role ?? 'renfort';
-    const base = { name: isChef ? 'Lilou' : a?.name ?? actor?.name ?? '', color: ROLES[role].color };
+    const base = { name: isChef ? 'Roré' : a?.name ?? actor?.name ?? '', color: ROLES[role].color };
     // l'équipe de démonstration de la visite guidée : juste les prénoms
     if (!isChef && !a && actor) return { ...base, mode: filming ? 'none' : 'tag' };
     const ask = askOf(id);

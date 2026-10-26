@@ -1,0 +1,294 @@
+{
+  "analyste_strategique": {
+    "cell": [
+      44,
+      44
+    ],
+    "anchor": [
+      22,
+      36
+    ],
+    "height": 30,
+    "palette": [
+      "#111834",
+      "#6f849d",
+      "#223455",
+      "#fab98c",
+      "#f8fbfb",
+      "#60300f"
+    ],
+    "rotations": [
+      "south",
+      "south-east",
+      "east",
+      "north-east",
+      "north",
+      "north-west",
+      "west",
+      "south-west"
+    ],
+    "anims": {
+      "work": {
+        "dirs": [
+          "south"
+        ],
+        "frames": 8
+      },
+      "walk": {
+        "dirs": [
+          "east",
+          "north"
+        ],
+        "frames": 8
+      }
+    },
+    "v": "1ee0e6a3"
+  },
+  "explorateur_futuriste": {
+    "cell": [
+      40,
+      40
+    ],
+    "anchor": [
+      20,
+      32
+    ],
+    "height": 27,
+    "palette": [
+      "#e8c67e",
+      "#976e3e",
+      "#43748a",
+      "#57483c",
+      "#7a213f",
+      "#25252f"
+    ],
+    "rotations": [
+      "south",
+      "south-east",
+      "east",
+      "north-east",
+      "north",
+      "north-west",
+      "west",
+      "south-west"
+    ],
+    "anims": {
+      "walk": {
+        "dirs": [
+          "east",
+          "north"
+        ],
+        "frames": 8
+      }
+    },
+    "v": "97dc2a77"
+  },
+  "hacker_cyberpunk": {
+    "cell": [
+      44,
+      44
+    ],
+    "anchor": [
+      22,
+      36
+    ],
+    "height": 30,
+    "palette": [
+      "#4e5459",
+      "#262632",
+      "#41f509",
+      "#bdccde",
+      "#fcfdfd",
+      "#efaf7e"
+    ],
+    "rotations": [
+      "south",
+      "south-east",
+      "east",
+      "north-east",
+      "north",
+      "north-west",
+      "west",
+      "south-west"
+    ],
+    "anims": {
+      "walk": {
+        "dirs": [
+          "east",
+          "north"
+        ],
+        "frames": 8
+      }
+    },
+    "v": "7d0e344d"
+  },
+  "mage_du_code": {
+    "cell": [
+      44,
+      44
+    ],
+    "anchor": [
+      22,
+      35
+    ],
+    "height": 29,
+    "palette": [
+      "#7b3073",
+      "#42134d",
+      "#3f4f81",
+      "#4f2a1f",
+      "#8897a9",
+      "#fdc187"
+    ],
+    "rotations": [
+      "south",
+      "south-east",
+      "east",
+      "north-east",
+      "north",
+      "north-west",
+      "west",
+      "south-west"
+    ],
+    "anims": {
+      "walk": {
+        "dirs": [
+          "east",
+          "north"
+        ],
+        "frames": 8
+      }
+    },
+    "v": "11102ade"
+  },
+  "robot_ingenieur": {
+    "cell": [
+      44,
+      44
+    ],
+    "anchor": [
+      22,
+      36
+    ],
+    "height": 30,
+    "palette": [
+      "#2c2c4e",
+      "#ec933e",
+      "#d85f27",
+      "#4c4e72",
+      "#e9b795",
+      "#ffeed0"
+    ],
+    "rotations": [
+      "south",
+      "south-east",
+      "east",
+      "north-east",
+      "north",
+      "north-west",
+      "west",
+      "south-west"
+    ],
+    "anims": {
+      "walk": {
+        "dirs": [
+          "east",
+          "north"
+        ],
+        "frames": 8
+      }
+    },
+    "v": "3e9666af"
+  },
+  "rore": {
+    "cell": [
+      44,
+      44
+    ],
+    "anchor": [
+      22,
+      36
+    ],
+    "height": 30,
+    "palette": [
+      "#f8fcfe",
+      "#98a8c7",
+      "#474b61",
+      "#23273c",
+      "#912804",
+      "#fac297"
+    ],
+    "rotations": [
+      "south",
+      "south-east",
+      "east",
+      "north-east",
+      "north",
+      "north-west",
+      "west",
+      "south-west"
+    ],
+    "anims": {
+      "interact": {
+        "dirs": [
+          "south"
+        ],
+        "frames": 8
+      },
+      "work": {
+        "dirs": [
+          "south"
+        ],
+        "frames": 8
+      },
+      "walk": {
+        "dirs": [
+          "south",
+          "east",
+          "north"
+        ],
+        "frames": 8
+      }
+    },
+    "v": "59007a11"
+  },
+  "styliste_extravagant": {
+    "cell": [
+      44,
+      44
+    ],
+    "anchor": [
+      22,
+      36
+    ],
+    "height": 30,
+    "palette": [
+      "#b6124f",
+      "#f4628d",
+      "#3d1543",
+      "#fde219",
+      "#f3f9f9",
+      "#bcbabf"
+    ],
+    "rotations": [
+      "south",
+      "south-east",
+      "east",
+      "north-east",
+      "north",
+      "north-west",
+      "west",
+      "south-west"
+    ],
+    "anims": {
+      "walk": {
+        "dirs": [
+          "east",
+          "north"
+        ],
+        "frames": 8
+      }
+    },
+    "v": "aa311b14"
+  }
+}

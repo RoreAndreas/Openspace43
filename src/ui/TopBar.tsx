@@ -83,7 +83,7 @@ export function TopBar() {
         <Logo />
         <div>
           <b>L’open space</b>
-          <span>{connection === 'demo' ? 'Rediffusion' : 'Lilou et son analyste'}</span>
+          <span>{connection === 'demo' ? 'Rediffusion' : 'Roré et son analyste'}</span>
         </div>
       </div>
 
@@ -124,7 +124,7 @@ export function TopBar() {
             <span className="energy-bar"><i style={{ width: `${Math.max(3, 100 - quota.fiveHour * 100)}%` }} /></span>
           </span>
         )}
-        <button className="icon-btn" title="Visite guidée : Lilou présente son bureau (T)" onClick={() => void startTour()}>🎤</button>
+        <button className="icon-btn" title="Visite guidée : Roré présente son bureau (T)" onClick={() => void startTour()}>🎤</button>
         <button className="icon-btn" title="Toute l’équipe : les métiers, leurs outils, l’historique" onClick={() => { sfx('open'); useOffice.setState({ modal: { kind: 'team' } }); }}>👥</button>
         <button className="icon-btn" title="Le tiroir de l’analyste : couleurs, types de texte, infos à retenir" onClick={() => { sfx('open'); useOffice.setState({ modal: { kind: 'drawer' } }); }}>🗄️</button>
         <button className="icon-btn" title="Les skills de l’équipe" onClick={() => { sfx('open'); useOffice.setState({ modal: { kind: 'skills' } }); }}>🎓</button>
@@ -132,7 +132,7 @@ export function TopBar() {
         <button className="icon-btn" title={`L’heure du bureau : ${TOD_LABEL[tod]} (N)`} onClick={() => { sfx('click'); const n = TOD_NEXT[tod]; useOffice.setState({ tod: n }); savePref('tod', n); }}>{TOD_ICON[tod]}</button>
         <button className="icon-btn" title={sound ? 'Couper le son (M)' : 'Remettre le son (M)'} onClick={() => toggle('sound')}>{sound ? '🔊' : '🔇'}</button>
         <button className={`icon-btn ${vertical ? 'on' : ''}`} title="Cadre vertical 9:16, pour filmer un reel (V)" onClick={() => toggle('vertical')}>📱</button>
-        <button className={`icon-btn ${filming ? 'on' : ''}`} title="Mode tournage : juste le bureau et Lilou (F)" onClick={() => toggle('filming')}>🎬</button>
+        <button className={`icon-btn ${filming ? 'on' : ''}`} title="Mode tournage : juste le bureau et Roré (F)" onClick={() => toggle('filming')}>🎬</button>
         <button className={`icon-btn ${panelOpen ? 'on' : ''}`} title={panelOpen ? 'Replier le panneau de droite (P)' : 'Ouvrir le panneau de droite (P)'} onClick={() => togglePanel()}>▥</button>
         <button className={`icon-btn ${full.on ? 'on' : ''}`} title={full.on ? 'Quitter le plein écran' : 'Plein écran'} onClick={full.toggle}>{full.on ? '🗗' : '⛶'}</button>
         <button className="icon-btn" title="Réglages" onClick={() => { sfx('open'); useOffice.setState({ settingsOpen: true }); }}>⚙️</button>

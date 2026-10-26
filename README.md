@@ -1,10 +1,10 @@
 # L'open space
 
-**Tu dis ce que tu veux. Lilou, la cheffe de projet, confie le travail à son analyste, et tu le regardes faire.**
+**Tu dis ce que tu veux. Roré, le chef de projet, confie le travail à son analyste, et tu le regardes faire.**
 
 Un bureau en pixel art où une petite équipe d'agents IA travaille pour une responsable marketing et communication :
 
-- **Lilou**, la cheffe de projet, lit ta demande, écrit le plan, confie le travail et vérifie le rendu ;
+- **Roré**, le chef de projet, lit ta demande, écrit le plan, confie le travail et vérifie le rendu ;
 - **un analyste**, qui cherche sur internet, analyse et rédige les rapports.
 
 Chaque bulle montre ce que l'agent fait vraiment, à cet instant : une recherche, une page lue, un fichier écrit.
@@ -35,14 +35,14 @@ ton compte : c'est prévu et autorisé.
   - **Types de texte** : les typographies, le ton, les formats attendus ;
   - **À retenir** : ce que l'équipe doit garder en tête pour la suite. L'analyste peut y ranger lui-même une information importante.
 
-  L'analyste et Lilou relisent le tiroir avant chaque mission.
+  L'analyste et Roré relisent le tiroir avant chaque mission.
 - **Les skills** (🎓) : des méthodes écrites, au format `SKILL.md`, le même que les skills de Claude.
   - Deux sont installées d'office : `rapport-marketing` et `veille-concurrentielle`.
   - On en ajoute d'autres depuis un fichier `.md`, un lien (par exemple un SKILL.md sur GitHub) ou un texte collé.
 - **Le règlement du bureau** (⚙️, puis 📜) : qui tu es, ton entreprise, comment travailler pour toi.
 - **Les rendus** : chaque rapport se lit dans le bureau ou se télécharge, avec l'historique de ses versions. Une mission entière se télécharge en `.zip`.
 - **Les missions précédentes** (touche `H`) : on peut les rejouer.
-- **La note « Comment ça marche »** : le post-it jaune, à côté du bureau de Lilou.
+- **La note « Comment ça marche »** : le post-it jaune, à côté du bureau de Roré.
 - **Les idées de mission** : des bulles grises au-dessus du chat. Après une mission, des idées de retouche.
 - **Le jukebox** : colle tes liens YouTube. Lecture, pause, suivant, en boucle (la liste ou un morceau), aléatoire. Un petit lecteur reste en bas à gauche (raccourci `J`).
 - **L'écran** : le panneau de droite se replie (la languette, le bouton ▥ ou la touche `P`), et un bouton passe en plein écran.
@@ -81,7 +81,7 @@ La clé est vérifiée, reste dans ce navigateur et part directement chez Claude
 ### L'IA gratuite
 
 - **Workers AI** offre 10 000 « neurons » par jour, remis à zéro à minuit UTC. Ça représente quelques missions par jour avec Llama 3.3 70B, et davantage avec Llama 3.1 8B. Le modèle se choisit dans les réglages.
-- **Quand le quota est épuisé**, Lilou le dit, et l'équipe reprend le lendemain.
+- **Quand le quota est épuisé**, Roré le dit, et l'équipe reprend le lendemain.
 
 ## Sur ton ordinateur, avec ton compte Claude
 
@@ -102,7 +102,7 @@ ce qu'il faut et lance le bureau.
 Le bureau s'ouvre sur http://localhost:4848. Il reconnaît Claude Code tout seul, et les réglages affichent « l'équipe travaille avec ton compte Claude ».
 
 - **Où vont les fichiers** : dans `Documents/Open space/Missions`, un dossier par mission.
-- **Lilou** est une vraie séance Claude Code, et l'analyste un vrai sous-agent Claude Code, avec seulement ses outils.
+- **Roré** est une vraie séance Claude Code, et l'analyste un vrai sous-agent Claude Code, avec seulement ses outils.
 - **Le règlement, le tiroir et les skills** partent avec chaque demande. Les skills sont copiés dans le dossier caché `.skills` de la mission.
 - **Ce que l'analyste retient** : il l'écrit dans `a-retenir.md`, et ces lignes rejoignent son tiroir.
 
@@ -124,11 +124,24 @@ variable d'environnement `TAVILY_KEY`). Si Ollama tourne ailleurs, indique son a
 - **`server/`** : la version locale (Node). Le pont lance Claude Code (`claude -p`, en JSON ligne par ligne) dans le dossier de la mission et traduit ce qu'il fait en événements du bureau. Il marche aussi sous Windows.
 - **`worker/index.ts`** : le Worker Cloudflare. Il sert le bureau et expose `/api/chat`, `/api/search`, `/api/fetch` et `/api/ping`. Tout est protégé par le code d'accès et rien n'est stocké. La recherche et la lecture des pages sont dans `shared/web.ts`, partagé avec le serveur local.
 - **`src/local/`** : l'équipe, dans le navigateur.
-  - `agent.ts` : la boucle de travail de Lilou et de l'analyste. L'IA répond par `{ say, action, input }`, le bureau exécute l'action et la montre.
+  - `agent.ts` : la boucle de travail de Roré et de l'analyste. L'IA répond par `{ say, action, input }`, le bureau exécute l'action et la montre.
   - `bureau.ts` : les missions, les fichiers, l'enregistrement (IndexedDB).
   - `drawer.ts` : le tiroir.
   - `skills.ts` : les skills.
-- **`src/engine/`** : le bureau en pixel art (Canvas 2D, tout est dessiné en code). **`src/ui/`** : l'interface (React).
+- **`src/engine/`** : le bureau en pixel art (Canvas 2D ; le décor et les robots sont dessinés en code). **`src/ui/`** : l'interface (React).
+- **`src/characters/`** et **`public/characters/`** : les personnages en pixel art (voir plus bas).
+
+### Les personnages
+
+Chaque agent a un personnage, généré avec [PixelLab](https://pixellab.ai) (32 px, vue de dessus « low top-down », contour noir) : Roré en commandant spatial, une hacker, un mage du code, un robot ingénieur, une analyste, une styliste, un explorateur… La galerie (panneau de droite, « 🎭 La galerie ») les présente ; la fiche d'un agent permet de lui en choisir un autre. Il le garde d'une mission à l'autre.
+
+Pour en ajouter un :
+
+1. Crée-le sur PixelLab (mode v3, 32 px, « low top-down », « single color black outline », « medium detail ») et, si tu veux, ses animations : nomme-les `walk`, `work`, `interact` ou `special`.
+2. Ajoute-le à `src/characters/catalog.json` : son `id`, son nom, ses métiers (`roles`), sa personnalité (`idle` : `breathe`, `bounce`, `shimmer`, `blink`, `check`, `pose`, `scan` ou `supervise`) et son identifiant PixelLab.
+3. Lance `python scripts/characters.py <id>` (Python 3.10+ et Pillow). Le script range ses images dans `public/characters/<id>/` et ses dimensions dans `src/characters/sheets.json`.
+
+Rien d'autre à toucher : le moteur lit le catalogue. Ce qui n'est pas animé (l'attente, la lecture, la fête…) est joué avec ses huit rotations ; une direction de marche absente vers la gauche est le miroir de la droite.
 
 ### Développer
 
@@ -144,6 +157,7 @@ Pour `wrangler dev`, mets le code d'accès dans un fichier `.dev.vars` : `ACCESS
 ## Merci
 
 - **Le Bureau des agents** de VibesMoney (MIT), d'où vient tout le bureau en pixel art.
+- **Les personnages** : générés avec [PixelLab](https://pixellab.ai) (voir ses [conditions d'utilisation](https://pixellab.ai/termsofservice)).
 - **Les bruitages** : [ZzFX](https://github.com/KilledByAPixel/ZzFX) (MIT).
 - **La musique** : les vidéos YouTube que tu ajoutes au jukebox (lecteur youtube-nocookie.com).
 - **Les polices** : Pixelify Sans et Plus Jakarta Sans (licence OFL).

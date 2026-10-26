@@ -1,4 +1,4 @@
-// En cadre vertical (pour filmer un reel), sous le bureau : le plan de Lilou et la rangée de l'équipe,
+// En cadre vertical (pour filmer un reel), sous le bureau : le plan de Roré et la rangée de l'équipe,
 // lisibles en grand sur un téléphone.
 import { useShallow } from 'zustand/react/shallow';
 import { ROLES } from '../../shared/activity.ts';
@@ -33,7 +33,7 @@ export function Strips() {
         <div className="strip-team">
           {team.slice(-12).map((a) => (
             <span key={a.id} className={`mate ${a.status}`} style={{ ['--c' as string]: ROLES[a.role].color }}>
-              <Avatar role={a.role} size={18} />
+              <Avatar role={a.role} name={a.name} size={18} />
               {a.name}
               {a.status === 'done' ? ' ✓' : ''}
             </span>

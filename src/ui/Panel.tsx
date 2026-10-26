@@ -1,10 +1,12 @@
-// Le panneau de droite : le plan de Lilou, l'équipe au travail (ce que chacun fait, son rapport),
+// Le panneau de droite : le plan de Roré, l'équipe au travail (ce que chacun fait, son rapport),
 // les rendus (les fichiers produits) et le fil de ce qui se passe. Sans mission : comment ça marche.
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { ROLES } from '../../shared/activity.ts';
 import type { Role } from '../../shared/protocol.ts';
 import { sfx } from '../audio/sfx.ts';
+import { characterStill, getLooksVersion, loadCharacter, lookFor, onLooks } from '../engine/characters.ts';
+import { world } from '../engine/instance.ts';
 import { robotSprite } from '../engine/robots.ts';
 import { savePref, teamList, useOffice, type AgentView } from '../state/store.ts';
 import { fmtDate, fmtDuration } from './format.ts';
@@ -12,15 +14,32 @@ import { mdToHtml } from './md.ts';
 import { FileActions } from './Rooms.tsx';
 import { tidy } from './tidy.ts';
 
-export function Avatar({ role, size = 32 }: { role: Role; size?: number }) {
+/** Un agent debout, de face : son personnage (ou celui qu'on donne), sinon le robot de son métier. */
+export function Avatar({ role, name, look, size = 32 }: { role: Role; name?: string; look?: string | null; size?: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
+  const version = useSyncExternalStore(onLooks, getLooksVersion);
+  // le personnage qu'il porte dans le bureau s'il y est (le même que là-bas), sinon celui de son prénom
+  const who = name ?? (role === 'chef' ? 'Roré' : '');
+  const here = [...world.actors.values()].find((a) => a.role === role && a.name === who);
+  const id = look !== undefined ? look : here ? here.character : lookFor(role, who);
+  const [, setLoaded] = useState(0);
+  useEffect(() => {
+    let live = true;
+    if (id && !characterStill(id)) void loadCharacter(id).then((ok) => { if (live && ok) setLoaded((n) => n + 1); });
+    return () => { live = false; };
+  }, [id]);
+  // un personnage : un cadre 24 × 32 autour de lui ; un robot : son sprite entier (20 × 24)
+  const still = characterStill(id);
+  const w = still ? still.w : 20, h = still ? still.h : 24;
   useEffect(() => {
     const g = ref.current!.getContext('2d')!;
     g.imageSmoothingEnabled = false;
-    g.clearRect(0, 0, 20, 24);
-    g.drawImage(robotSprite(role, 'stand', 'down', 0, 'open'), 0, 0);
-  }, [role]);
-  return <canvas ref={ref} width={20} height={24} className="avatar" style={{ width: size * (20 / 24), height: size }} />;
+    g.clearRect(0, 0, w, h);
+    if (still) g.drawImage(still.c, still.x, still.y, w, h, 0, 0, w, h);
+    else g.drawImage(robotSprite(role, 'stand', 'down', 0, 'open'), 0, 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [role, still?.c, version, w, h]);
+  return <canvas ref={ref} width={w} height={h} className="avatar" style={{ width: size * (w / h), height: size }} />;
 }
 
 const STATUS: Record<AgentView['status'], string> = { working: 'Au travail', reporting: 'Rend son rapport', done: 'A rendu son travail', failed: 'N’a pas pu finir' };
@@ -68,7 +87,14 @@ function Welcome() {
   return (
     <>
       <section className="card hint-card">
-        <p className="small">📝 <b>Comment ça marche ?</b> Clique sur la note jaune posée à côté du bureau de Lilou. Les idées de mission sont en bas, dans le chat.</p>
+        <p className="small">📝 <b>Comment ça marche ?</b> Clique sur la note jaune posée à côté du bureau de Roré. Les idées de mission sont en bas, dans le chat.</p>
+      </section>
+      <section className="card">
+        <h3>Les personnages</h3>
+        <div className="row">
+          <button className="btn small" onClick={() => { sfx('open'); useOffice.setState({ modal: { kind: 'characters' } }); }}>🎭 La galerie</button>
+        </div>
+        <p className="small muted">Hacker, mage, robot, styliste… Chaque agent a sa tête et son caractère. Tu peux en changer depuis sa fiche.</p>
       </section>
       {connection === 'live' && (
         <section className="card">
@@ -78,7 +104,7 @@ function Welcome() {
             <button className="btn small" onClick={() => send({ t: 'open_root' })}>🗄️ Le tiroir</button>
             <button className="btn small" onClick={() => { sfx('open'); useOffice.setState({ modal: { kind: 'skills' } }); }}>🎓 Les skills</button>
           </div>
-          <p className="small muted">Le règlement, c’est ce que l’équipe doit savoir sur toi : Lilou le lit avant chaque mission. Le tiroir garde tes couleurs, tes types de texte et ce qu’il faut retenir.</p>
+          <p className="small muted">Le règlement, c’est ce que l’équipe doit savoir sur toi : Roré le lit avant chaque mission. Le tiroir garde tes couleurs, tes types de texte et ce qu’il faut retenir.</p>
         </section>
       )}
       {missions.length > 0 && (
@@ -120,7 +146,7 @@ function TeamSection() {
     return (
       <section className="card">
         <h3>L’équipe</h3>
-        <p className="small muted">Lilou lit ta demande et prépare le travail…</p>
+        <p className="small muted">Roré lit ta demande et prépare le travail…</p>
       </section>
     );
   }
@@ -142,7 +168,7 @@ function AgentCard({ a, open, onToggle }: { a: AgentView; open: boolean; onToggl
   return (
     <div className={`agent ${a.status} ${open ? 'open' : ''}`} style={{ ['--c' as string]: role.color }}>
       <button className="agent-head" onClick={onToggle}>
-        <Avatar role={a.role} size={30} />
+        <Avatar role={a.role} name={a.name} size={30} />
         <div className="agent-id">
           <b>{a.name} <span>{role.icon} {role.label}</span></b>
           <span className="agent-task">{a.task}</span>
@@ -152,7 +178,7 @@ function AgentCard({ a, open, onToggle }: { a: AgentView; open: boolean; onToggl
       </button>
       {open && (
         <div className="agent-more">
-          <h4>Sa mission (écrite par Lilou)</h4>
+          <h4>Sa mission (écrite par Roré)</h4>
           <p className="brief">{a.prompt}</p>
           {a.acts.length > 0 && (
             <>

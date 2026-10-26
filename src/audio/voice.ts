@@ -1,4 +1,4 @@
-// La voix de la cheffe (dans la version d'origine : « Léo », une voix ElevenLabs) : la visite guidée du bureau, et quelques répliques
+// La voix du chef (dans la version d'origine : « Léo », une voix ElevenLabs) : la visite guidée du bureau, et quelques répliques
 // pendant les missions. La musique baisse pendant qu'il parle.
 import { jukebox } from './music.ts';
 
@@ -22,7 +22,7 @@ export function stopVoice() {
 }
 
 /**
- * Fait parler la cheffe. Renvoie une promesse tenue à la fin de la réplique (tout de suite si la voix est coupée).
+ * Fait parler le chef. Renvoie une promesse tenue à la fin de la réplique (tout de suite si la voix est coupée).
  * `force` : la visite guidée passe même juste après une autre réplique.
  */
 export function say(line: Line, force = false): Promise<void> {

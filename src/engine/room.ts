@@ -141,7 +141,7 @@ function whiteboard(g: G) {
   hline(g, x + 4, y + 9, textWidth('LE PLAN'), P.orange);
 }
 
-const SIGN: Record<string, string> = { recherche: 'RECHERCHE', code: 'CODE', design: 'DESIGN', redaction: 'RÉDACTION', analyse: 'ANALYSE', chef: 'CHEFFE' };
+const SIGN: Record<string, string> = { recherche: 'RECHERCHE', code: 'CODE', design: 'DESIGN', redaction: 'RÉDACTION', analyse: 'ANALYSE', chef: 'CHEF' };
 
 /** Les écriteaux posés au coin de chaque tapis, avec le nombre d'agents au travail dans le coin. */
 export function signs(g: G, busy: (role: string) => number) {

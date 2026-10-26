@@ -1,6 +1,6 @@
 # L'open space : notes pour Claude Code
 
-Un bureau en pixel art où l'on regarde une équipe d'agents IA travailler : Lilou (la cheffe, rôle `chef`) et un
+Un bureau en pixel art où l'on regarde une équipe d'agents IA travailler : Roré (le chef, rôle `chef`) et un
 seul analyste (rôle `analyse`), pour une responsable marketing et communication. Hébergé sur Cloudflare.
 D'après « Le Bureau des agents » (VibesMoney, MIT).
 
@@ -34,28 +34,36 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
   `MODELS`), `/api/search` (Tavily si `TAVILY_KEY`, sinon DuckDuckGo), `/api/fetch` (texte d'une page, adresses
   privées refusées), `/api/ping`. Tout passe par le secret `ACCESS_CODE` (en-tête `x-code`) et refuse les autres origines.
 - **`src/local/`** : le bureau tourne dans le navigateur.
-  - `agent.ts` : les boucles de Lilou (`runChef`) et de l'analyste (`runAnalyst`). L'IA répond par un objet JSON
+  - `agent.ts` : les boucles de Roré (`runChef`) et de l'analyste (`runAnalyst`). L'IA répond par un objet JSON
     `{ say, action, input }` ; chaque action devient des `OfficeEvent` (`act`, `act_done`, `hire`, `report`, `leave`…).
   - `bureau.ts` : remplace l'ancien serveur local. Il reçoit les `ClientMsg`, renvoie des `ServerMsg` au store, et range
-    missions, journaux, fichiers et mémoire de Lilou dans IndexedDB (`db.ts`). 30 missions au plus.
+    missions, journaux, fichiers et mémoire de Roré dans IndexedDB (`db.ts`). 30 missions au plus.
   - `drawer.ts` (le tiroir : couleurs, types de texte, notes ; localStorage), `skills.ts` (format SKILL.md, skills de
     départ dans `starter-skills.ts`), `api.ts` (appels au Worker, code d'accès), `zip.ts` (téléchargements).
 - **`shared/protocol.ts`** et **`shared/activity.ts`** : les événements, les métiers (`ACTIVE_ROLES`), les outils et
   les phrases des bulles (`describeAct`).
 - **`src/state/store.ts`** (zustand) range les événements et les transmet au moteur (`src/engine/`).
-- **`src/engine/`** : le monde, le dessin (tout le pixel art est dessiné en code), la caméra, les clics.
+- **`src/engine/`** : le monde, le dessin (le décor et les robots sont dessinés en code), la caméra, les clics.
   Le tiroir est le meuble `cabinet` (`furniture.ts`, `layout.ts`, `hits.ts`, `ui/interact.ts`).
+- **Les personnages** (PixelLab, 32 px, vue « low top-down ») : le catalogue `src/characters/catalog.json` (identité,
+  rôles, personnalité, identifiant PixelLab) ; `python scripts/characters.py` télécharge leurs exports et écrit
+  `public/characters/<id>/*.png` (une planche par animation : une rangée par direction) et `src/characters/sheets.json`
+  (cases, ancrage aux pieds, animations). `src/engine/characters.ts` choisit l'image selon la pose (`characterFrame`),
+  joue en code ce qui n'a pas d'animation (respiration, regards, sauts, lumières) et garde le choix de chaque agent
+  (`lookFor`, `setLook`, localStorage `bureau:looks`, par prénom). Sans image chargée, le robot du métier s'affiche.
+  La galerie : `ui/Characters.tsx` (fenêtre `characters`). Ne jamais redimensionner un sprite.
 - **`src/ui/`** : l'interface React. `Extras.tsx` : le tiroir, les skills, le règlement, la sauvegarde. `Jukebox.tsx` : la
   liste YouTube et le petit lecteur (`src/audio/music.ts` pilote l'iframe youtube-nocookie par `postMessage`).
-- La note « Comment ça marche » est le meuble `note` (fenêtre `howto` dans `Rooms.tsx`). Lilou se promène après 2 minutes
+- La note « Comment ça marche » est le meuble `note` (fenêtre `howto` dans `Rooms.tsx`). Roré se promène après 2 minutes
   d'inactivité (`stroll`, `IDLE_STROLL` dans `world.ts`). `findClaude` lit `claude --help` : sans `--restricted` ni mode
   « auto » (version ancienne), le pont s'en passe (`supports`). Le panneau de droite se replie (`panelOpen`, touche P).
 
 ## Les règles
 
-- **Français, tutoiement, phrases courtes** dans tout ce que l'utilisatrice lit. Lilou est une femme : accords au féminin.
+- **Français, tutoiement, phrases courtes** dans tout ce que l'utilisatrice lit. Roré est un homme : accords au masculin. La patronne (l’utilisatrice) reste au féminin.
 - **Moins de données** : rien côté serveur ; pas de fichier de musique ni de voix ; la musique vient des liens YouTube
-  de l'utilisatrice (youtube-nocookie.com, seule exception à la CSP : `frame-src`) ; pas d'image externe.
+  de l'utilisatrice (youtube-nocookie.com, seule exception à la CSP : `frame-src`) ; pas d'image externe (les
+  personnages sont servis par le bureau lui-même, dans `public/characters/`).
 - **Sécurité** : jamais de secret dans le dépôt (`.dev.vars` est ignoré) ; les pages HTML créées par l'équipe s'affichent
   dans un iframe `sandbox` sans `allow-same-origin`.
 - **zustand** : un sélecteur qui renvoie un nouveau tableau ou objet passe par `useShallow`.

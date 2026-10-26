@@ -236,7 +236,7 @@ class Jukebox {
     this.publish();
   }
 
-  /** La voix de la cheffe passe devant la musique. */
+  /** La voix du chef passe devant la musique. */
   duck(on: boolean) { this.ducked = on; this.applyVolume(); }
   setMuted(m: boolean) { this.muted = m; this.applyVolume(); }
 

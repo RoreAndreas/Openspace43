@@ -1,6 +1,6 @@
 // Les métiers du bureau, et la traduction en français de ce que fait vraiment chaque agent :
 // chaque outil devient une action (une icône, une animation, une bulle).
-// Pour l'instant, l'open space compte deux personnes : Lilou (la cheffe) et un analyste.
+// Pour l'instant, l'open space compte deux personnes : Roré (le chef) et un analyste.
 import type { ActKind, MissionStats, OfficeEvent, Role } from './protocol.ts';
 
 export interface RoleInfo {
@@ -14,7 +14,7 @@ export interface RoleInfo {
 }
 
 export const ROLES: Record<Role, RoleInfo> = {
-  chef: { label: 'Cheffe de projet', icon: '⭐', color: '#FF8A3D', type: '', what: 'Elle reçoit ta demande, fait le plan, confie le travail à l’analyste, vérifie et assemble le rendu.' },
+  chef: { label: 'Chef de projet', icon: '⭐', color: '#FF8A3D', type: '', what: 'Il reçoit ta demande, fait le plan, confie le travail à l’analyste, vérifie et assemble le rendu.' },
   recherche: { label: 'Recherche', icon: '🔎', color: '#4FB3FF', type: 'chercheur', what: 'Cherche sur internet : concurrents, prix, avis, actualités, sources.' },
   code: { label: 'Code', icon: '💻', color: '#3DDC97', type: 'developpeur', what: 'Code, sites, scripts, automatisations : ce qui se lance et se teste.' },
   design: { label: 'Design', icon: '🎨', color: '#FF6FA8', type: 'designer', what: 'Pages web soignées, maquettes, visuels, mise en forme.' },
@@ -52,7 +52,7 @@ export function roleOfType(type: string): Role {
 
 /** Les prénoms des robots, par métier (jamais deux fois le même dans une mission). */
 export const NAMES: Record<Role, string[]> = {
-  chef: ['Lilou'],
+  chef: ['Roré'],
   recherche: ['Iris', 'Hugo', 'Léa', 'Malo', 'Zoé', 'Noé', 'Inès', 'Tom', 'Jade', 'Sacha', 'Lou', 'Nils'],
   code: ['Ada', 'Linus', 'Grace', 'Alan', 'Margaret', 'Dennis'],
   design: ['Frida', 'Coco', 'Henri', 'Sonia', 'Saul'],

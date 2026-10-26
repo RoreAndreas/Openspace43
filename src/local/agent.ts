@@ -1,4 +1,4 @@
-// L'équipe au travail, dans le navigateur. Lilou (la cheffe) et l'analyste parlent à l'IA (Workers AI, via le
+// L'équipe au travail, dans le navigateur. Roré (le chef) et l'analyste parlent à l'IA (Workers AI, via le
 // Worker) avec un protocole simple : à chaque tour, l'IA répond par un objet JSON { say, action, input }.
 // Le bureau exécute l'action (une recherche, une page lue, un fichier écrit, une tâche confiée à l'analyste…),
 // la montre aussitôt dans le bureau, puis renvoie le résultat à l'IA. Jusqu'à l'action « final ».
@@ -117,7 +117,7 @@ async function act<T>(ctx: TeamCtx, who: string, tool: string, input: Record<str
   }
 }
 
-/** Les actions sur les fichiers et les skills, communes à Lilou et à l'analyste. */
+/** Les actions sur les fichiers et les skills, communes à Roré et à l'analyste. */
 async function common(ctx: TeamCtx, who: string, a: Action): Promise<string | null> {
   const i = a.input;
   switch (a.action) {
@@ -174,7 +174,7 @@ function context(ctx: TeamCtx): string {
 
 // ── L'analyste ──
 function analystPrompt(ctx: TeamCtx, name: string): string {
-  return `Tu es ${name}, l'analyste de l'open space : tu travailles pour une responsable marketing et communication. Lilou, la cheffe de projet, t'a confié une tâche précise. Tout ce que tu fais s'affiche en direct dans un bureau en pixel art.
+  return `Tu es ${name}, l'analyste de l'open space : tu travailles pour une responsable marketing et communication. Roré, le chef de projet, t'a confié une tâche précise. Tout ce que tu fais s'affiche en direct dans un bureau en pixel art.
 Nous sommes le ${today()}.
 
 ${FORMAT}
@@ -185,7 +185,7 @@ Actions :
 ${FILE_ACTIONS}
 - edit_file {"name": "...", "find": "texte exact à remplacer", "replace": "nouveau texte"} : retoucher un fichier.
 - remember {"text": "..."} : ranger dans ton tiroir une information durable à retenir pour les prochaines missions (un fait sur la marque, une préférence de ta patronne). Pas pour les résultats de cette mission.
-- final {"report": "..."} : rendre ton rapport à Lilou et terminer. Le rapport résume en 10 lignes au plus ce que tu as trouvé, donne le nom du fichier écrit et les sources principales.
+- final {"report": "..."} : rendre ton rapport à Roré et terminer. Le rapport résume en 10 lignes au plus ce que tu as trouvé, donne le nom du fichier écrit et les sources principales.
 
 Ta façon de travailler :
 1. Va droit au but : 2 à 4 recherches, 2 à 5 pages lues, pas plus de 14 actions en tout.
@@ -197,7 +197,7 @@ Ta façon de travailler :
 ${context(ctx)}`;
 }
 
-/** L'analyste fait sa tâche et rend son rapport (le texte renvoyé à Lilou). */
+/** L'analyste fait sa tâche et rend son rapport (le texte renvoyé à Roré). */
 async function runAnalyst(ctx: TeamCtx, title: string, instructions: string): Promise<string> {
   const id = `analyste-${Date.now().toString(36)}`;
   const name = ctx.pickName();
@@ -207,7 +207,7 @@ async function runAnalyst(ctx: TeamCtx, title: string, instructions: string): Pr
   ctx.emit({ k: 'hire', id, role: 'analyse', type: 'analyste', name, task: cut(title || 'Analyse', 48), prompt: cut(instructions, 2000) });
   const messages: ChatMsg[] = [
     { role: 'system', content: analystPrompt(ctx, name) },
-    { role: 'user', content: `Ta tâche, confiée par Lilou :\n${instructions}` },
+    { role: 'user', content: `Ta tâche, confiée par Roré :\n${instructions}` },
   ];
   const leave = (ok: boolean) => ctx.emit({ k: 'leave', who: id, ok, tokens: usage.tokens, tools, ms: Date.now() - t0 });
   try {
@@ -260,9 +260,9 @@ async function runAnalyst(ctx: TeamCtx, title: string, instructions: string): Pr
   }
 }
 
-// ── Lilou, la cheffe ──
+// ── Roré, le chef ──
 export function chefPrompt(ctx: TeamCtx): string {
-  return `Tu es Lilou, la cheffe de projet de l'open space : une équipe d'agents IA au service d'une responsable marketing et communication (ta patronne). Tout ce que tu fais s'affiche en direct dans un bureau en pixel art.
+  return `Tu es Roré, le chef de projet de l'open space : une équipe d'agents IA au service d'une responsable marketing et communication (ta patronne). Tout ce que tu fais s'affiche en direct dans un bureau en pixel art.
 Nous sommes le ${today()}.
 Ton équipe : un seul analyste. Il cherche sur internet, analyse et rédige les rapports. Tu lui confies le travail avec "delegate" et tu reçois son rapport.
 
@@ -296,7 +296,7 @@ function toPlan(v: unknown): PlanItem[] {
 }
 
 /**
- * Un tour de travail de Lilou : la mission (ou une retouche). `history` est sa mémoire de la mission
+ * Un tour de travail de Roré : la mission (ou une retouche). `history` est sa mémoire de la mission
  * (gardée entre les retouches). Renvoie son dernier message.
  */
 export async function runChef(ctx: TeamCtx, history: ChatMsg[], userText: string): Promise<string> {

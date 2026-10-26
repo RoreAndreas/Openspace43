@@ -1,5 +1,5 @@
 // Les skills : des méthodes écrites (un fichier SKILL.md : un en-tête name/description, puis les consignes),
-// que Lilou et l'analyste lisent quand une mission s'y prête. Même format que les skills de Claude :
+// que Roré et l'analyste lisent quand une mission s'y prête. Même format que les skills de Claude :
 // un skill installé ici pourra servir tel quel quand on branchera Claude plus tard.
 import { create } from 'zustand';
 import { lsGet, lsSet } from './db.ts';

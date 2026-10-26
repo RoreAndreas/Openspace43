@@ -125,7 +125,7 @@ export function SkillsRoom() {
     } finally { setBusy(false); }
   };
   return (
-    <Shell title="Les skills" sub="Des méthodes que Lilou et l’analyste appliquent quand la mission s’y prête" wide>
+    <Shell title="Les skills" sub="Des méthodes que Roré et l’analyste appliquent quand la mission s’y prête" wide>
       <div className="skills">
         {skills.map((s) => (
           <div key={s.name} className={`skill ${s.enabled ? '' : 'off'}`}>
@@ -168,7 +168,7 @@ export function RulesRoom() {
   const [text, setText] = useState(() => lsGet<string>('rules', '') || RULES_TEMPLATE);
   const toast = useOffice((s) => s.toast);
   return (
-    <Shell title="Le règlement du bureau" sub="Lilou le lit avant chaque mission">
+    <Shell title="Le règlement du bureau" sub="Roré le lit avant chaque mission">
       <p className="small muted">Écris ce que l’équipe doit savoir sur toi et ton entreprise, avec tes mots, comme pour briefer de nouveaux collègues.</p>
       <textarea id="rules-text" className="area" rows={14} value={text} onChange={(e) => setText(e.target.value)} />
       <div className="row">

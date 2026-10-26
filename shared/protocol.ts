@@ -86,7 +86,7 @@ export interface TeamEntry {
 }
 
 export interface Settings {
-  /** le modèle Workers AI (le cerveau de Lilou et de l'analyste) */
+  /** le modèle Workers AI (le cerveau de Roré et de l'analyste) */
   model: string;
   /** auto : l'équipe écrit ses fichiers seule ; ask : elle demande avant chaque fichier */
   permission: 'auto' | 'ask';

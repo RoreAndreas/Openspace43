@@ -17,7 +17,7 @@ import { agentsJson, ALWAYS_ALLOWED, chefPrompt, CLAUDE_MODELS, SESSION_TOOLS } 
 
 const README = `# L'open space
 
-Ici travaille ton équipe d'agents IA : Lilou, la cheffe, et son analyste (de vrais agents Claude Code, avec ton compte Claude).
+Ici travaille ton équipe d'agents IA : Roré, le chef, et son analyste (de vrais agents Claude Code, avec ton compte Claude).
 
 - « Missions » : un dossier par mission. Tout ce que l'équipe produit (rapports, notes) y est rangé.
 - Le règlement, le tiroir de l'analyste et les skills se règlent dans le bureau (ils restent dans ton navigateur).
@@ -170,7 +170,7 @@ export class Bureau {
   // ── Une nouvelle mission ──
   async start(prompt: string, team?: Partial<TeamInput>) {
     const text = prompt.trim();
-    if (!text) throw new Error('Dis à Lilou ce que tu veux.');
+    if (!text) throw new Error('Dis à Roré ce que tu veux.');
     if (!this.claude) throw new Error('Claude Code n’est pas installé sur cet ordinateur.');
     if (this.current?.mission.status === 'working') throw new Error('L’équipe est déjà sur une mission. Attends qu’elle la rende, ou arrête-la.');
     if (this.current) this.close();
@@ -200,7 +200,7 @@ export class Bureau {
     this.say(text);
   }
 
-  /** Parler à Lilou : la mission, puis les retouches. Si elle s'était endormie, elle reprend sa séance. */
+  /** Parler à Roré : la mission, puis les retouches. S'il s'était endormi, il reprend sa séance. */
   say(text: string, team?: Partial<TeamInput>) {
     const cur = this.current;
     if (!cur) throw new Error('Lance d’abord une mission.');
@@ -270,7 +270,7 @@ export class Bureau {
 
   private onResult(cur: Current, r: TurnResult) {
     const l = cur.live;
-    // des membres de l'équipe travaillent encore : Lilou reprendra la main quand ils auront rendu leur travail
+    // des membres de l'équipe travaillent encore : Roré reprendra la main quand ils auront rendu leur travail
     if (l && l.norm.present.size > 0 && r.ok && !cur.stopAsked) return;
     this.finish(cur, r.ok, r.text.trim() || cur.lastChefText, r.ms, cur.stopAsked);
   }
@@ -296,7 +296,7 @@ export class Bureau {
     this.record(cur, { k: 'end', ok, text: m.final ?? '', ms, stopped });
     this.broadcast({ t: 'mission', mission: m });
     this.save();
-    // Lilou reste disponible un moment pour les retouches, puis s'endort (il reprendra sa séance si on lui reparle)
+    // Roré reste disponible un moment pour les retouches, puis s'endort (il reprendra sa séance si on lui reparle)
     if (cur.idleTimer) clearTimeout(cur.idleTimer);
     cur.idleTimer = setTimeout(() => {
       if (this.current === cur && cur.mission.status !== 'working' && cur.live) { cur.live.stopping = true; cur.live.proc.stop(); }

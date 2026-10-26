@@ -11,14 +11,14 @@ export type Hit =
   | { kind: 'cat'; label: string }
   | { kind: 'object'; id: string; label: string; role?: Role };
 
-const ZONE_SIGN: Record<string, string> = { recherche: 'RECHERCHE', code: 'CODE', design: 'DESIGN', redaction: 'RÉDACTION', analyse: 'ANALYSE', chef: 'CHEFFE' };
+const ZONE_SIGN: Record<string, string> = { recherche: 'RECHERCHE', code: 'CODE', design: 'DESIGN', redaction: 'RÉDACTION', analyse: 'ANALYSE', chef: 'CHEF' };
 
 function furnitureLabel(id: string, kind: string, role?: Role): string {
   switch (kind) {
     case 'desk': return `Un bureau du coin ${ROLES[role ?? 'renfort'].label}`;
     case 'chair': return `Un poste du coin ${ROLES[role ?? 'renfort'].label}`;
-    case 'chefDesk': return 'Le bureau de Lilou : les rapports de l’équipe';
-    case 'chefChair': return 'Le fauteuil de Lilou';
+    case 'chefDesk': return 'Le bureau de Roré : les rapports de l’équipe';
+    case 'chefChair': return 'Le fauteuil de Roré';
     case 'rack': return 'Le serveur : Cloudflare et l’IA de l’équipe';
     case 'printer': return 'L’imprimante : les rendus de la mission';
     case 'cooler': return 'La fontaine à eau';
@@ -50,8 +50,8 @@ export function hitAt(world: World, x: number, y: number): Hit | null {
   const actors = [...world.actors.values()].sort((a, b) => (b.seated && b.seat ? b.seat.y : b.y) - (a.seated && a.seat ? a.seat.y : a.y));
   for (const a of actors) {
     const ay = a.seated && a.seat ? a.seat.y : a.y;
-    if (a.alpha > 0.3 && x >= a.x - 7 && x <= a.x + 7 && y >= ay - 21 && y <= ay + 1) {
-      return { kind: 'actor', id: a.id, label: a.id === 'chef' ? 'Lilou, la cheffe de projet' : `${a.name} · ${ROLES[a.role].label}` };
+    if (a.alpha > 0.3 && x >= a.x - 7 && x <= a.x + 7 && y >= ay - a.top + 1 && y <= ay + 1) {
+      return { kind: 'actor', id: a.id, label: a.id === 'chef' ? 'Roré, le chef de projet' : `${a.name} · ${ROLES[a.role].label}` };
     }
   }
   if (world.cat.hit(x, y)) return { kind: 'cat', label: 'Pixel, le chat du bureau' };
@@ -62,7 +62,7 @@ export function hitAt(world: World, x: number, y: number): Hit | null {
     return { kind: 'object', id: p.f.id, label: furnitureLabel(p.f.id, p.f.kind, p.f.role), role: p.f.role };
   }
   // le mur du fond et le sol
-  if (inRect(x, y, { x: BOARD.x - 2, y: BOARD.y - 2, w: BOARD.w + 4, h: BOARD.h + 6 })) return { kind: 'object', id: 'board', label: 'Le tableau : le plan de Lilou' };
+  if (inRect(x, y, { x: BOARD.x - 2, y: BOARD.y - 2, w: BOARD.w + 4, h: BOARD.h + 6 })) return { kind: 'object', id: 'board', label: 'Le tableau : le plan de Roré' };
   if (inRect(x, y, { x: CLOCK.x - 1, y: CLOCK.y - 1, w: 16, h: 16 })) return { kind: 'object', id: 'clock', label: 'L’horloge' };
   if (inRect(x, y, { x: NEON.x, y: NEON.y - 3, w: 26, h: 26 })) return { kind: 'object', id: 'neon', label: 'Le néon (clique pour changer sa couleur)' };
   if (inRect(x, y, POSTER)) return { kind: 'object', id: 'poster', label: 'L’affiche des objectifs' };

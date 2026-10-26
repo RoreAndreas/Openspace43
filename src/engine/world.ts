@@ -3,6 +3,7 @@
 // ou lit selon ce qu'il fait vraiment, se lève pour rendre son rapport au chef, puis repart.
 import type { ActKind, OfficeEvent, PlanItem, Role } from '../../shared/protocol.ts';
 import { Cat } from './cat.ts';
+import { lookFor, lookTop, onLooks } from './characters.ts';
 import { Fx } from './fx.ts';
 import { iconFor } from './icons.ts';
 import { CHEF_SEAT, SEATS, SPOTS, T, WINDOWS, tileFeet, walkGrid, type Seat } from './layout.ts';
@@ -22,7 +23,7 @@ type Task =
 
 const WALK_SPEED = 58; // pixels par seconde
 
-/** combien de secondes d'inactivité avant que Lilou aille faire un tour */
+/** combien de secondes d'inactivité avant que Roré aille faire un tour */
 const IDLE_STROLL = 120;
 
 interface StrollSpot { tile: Tile; face: Dir; ms: number; pose?: Pose; fx?: () => void; /** assez près de son bureau pour une pause en pleine mission */ near?: boolean }
@@ -65,6 +66,10 @@ export class Actor {
   look: Eyes = 'open';
   lookUntil = 0;
   deliverSpot = -1;
+  /** son personnage (src/characters/catalog.json) ; null = le robot de son métier */
+  character: string | null;
+  /** son décalage dans le temps : chacun respire et sautille à son rythme */
+  phase = Math.random() * 10;
 
   constructor(id: string, role: Role, name: string, x: number, y: number) {
     this.id = id;
@@ -72,6 +77,7 @@ export class Actor {
     this.name = name;
     this.x = x;
     this.y = y;
+    this.character = lookFor(role, name);
   }
 
   get tile(): Tile {
@@ -79,8 +85,13 @@ export class Actor {
     return [Math.max(0, Math.floor(this.x / T)), Math.max(0, Math.min(15, Math.floor((this.y - 2) / T)))];
   }
 
+  /** Sa taille debout, des pieds au haut de la tête. */
+  get height(): number { return lookTop(this.character, false); }
+  /** Le haut de sa tête au-dessus des pieds, là où il est (assis, il s'enfonce derrière son bureau). */
+  get top(): number { return lookTop(this.character, this.seated && !!this.seat); }
+
   /** Le haut de la tête (pour accrocher les bulles). */
-  get head(): Pt { return { x: this.x, y: this.y - 22 }; }
+  get head(): Pt { return { x: this.x, y: this.y - this.top }; }
 
   get busy() { return !!this.cur || this.tasks.length > 0; }
 }
@@ -121,8 +132,8 @@ export class World {
   bobUntil = 0;
   private noteAt = 0;
   private steamAt = 0;
-  /** quand Lilou repart faire un tour (elle ne reste jamais plantée) */
-  /** Lilou part faire un tour après 2 minutes sans rien à faire */
+  /** quand Roré repart faire un tour (il ne reste jamais planté) */
+  /** Roré part faire un tour après 2 minutes sans rien à faire */
   private strollAt = IDLE_STROLL;
   private lastStroll = -1;
   rosterVersion = 0;
@@ -130,6 +141,18 @@ export class World {
 
   constructor() {
     this.resetAll();
+    // on change le personnage d'un agent : il se transforme sur place
+    onLooks(() => {
+      const taken: (string | null)[] = [];
+      for (const a of this.actors.values()) { a.character = lookFor(a.role, a.name, taken); taken.push(a.character); }
+      this.rosterChanged();
+    });
+  }
+
+  /** Un nouveau venu : son personnage, sans prendre celui d'un collègue déjà là (si possible). */
+  private arrive(a: Actor) {
+    a.character = lookFor(a.role, a.name, [...this.actors.values()].map((x) => x.character));
+    this.actors.set(a.id, a);
   }
 
   get chef() { return this.actors.get('chef')!; }
@@ -140,7 +163,7 @@ export class World {
     for (const fn of this.rosterListeners) fn();
   }
 
-  /** Le bureau vide, Lilou à l'accueil (début, nouvelle mission, rediffusion). */
+  /** Le bureau vide, Roré à l'accueil (début, nouvelle mission, rediffusion). */
   resetAll() {
     this.actors.clear();
     this.seatOf.clear();
@@ -154,7 +177,7 @@ export class World {
     this.assignments = [];
     this.planSize = -1;
     const p = SPOTS.receptionPx;
-    this.actors.set('chef', new Actor('chef', 'chef', 'Lilou', p.x, p.y));
+    this.actors.set('chef', new Actor('chef', 'chef', 'Roré', p.x, p.y));
     this.rosterChanged();
   }
 
@@ -259,7 +282,7 @@ export class World {
         this.missionActive = true;
         chef.thinkAt = this.time;
         if (live) {
-          // elle laisse tomber sa promenade et file à son bureau
+          // il laisse tomber sa promenade et file à son bureau
           const strolling = chef.busy;
           chef.tasks = [];
           if (!chef.seated && !strolling) this.queue(chef, { t: 'wait', ms: 500, pose: 'wave', dir: 'down' }, { t: 'walk', tile: CHEF_SEAT.tile }, { t: 'sit', seat: CHEF_SEAT });
@@ -278,7 +301,7 @@ export class World {
         const fresh = n !== this.planSize;
         this.planSize = n;
         if (live && fresh) {
-          // Lilou va écrire le plan au tableau
+          // Roré va écrire le plan au tableau
           chef.tasks = chef.tasks.filter((t) => t.t !== 'sit');
           this.queue(chef,
             { t: 'walk', tile: SPOTS.board, face: 'up', then: SPOTS.boardPx },
@@ -300,7 +323,7 @@ export class World {
         if (!this.assignments.some((x) => x.id === ev.id)) this.assignments.push({ id: ev.id, role: ev.role, name: ev.name, task: ev.task, status: 'working' });
         if (seat) { this.seatOf.set(seat.id, a.id); a.seat = seat; }
         else a.standSpot = this.overflowSpot();
-        this.actors.set(a.id, a);
+        this.arrive(a);
         this.rosterChanged();
         if (live) {
           a.alpha = 0;
@@ -312,7 +335,7 @@ export class World {
           );
           if (seat) this.queue(a, { t: 'walk', tile: seat.tile }, { t: 'sit', seat });
           else this.queue(a, { t: 'walk', tile: a.standSpot!, face: 'down' });
-          // Lilou se tourne vers celui qu'il appelle
+          // Roré se tourne vers celui qu'il appelle
           chef.happyUntil = this.time + 0.8;
         } else if (seat) this.snapSeat(a, seat);
         else { const f = tileFeet(a.standSpot!); a.x = f.x; a.y = f.y; }
@@ -324,7 +347,7 @@ export class World {
         a.act = ev.kind;
         a.actAt = this.time;
         if (!live) break;
-        this.fx.floatIcon(a.x + (a.seated ? 0 : 1), a.y - 24, iconFor(ev.kind));
+        this.fx.floatIcon(a.x + (a.seated ? 0 : 1), a.y - a.height - 2, iconFor(ev.kind));
         if (ev.kind === 'search' || ev.kind === 'web') this.fx.data(this.nearestWindow(a), { x: a.x, y: a.y - 8 }, ev.kind === 'web' ? '#3ddc97' : '#7fd6ff');
         break;
       }
@@ -357,7 +380,7 @@ export class World {
       case 'ask': {
         const a = this.actors.get(ev.who) ?? chef;
         a.asks++;
-        if (live) this.fx.floatIcon(a.x, a.y - 26, 'alert');
+        if (live) this.fx.floatIcon(a.x, a.y - a.height - 4, 'alert');
         break;
       }
       case 'ask_done':
@@ -475,11 +498,11 @@ export class World {
         const kinds: ActKind[] = a.role === 'recherche' ? ['search', 'web'] : a.role === 'code' ? ['write', 'bash'] : a.role === 'analyse' ? ['read', 'write'] : ['write', 'edit'];
         a.act = kinds[Math.floor(Math.random() * kinds.length)];
         a.actAt = this.time;
-        this.fx.floatIcon(a.x, a.y - 24, iconFor(a.act));
+        this.fx.floatIcon(a.x, a.y - a.height - 2, iconFor(a.act));
       }
     }
-    // Après 2 minutes sans rien à faire, Lilou va se dégourdir les jambes (le café, la fontaine, une fenêtre…),
-    // puis elle revient à l'accueil, ou à son bureau pendant une mission
+    // Après 2 minutes sans rien à faire, Roré va se dégourdir les jambes (le café, la fontaine, une fenêtre…),
+    // puis il revient à l'accueil, ou à son bureau pendant une mission
     if (!chef.busy && this.time > this.strollAt) {
       if (!this.missionActive && !chef.seated) this.stroll(false);
       else if (this.missionActive && chef.seated) this.stroll(true);
@@ -498,10 +521,10 @@ export class World {
     return moving;
   }
 
-  /** Tu cliques dans le bureau : Lilou reste disponible (la promenade attend encore 2 minutes). */
+  /** Tu cliques dans le bureau : Roré reste disponible (la promenade attend encore 2 minutes). */
   touch() { this.strollAt = Math.max(this.strollAt, this.time + IDLE_STROLL); }
 
-  /** Les endroits où Lilou aime passer, et ce qu'elle y fait. */
+  /** Les endroits où Roré aime passer, et ce qu’il y fait. */
   private strollSpots(): StrollSpot[] {
     const spots: StrollSpot[] = [
       { tile: [17, 13], face: 'down', ms: 2600, fx: () => this.coffee(), near: true },
@@ -518,7 +541,7 @@ export class World {
     return spots.filter((s) => this.grid[s.tile[1]]?.[s.tile[0]]);
   }
 
-  /** Une petite promenade : elle va quelque part, s'y arrête un instant, puis (en mission) revient s'asseoir. */
+  /** Une petite promenade : il va quelque part, s'y arrête un instant, puis (en mission) revient s'asseoir. */
   private stroll(backToDesk: boolean) {
     const chef = this.chef;
     const spots = this.strollSpots();
@@ -584,7 +607,7 @@ export class World {
         this.snapSeat(a, seat);
         a.act = Math.random() < 0.5 ? 'search' : 'write';
         a.actAt = this.time;
-        this.actors.set(id, a);
+        this.arrive(a);
       }
     } else {
       for (const [id] of demo) { const a = this.actors.get(id); if (a) this.remove(a); }
