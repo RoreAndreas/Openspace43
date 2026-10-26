@@ -53,7 +53,7 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
   reste un libre). La galerie : `ui/Characters.tsx` (fenêtre `characters`).
 - **Piloter Roré** : double-clic sur lui (`Office.tsx`) → `ui/drive.ts` (flèches, Échap) → `world.drive` / `steer` ;
   pendant ce temps ses tâches attendent (`driveStep` dans `world.update`), collisions sur `walkGrid`, caméra qui suit.
-- **La Break room** (`room: 'annex'` dans le store ; à gauche : porte dans le mur de gauche du bureau, dans celui de droite de la Break room ; ☕, touche D) :
+- **La Pause** (`room: 'annex'` dans le store ; à droite : porte dans le mur de droite du bureau, dans celui de gauche de la Pause ; ☕, touche D) :
   `engine/annex.ts` (plan, activités `SPOTS`, vie des personnages `Pal`, discussions et jeux à deux, `talk`, `poke`,
   pilotage de Roré), `engine/annexDraw.ts` (pièce, meubles, rendu, lumière). Elle vit aussi quand on n'y est pas. Côté
   interface : `ui/place.ts` (`goRoom`, les portes), `ui/AnnexLayer.tsx` (prénoms et bulles). Les goûts (`hobbies`) et

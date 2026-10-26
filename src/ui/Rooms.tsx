@@ -276,8 +276,8 @@ function HowtoRoom() {
         <p className="small">Double-clique sur lui, puis fais-le marcher avec les flèches. Échap (ou un nouveau double-clic) lui rend la main : en pleine mission, il retourne à son bureau.</p>
       </section>
       <section className="room-sec">
-        <h4>La Break room</h4>
-        <p className="small">La porte « BREAK ROOM », à gauche (ou ☕, ou la touche D) : une cuisine et une salle de loisirs où tout le monde se retrouve. Clique sur quelqu’un : il te parle. Si tu diriges Roré, fais-lui passer la porte, approche-le d’un collègue et appuie sur Espace.</p>
+        <h4>La Pause</h4>
+        <p className="small">La porte « PAUSE », à droite (ou ☕, ou la touche D) : une cuisine et une salle de loisirs où tout le monde se retrouve. Clique sur quelqu’un : il te parle. Si tu diriges Roré, fais-lui passer la porte, approche-le d’un collègue et appuie sur Espace.</p>
       </section>
       <section className="room-sec">
         <h4>Les autres objets</h4>

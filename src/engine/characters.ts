@@ -25,9 +25,9 @@ export interface CharacterInfo {
   idle: Idle;
   workLabel: string;
   outfit: Outfit;
-  /** ses activités préférées dans la Break room (annex.ts) */
+  /** ses activités préférées dans la Pause (annex.ts) */
   hobbies: string[];
-  /** ce qu'il te dit quand tu viens lui parler, dans la Break room */
+  /** ce qu'il te dit quand tu viens lui parler, dans la Pause */
   lines: string[];
 }
 

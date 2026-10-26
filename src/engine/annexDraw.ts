@@ -1,4 +1,4 @@
-// Le dessin de la Break room : la pièce (carrelage de la cuisine, crédence, fenêtre, néon « BREAK »),
+// Le dessin de la Pause : la pièce (carrelage de la cuisine, crédence, fenêtre, néon « PAUSE »),
 // ses meubles (frigo, grande table, bornes d'arcade, ping-pong, baby-foot…), les personnages et la lumière.
 // Même taille que le bureau (352 × 256), même pixel art.
 import { ANNEX_BACK_DOOR, ANNEX_FURNITURE, type Annex, type AnnexFurn, type AnnexKind, type Pal } from './annex.ts';
@@ -10,7 +10,7 @@ import { ANCHOR_X, ANCHOR_Y, robotSprite } from './robots.ts';
 import { backWall, doorSign, floor, rug, sideDoor, windowPane, type TimeOfDay } from './room.ts';
 import { jukeboxLights } from './render.ts';
 
-// ── Les meubles de la Break room ──
+// ── Les meubles de la Pause ──
 
 /** Le plan de travail : l'évier, les plaques de cuisson, une planche à découper. */
 function counterSprite(): Sprite {
@@ -232,24 +232,24 @@ function drawAnnexRoom(tod: TimeOfDay): HTMLCanvasElement {
   rect(g, 116, 32, 42, 2, '#8a5530');
   pixelText(g, 'MENU', 126, 12, '#f6f2e9');
   for (let i = 0; i < 3; i++) hline(g, 122, 21 + i * 3, 28 - i * 6, '#a8c7b5');
-  // côté loisirs : la fenêtre sur la ville, une cible, le néon « BREAK »
+  // côté loisirs : la fenêtre sur la ville, une cible, le néon « PAUSE »
   windowPane(g, 212, 8, 52, 30, tod, 3);
   for (const [r, col] of [[7, '#2b2836'], [6, '#e5484d'], [4, '#f6f2e9'], [2, '#e5484d']] as [number, string][]) {
     for (let y = -r; y <= r; y++) { const w = Math.round(Math.sqrt(r * r - y * y)); hline(g, 188 - w, 22 + y, w * 2 + 1, col); }
   }
   px(g, 188, 22, '#ffd166');
   rect(g, 286, 12, 40, 12, '#120f19');
-  pixelText(g, 'BREAK', 291, 15, '#ff6fa8');
+  pixelText(g, 'PAUSE', 291, 15, '#ff6fa8');
   hline(g, 286, 12, 40, '#ff6fa8');
-  // les murs de côté (la porte du bureau à droite) et le mur de devant
+  // les murs de côté (la porte du bureau à gauche) et le mur de devant
   for (const x0 of [0, W - T]) {
     rect(g, x0, 0, T, H, P.wallTop);
     const inner = x0 === 0 ? T - 2 : x0;
     vline(g, inner, 5, H - 5, '#2c2740');
     vline(g, inner + 1, 5, H - 5, '#1d1a28');
   }
-  sideDoor(g, W - T, ANNEX_BACK_DOOR.row, 'right');
-  doorSign(g, W - T, ANNEX_BACK_DOOR.row, 'right', 'BUREAU', P.orange, P.orangeLight);
+  sideDoor(g, 0, ANNEX_BACK_DOOR.row, 'left');
+  doorSign(g, 0, ANNEX_BACK_DOOR.row, 'left', 'BUREAU', P.orange, P.orangeLight);
   g.fillStyle = 'rgba(8,6,16,0.25)';
   g.fillRect(T, 3 * T, 2, H - 4 * T);
   g.fillRect(W - T - 2, 3 * T, 2, H - 4 * T);
@@ -275,7 +275,7 @@ export class AnnexRenderer {
     g.globalCompositeOperation = 'source-over';
     g.globalAlpha = 1;
     g.drawImage(this.bg, 0, 0);
-    // le néon « BREAK » grésille de temps en temps
+    // le néon « PAUSE » grésille de temps en temps
     if (Math.sin(t * 1.1) > 0.97) { g.fillStyle = '#120f19'; g.fillRect(290, 14, 32, 8); }
     const playing = (id: string) => annex.pals.some((p) => p.state === 'doing' && p.spot?.id === id);
     const items: { y: number; draw: () => void }[] = [];

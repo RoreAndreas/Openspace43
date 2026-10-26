@@ -1,5 +1,9 @@
 # Les versions
 
+## Open space v0.6.1 (26 octobre 2026)
+
+- **La Break room redevient la Pause**, et revient à droite du bureau (la porte « PAUSE »).
+
 ## Open space v0.6.0 (26 octobre 2026)
 
 - **Hares rejoint l'équipe** : un spartiate de la finance (casque à aigrette, bouclier au lambda, lance), assis au coin Analyse. Roré lui confie les échantillons de comparables, les CMPC et les valorisations par les multiples.

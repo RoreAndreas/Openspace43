@@ -126,7 +126,7 @@ export function TopBar() {
             <span className="energy-bar"><i style={{ width: `${Math.max(3, 100 - quota.fiveHour * 100)}%` }} /></span>
           </span>
         )}
-        <button className={`icon-btn ${room === 'annex' ? 'on' : ''}`} title={room === 'annex' ? 'Retour au bureau (D)' : 'La Break room : la cuisine et les loisirs, où tout le monde se retrouve (D)'} onClick={() => goRoom(room === 'annex' ? 'office' : 'annex')}>☕</button>
+        <button className={`icon-btn ${room === 'annex' ? 'on' : ''}`} title={room === 'annex' ? 'Retour au bureau (D)' : 'La Pause : la cuisine et les loisirs, où tout le monde se retrouve (D)'} onClick={() => goRoom(room === 'annex' ? 'office' : 'annex')}>☕</button>
         <button className="icon-btn" title="Visite guidée : Roré présente son bureau (T)" onClick={() => void startTour()}>🎤</button>
         <button className="icon-btn" title="Toute l’équipe : les métiers, leurs outils, l’historique" onClick={() => { sfx('open'); useOffice.setState({ modal: { kind: 'team' } }); }}>👥</button>
         <button className="icon-btn" title="Le tiroir de l’analyste : couleurs, types de texte, infos à retenir" onClick={() => { sfx('open'); useOffice.setState({ modal: { kind: 'drawer' } }); }}>🗄️</button>

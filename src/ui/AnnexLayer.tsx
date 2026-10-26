@@ -1,4 +1,4 @@
-// Au-dessus de la Break room : le prénom de chacun, et sa bulle quand il te parle.
+// Au-dessus de la Pause : le prénom de chacun, et sa bulle quand il te parle.
 // Les bulles suivent les personnages à chaque image (placeAnnexBubbles), sans repasser par React.
 import { useCallback, useSyncExternalStore } from 'react';
 import { annex } from '../engine/instance.ts';

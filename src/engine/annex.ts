@@ -1,4 +1,4 @@
-// La Break room, à gauche du bureau : une cuisine et une salle de loisirs, où tous les personnages se
+// La Pause, à droite du bureau : une cuisine et une salle de loisirs, où tous les personnages se
 // retrouvent. Chacun y fait ce qu'il aime (catalogue : « hobbies ») ; ils se croisent, discutent, jouent à
 // deux (ping-pong, baby-foot). Clique sur l'un d'eux, ou dirige Roré jusqu'à lui et appuie sur Espace : il te parle.
 import { CHARACTERS, idleEffect, type CharacterInfo } from './characters.ts';
@@ -17,7 +17,7 @@ export type ReusedKind = 'coffee' | 'sofa' | 'shelf' | 'plantBig' | 'plantTall' 
 
 export interface AnnexFurn { id: string; kind: AnnexKind | ReusedKind; tx: number; ty: number; w: number; h: number; seed?: number; label: string }
 
-/** La porte du bureau : dans le mur de droite (la Break room est à gauche du bureau), sur deux cases (rangées 9 et 10). */
+/** La porte du bureau : dans le mur de gauche (la Pause est à droite du bureau), sur deux cases (rangées 9 et 10). */
 export const ANNEX_BACK_DOOR = { row: 9 };
 
 export const ANNEX_FURNITURE: AnnexFurn[] = [
@@ -49,15 +49,15 @@ export const ANNEX_FURNITURE: AnnexFurn[] = [
   { id: 'lamp', kind: 'lamp', tx: 10, ty: 14, w: 1, h: 1, label: 'Un lampadaire' },
 ];
 
-/** Les cases où l'on peut marcher dans la Break room. */
+/** Les cases où l'on peut marcher dans la Pause. */
 function annexGrid(): boolean[][] {
   const g: boolean[][] = [];
   for (let y = 0; y < ROWS; y++) {
     g.push([]);
     for (let x = 0; x < COLS; x++) g[y].push(x >= 1 && x <= 20 && y >= 3 && y <= 14);
   }
-  g[ANNEX_BACK_DOOR.row][21] = true;
-  g[ANNEX_BACK_DOOR.row + 1][21] = true;
+  g[ANNEX_BACK_DOOR.row][0] = true;
+  g[ANNEX_BACK_DOOR.row + 1][0] = true;
   for (const f of ANNEX_FURNITURE) for (let y = f.ty; y < f.ty + f.h; y++) for (let x = f.tx; x < f.tx + f.w; x++) if (g[y]?.[x] !== undefined) g[y][x] = false;
   return g;
 }
@@ -185,7 +185,7 @@ export class Annex {
   grid = annexGrid();
   time = 0;
   private taken = new Map<string, string>();
-  /** tu diriges Roré dans la Break room */
+  /** tu diriges Roré dans la Pause */
   driving = false;
   private steerX = 0;
   private steerY = 0;
@@ -536,9 +536,9 @@ export class Annex {
   /** Roré arrive par la porte du bureau, avec toi aux commandes. */
   enterRore(y: number) {
     const me = this.rore;
-    me.x = 21 * T + 10;
+    me.x = 6;
     me.y = Math.max(ANNEX_BACK_DOOR.row * T + 6, Math.min((ANNEX_BACK_DOOR.row + 2) * T - 2, y));
-    me.dir = 'left';
+    me.dir = 'right';
     me.seated = false;
     this.drive(false);
     this.drive(true);
@@ -558,12 +558,12 @@ export class Annex {
     else if (dy && ok(a.x, ny)) a.y = ny;
     const row = Math.floor((a.y - 2) / T);
     const atDoor = row >= ANNEX_BACK_DOOR.row && row <= ANNEX_BACK_DOOR.row + 1;
-    a.x = Math.max(T + 4, Math.min(atDoor ? 22 * T - 2 : 21 * T - 4, a.x));
+    a.x = Math.max(atDoor ? 2 : T + 4, Math.min(21 * T - 4, a.x));
     a.y = Math.max(3 * T + 8, Math.min(15 * T - 2, a.y));
     a.moving = true;
     a.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up';
     // il franchit la porte : retour au bureau
-    if (atDoor && a.x > 21 * T + 6) this.onDoor?.();
+    if (atDoor && a.x < 8) this.onDoor?.();
   }
 }
 
@@ -582,7 +582,7 @@ export function annexHitAt(annex: Annex, x: number, y: number, place: (f: AnnexF
       return { kind: 'pal', id: p.id, label: me ? 'Roré : tu le diriges (Espace pour parler, Échap pour le laisser)' : `${p.name}, ${p.info.archetype.toLowerCase()} · ${p.doing}` };
     }
   }
-  if (x >= 21 * T - 30 && y >= ANNEX_BACK_DOOR.row * T - 18 && y < (ANNEX_BACK_DOOR.row + 2) * T && (x >= 21 * T || y < ANNEX_BACK_DOOR.row * T - 9)) return { kind: 'door', label: 'La porte du bureau : retour au travail' };
+  if (x < T + 30 && y >= ANNEX_BACK_DOOR.row * T - 18 && y < (ANNEX_BACK_DOOR.row + 2) * T && (x < T || y < ANNEX_BACK_DOOR.row * T - 9)) return { kind: 'door', label: 'La porte du bureau : retour au travail' };
   const placed = ANNEX_FURNITURE.map((f) => ({ f, ...place(f) })).sort((a, b) => b.sortY - a.sortY);
   for (const p of placed) {
     if (x >= p.x + 1 && x < p.x + p.w - 1 && y >= p.y + 1 && y < p.y + p.h - 1) return { kind: 'object', id: p.f.id, label: p.f.label };

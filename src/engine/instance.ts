@@ -9,7 +9,7 @@ import type { TimeOfDay } from './room.ts';
 import { World } from './world.ts';
 
 export const world = new World();
-/** la Break room, à côté : elle vit aussi quand tu n'y es pas */
+/** la Pause, à côté : elle vit aussi quand tu n'y es pas */
 export const annex = new Annex();
 export const annexRenderer = new AnnexRenderer();
 export const renderer = new Renderer();

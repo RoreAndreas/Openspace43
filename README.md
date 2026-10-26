@@ -44,7 +44,7 @@ ton compte : c'est prévu et autorisé.
 - **Les rendus** : chaque rapport se lit dans le bureau ou se télécharge, avec l'historique de ses versions. Une mission entière se télécharge en `.zip`.
 - **Les missions précédentes** (touche `H`) : on peut les rejouer.
 - **La note « Comment ça marche »** : le post-it jaune, à côté du bureau de Roré.
-- **La Break room**, à gauche du bureau (la porte « BREAK ROOM », le bouton ☕ ou la touche `D`) : une cuisine et une salle de loisirs où tous les personnages se retrouvent. Chacun y fait ce qu'il aime (café, frigo, repas, console, arcade, bibliothèque, danse, sieste), ils discutent entre eux et jouent à deux au ping-pong ou au baby-foot. Clique sur l'un d'eux : il te parle. Quand le jukebox joue, il s'anime là-bas aussi, et on y danse plus volontiers.
+- **La Pause**, à droite du bureau (la porte « PAUSE », le bouton ☕ ou la touche `D`) : une cuisine et une salle de loisirs où tous les personnages se retrouvent. Chacun y fait ce qu'il aime (café, frigo, repas, console, arcade, bibliothèque, danse, sieste), ils discutent entre eux et jouent à deux au ping-pong ou au baby-foot. Clique sur l'un d'eux : il te parle. Quand le jukebox joue, il s'anime là-bas aussi, et on y danse plus volontiers.
 
 ### Hares et la base 43 WACC
 

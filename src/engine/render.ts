@@ -75,8 +75,8 @@ export class Renderer {
     for (const it of items) it.draw();
 
     if (t < world.discoUntil) this.discoBall(g, t);
-    // l'écriteau de la Break room, par-dessus les meubles qui le cacheraient
-    doorSign(g, 0, ANNEX_DOOR.row, 'left', 'BREAK ROOM', '#ff6fa8', '#ffc2dd');
+    // l'écriteau de la Pause, par-dessus les meubles qui le cacheraient
+    doorSign(g, W - T, ANNEX_DOOR.row, 'right', 'PAUSE', '#ff6fa8', '#ffc2dd');
     world.fx.draw(g);
     if (tod === 'day') this.sunbeams(g);
     else this.lighting(g, world, tod, atDesk, t);

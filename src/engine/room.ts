@@ -290,11 +290,11 @@ function sideWalls(g: G) {
   g.fillStyle = 'rgba(8,6,16,0.25)';
   g.fillRect(T, 3 * T, 2, H - 4 * T);
   g.fillRect(W - T - 2, 3 * T, 2, H - 4 * T);
-  // la porte de la Break room, dans le mur de gauche (son écriteau est posé par-dessus les meubles : doorSign)
-  sideDoor(g, 0, ANNEX_DOOR.row, 'left');
+  // la porte de la Pause, dans le mur de droite (son écriteau est posé par-dessus les meubles : doorSign)
+  sideDoor(g, W - T, ANNEX_DOOR.row, 'right');
 }
 
-/** L'écriteau lumineux au-dessus d'une porte de côté (« BREAK ROOM » ou « BUREAU »). */
+/** L'écriteau lumineux au-dessus d'une porte de côté (« PAUSE » ou « BUREAU »). */
 export function doorSign(g: G, x0: number, row: number, side: 'left' | 'right', label: string, color: string, light: string) {
   const w = textWidth(label) + 6;
   const sx = side === 'right' ? x0 - w + T - 1 : x0 + 1, sy = row * T - 18;
