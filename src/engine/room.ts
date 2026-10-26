@@ -3,7 +3,7 @@
 // Tout ça ne bouge pas : c'est dessiné une fois, puis recopié à chaque image.
 import { ROLES } from '../../shared/activity.ts';
 import { pixelText, textWidth } from './font.ts';
-import { BOARD, CLOCK, H, NEON, T, W, WINDOWS, ZONES } from './layout.ts';
+import { ANNEX_DOOR, BOARD, CLOCK, H, NEON, T, W, WINDOWS, ZONES } from './layout.ts';
 import { g2d, hline, lighten, makeCanvas, mix, P, px, rect, rng, vline, type G } from './pixels.ts';
 
 export type TimeOfDay = 'day' | 'evening' | 'night';
@@ -14,7 +14,7 @@ const SKY: Record<TimeOfDay, { bands: string[]; city: string; city2: string; lit
   night: { bands: ['#0a0a20', '#0f0f2c', '#151538', '#1c1a45', '#231e50'], city: '#0a0816', city2: '#120f22', lit: '#ffcf6b', litRate: 0.32 },
 };
 
-function floor(g: G) {
+export function floor(g: G) {
   const r = rng(42);
   const top = 3 * T;
   const colors = [P.floor1, P.floor2, P.floor3, P.floor1];
@@ -34,7 +34,7 @@ function floor(g: G) {
   }
 }
 
-function rug(g: G, x: number, y: number, w: number, h: number, color: string) {
+export function rug(g: G, x: number, y: number, w: number, h: number, color: string) {
   const base = mix(color, '#2b2232', 0.72);
   const edge = mix(color, '#2b2232', 0.5);
   const inner = mix(color, '#2b2232', 0.62);
@@ -127,7 +127,7 @@ function themedRug(g: G, role: string, x: number, y: number, w: number, h: numbe
   rug(g, x, y, w, h, ROLES[role as keyof typeof ROLES]?.color ?? P.orange);
 }
 
-function backWall(g: G) {
+export function backWall(g: G) {
   rect(g, 0, 0, W, 5, P.wallTop);
   rect(g, 0, 5, W, 39, P.wallFace);
   // boiseries : un panneau bas plus sombre, une cimaise
@@ -145,7 +145,7 @@ function backWall(g: G) {
   g.fillRect(0, 50, W, 2);
 }
 
-function windowPane(g: G, wx: number, wy: number, ww: number, wh: number, tod: TimeOfDay, seed: number) {
+export function windowPane(g: G, wx: number, wy: number, ww: number, wh: number, tod: TimeOfDay, seed: number) {
   const sky = SKY[tod];
   const r = rng(seed);
   // cadre
@@ -290,6 +290,27 @@ function sideWalls(g: G) {
   g.fillStyle = 'rgba(8,6,16,0.25)';
   g.fillRect(T, 3 * T, 2, H - 4 * T);
   g.fillRect(W - T - 2, 3 * T, 2, H - 4 * T);
+  // la porte de la salle de pause, dans le mur de droite
+  sideDoor(g, W - T, ANNEX_DOOR.row, 'right');
+}
+
+/** Une porte dans un mur de côté (deux cases de haut), avec l'écriteau « PAUSE » ou « BUREAU ». */
+export function sideDoor(g: G, x0: number, row: number, side: 'left' | 'right') {
+  const y = row * T - 6, h = 2 * T + 6;
+  // l'ouverture, et le couloir qu'on devine derrière
+  rect(g, x0, y, T, h, '#1a1625');
+  rect(g, x0 + (side === 'right' ? 4 : 0), y + 4, T - 4, h - 4, '#2a2238');
+  for (let i = 0; i < 4; i++) hline(g, x0 + (side === 'right' ? 5 : 1), y + 8 + i * 7, T - 6, '#332a44');
+  // le chambranle
+  rect(g, x0, y - 2, T, 2, '#3b3550');
+  vline(g, side === 'right' ? x0 : x0 + T - 1, y - 2, h + 2, '#4d4666');
+  // l'écriteau lumineux au-dessus
+  const label = side === 'right' ? 'PAUSE' : 'BUREAU';
+  const w = textWidth(label) + 6;
+  const sx = side === 'right' ? x0 - w + T - 1 : x0 + 1, sy = y - 12;
+  rect(g, sx, sy, w, 9, '#120f19');
+  hline(g, sx, sy, w, side === 'right' ? '#ff6fa8' : P.orange);
+  pixelText(g, label, sx + 3, sy + 2, side === 'right' ? '#ffc2dd' : P.orangeLight);
 }
 
 function frontWall(g: G) {

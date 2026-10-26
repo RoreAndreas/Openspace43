@@ -80,7 +80,7 @@ furn.push({ id: 'rack', kind: 'rack', tx: 14, ty: 3, w: 1, h: 1 });
 furn.push({ id: 'printer', kind: 'printer', tx: 12, ty: 4, w: 1, h: 1 });
 furn.push({ id: 'cooler', kind: 'cooler', tx: 9, ty: 4, w: 1, h: 1 });
 furn.push({ id: 'easel', kind: 'easel', tx: 19, ty: 8, w: 1, h: 1 });
-furn.push({ id: 'plant-design', kind: 'plantBig', tx: 20, ty: 8, w: 1, h: 1, seed: 3 });
+furn.push({ id: 'plant-design', kind: 'plantBig', tx: 20, ty: 6, w: 1, h: 1, seed: 3 });
 furn.push({ id: 'plant-entry-l', kind: 'plantTall', tx: 8, ty: 14, w: 1, h: 1, seed: 5 });
 furn.push({ id: 'plant-entry-r', kind: 'plantBig', tx: 13, ty: 14, w: 1, h: 1, seed: 9 });
 furn.push({ id: 'plant-analyse', kind: 'plantTall', tx: 20, ty: 11, w: 1, h: 1, seed: 11 });
@@ -127,6 +127,9 @@ export const CLOCK = { x: 232, y: 13 };
 export const POSTER = { x: 252, y: 12, w: 10, h: 14 };
 export const DOOR = { x: 160, y: 228, w: 32, h: 28 };
 
+/** La porte de la salle de pause : dans le mur de droite, sur deux cases (rangées 9 et 10). */
+export const ANNEX_DOOR = { row: 9 };
+
 /** La grille des cases où l'on peut marcher. */
 export function walkGrid(): boolean[][] {
   const g: boolean[][] = [];
@@ -137,6 +140,9 @@ export function walkGrid(): boolean[][] {
   // la porte
   g[15][10] = true;
   g[15][11] = true;
+  // la porte de la salle de pause (Roré peut la passer quand tu le diriges)
+  g[ANNEX_DOOR.row][21] = true;
+  g[ANNEX_DOOR.row + 1][21] = true;
   for (const f of FURNITURE) {
     for (let y = f.ty; y < f.ty + f.h; y++) for (let x = f.tx; x < f.tx + f.w; x++) if (g[y]?.[x] !== undefined) g[y][x] = false;
   }

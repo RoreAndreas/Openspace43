@@ -43,6 +43,7 @@ ton compte : c'est prévu et autorisé.
 - **Les rendus** : chaque rapport se lit dans le bureau ou se télécharge, avec l'historique de ses versions. Une mission entière se télécharge en `.zip`.
 - **Les missions précédentes** (touche `H`) : on peut les rejouer.
 - **La note « Comment ça marche »** : le post-it jaune, à côté du bureau de Roré.
+- **La salle de pause** (la porte « PAUSE », le bouton ☕ ou la touche `D`) : une cuisine et une salle de loisirs où tous les personnages se retrouvent. Chacun y fait ce qu'il aime (café, frigo, repas, console, arcade, bibliothèque, danse, sieste), ils discutent entre eux et jouent à deux au ping-pong ou au baby-foot. Clique sur l'un d'eux : il te parle.
 - **Prendre les commandes de Roré** : double-clic sur lui, puis les flèches pour le faire marcher (la caméra le suit). `Échap` lui rend la main.
 - **Un coin par métier, chacun son style** : le code en futuriste (métal sombre, néons cyan, tapis en circuit imprimé), le design en flashy (laqué rose, chaises jaunes, confettis), la recherche en bibliothèque d'explorateur, la rédaction en bureau d'écrivain, l'analyse en corporate (bleu nuit et or).
 - **Les idées de mission** : des bulles grises au-dessus du chat. Après une mission, des idées de retouche.

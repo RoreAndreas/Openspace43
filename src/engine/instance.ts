@@ -1,5 +1,7 @@
 // Le monde et son dessinateur n'existent qu'une fois : ils survivent aux rafraîchissements de React.
 import { bus } from '../state/bus.ts';
+import { Annex } from './annex.ts';
+import { AnnexRenderer } from './annexDraw.ts';
 import type { Tod } from '../state/store.ts';
 import { Camera, Director } from './camera.ts';
 import { Renderer } from './render.ts';
@@ -7,6 +9,9 @@ import type { TimeOfDay } from './room.ts';
 import { World } from './world.ts';
 
 export const world = new World();
+/** la salle de pause, à côté : elle vit aussi quand tu n'y es pas */
+export const annex = new Annex();
+export const annexRenderer = new AnnexRenderer();
 export const renderer = new Renderer();
 export const camera = new Camera();
 export const director = new Director(camera, world);

@@ -25,6 +25,10 @@ export interface CharacterInfo {
   idle: Idle;
   workLabel: string;
   outfit: Outfit;
+  /** ses activités préférées dans la salle de pause (annex.ts) */
+  hobbies: string[];
+  /** ce qu'il te dit quand tu viens lui parler, dans la salle de pause */
+  lines: string[];
 }
 
 /** Sa personnalité quand il n'a rien à faire (debout ou assis) : son regard, un petit saut, l'image à montrer.

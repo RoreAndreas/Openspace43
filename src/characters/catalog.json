@@ -5,149 +5,422 @@
     {
       "id": "rore",
       "name": "Roré",
-      "roles": ["chef"],
+      "roles": [
+        "chef"
+      ],
       "family": "management",
       "archetype": "Commandant spatial",
       "pitch": "Il garde le cap de la mission, l'œil sur chaque poste.",
-      "palette": ["#4a4658", "#f1eff7", "#ff8a3d", "#ffb02e", "#2a2734"],
+      "palette": [
+        "#4a4658",
+        "#f1eff7",
+        "#ff8a3d",
+        "#ffb02e",
+        "#2a2734"
+      ],
       "accent": "#ff8a3d",
       "silhouette": "La tête noire du logo, veste blanche, épaulettes dorées, cape orange qui dépasse de chaque côté.",
-      "accessories": ["cape orange", "épaulettes dorées", "étoile de commandant"],
+      "accessories": [
+        "cape orange",
+        "épaulettes dorées",
+        "étoile de commandant"
+      ],
       "temperament": "Calme et sûr de lui ; il passe en revue son équipage.",
       "energy": 2,
       "idle": "supervise",
       "workLabel": "Il relit les rapports et coche le plan.",
       "outfit": {
-        "head": "#4a4658", "visor": "#0b0910", "body": "#f1eff7", "arm": "#e4e1ec", "hand": "#3d3a4a", "leg": "#2a2734", "tip": "#ff8a3d",
-        "colors": { "headTop": "#77718a", "headShade": "#33303f", "visorHi": "#4a4566", "cape": "#ff8a3d", "gold": "#ffb02e" },
-        "parts": ["jacket", "cape", "epaulettes", "star"]
-      }
+        "head": "#4a4658",
+        "visor": "#0b0910",
+        "body": "#f1eff7",
+        "arm": "#e4e1ec",
+        "hand": "#3d3a4a",
+        "leg": "#2a2734",
+        "tip": "#ff8a3d",
+        "colors": {
+          "headTop": "#77718a",
+          "headShade": "#33303f",
+          "visorHi": "#4a4566",
+          "cape": "#ff8a3d",
+          "gold": "#ffb02e"
+        },
+        "parts": [
+          "jacket",
+          "cape",
+          "epaulettes",
+          "star"
+        ]
+      },
+      "hobbies": [
+        "pingpong",
+        "coffee",
+        "chat",
+        "window"
+      ],
+      "lines": [
+        "Une petite pause, et on repart !",
+        "Tout le monde a pris son café ?",
+        "Un ping-pong ? Je te laisse gagner. Peut-être.",
+        "Belle équipe, hein ?"
+      ]
     },
     {
       "id": "hacker_cyberpunk",
       "name": "Nyx",
-      "roles": ["code", "renfort"],
+      "roles": [
+        "code",
+        "renfort"
+      ],
       "family": "code",
       "archetype": "Hacker cyberpunk",
       "pitch": "Capuche rabattue, visière allumée : elle code plus vite qu'elle ne parle.",
-      "palette": ["#2b2b33", "#4e5459", "#35e0ff", "#41f509", "#f3f1f8"],
+      "palette": [
+        "#2b2b33",
+        "#4e5459",
+        "#35e0ff",
+        "#41f509",
+        "#f3f1f8"
+      ],
       "accent": "#35e0ff",
       "silhouette": "Capuche sombre qui encadre une visière aux yeux cyan, baskets blanches.",
-      "accessories": ["capuche", "yeux cyan", "câbles verts le long des manches", "baskets blanches"],
+      "accessories": [
+        "capuche",
+        "yeux cyan",
+        "câbles verts le long des manches",
+        "baskets blanches"
+      ],
       "temperament": "Impatiente ; elle ne tient pas en place quand elle attend.",
       "energy": 3,
       "idle": "bounce",
       "workLabel": "Elle tape à toute vitesse.",
       "outfit": {
-        "head": "#4e5459", "visor": "#0d2630", "eyes": "#35e0ff", "body": "#3d3d48", "arm": "#4e5459", "hand": "#bdccde", "leg": "#262632",
-        "colors": { "hood": "#2b2b33", "cables": "#41f509", "shoes": "#f3f1f8" },
-        "parts": ["hood", "cables", "sneakers"]
-      }
+        "head": "#4e5459",
+        "visor": "#0d2630",
+        "eyes": "#35e0ff",
+        "body": "#3d3d48",
+        "arm": "#4e5459",
+        "hand": "#bdccde",
+        "leg": "#262632",
+        "colors": {
+          "hood": "#2b2b33",
+          "cables": "#41f509",
+          "shoes": "#f3f1f8"
+        },
+        "parts": [
+          "hood",
+          "cables",
+          "sneakers"
+        ]
+      },
+      "hobbies": [
+        "arcade",
+        "foosball",
+        "fridge",
+        "sofa"
+      ],
+      "lines": [
+        "Nouveau record à l'arcade. Encore.",
+        "Baby-foot ? Je prends les rouges.",
+        "Pause de cinq minutes. Bon, dix.",
+        "Le frigo n'a plus de boisson énergisante. Inacceptable."
+      ]
     },
     {
       "id": "mage_du_code",
       "name": "Merlain",
-      "roles": ["code", "renfort"],
+      "roles": [
+        "code",
+        "renfort"
+      ],
       "family": "code",
       "archetype": "Mage du code",
       "pitch": "Ses runes compilent du premier coup. Presque toujours.",
-      "palette": ["#4a2370", "#5a2d82", "#3fe0c8", "#f2efe6", "#7a5230"],
+      "palette": [
+        "#4a2370",
+        "#5a2d82",
+        "#3fe0c8",
+        "#f2efe6",
+        "#7a5230"
+      ],
       "accent": "#3fe0c8",
       "silhouette": "Chapeau pointu dont la pointe retombe, longue barbe blanche, robe jusqu'aux pieds, bâton plus haut que lui.",
-      "accessories": ["chapeau pointu", "barbe blanche", "robe à runes", "bâton à cristal turquoise"],
+      "accessories": [
+        "chapeau pointu",
+        "barbe blanche",
+        "robe à runes",
+        "bâton à cristal turquoise"
+      ],
       "temperament": "Posé, un peu solennel ; le cristal de son bâton scintille quand il réfléchit.",
       "energy": 1,
       "idle": "shimmer",
       "workLabel": "Il trace des runes sur son clavier.",
       "outfit": {
-        "head": "#8897a9", "eyes": "#3fe0c8", "body": "#5a2d82", "arm": "#6a3a96", "leg": "#2a1f3d",
-        "colors": { "hat": "#4a2370", "rune": "#3fe0c8", "wood": "#7a5230" },
-        "parts": ["wizardHat", "beard", "robe", "staff"]
-      }
+        "head": "#8897a9",
+        "eyes": "#3fe0c8",
+        "body": "#5a2d82",
+        "arm": "#6a3a96",
+        "leg": "#2a1f3d",
+        "colors": {
+          "hat": "#4a2370",
+          "rune": "#3fe0c8",
+          "wood": "#7a5230"
+        },
+        "parts": [
+          "wizardHat",
+          "beard",
+          "robe",
+          "staff"
+        ]
+      },
+      "hobbies": [
+        "books",
+        "coffee",
+        "plant",
+        "eat"
+      ],
+      "lines": [
+        "Une tisane, et le code coule de source.",
+        "Ce grimoire parle d'expressions régulières. Terrifiant.",
+        "Patience : tout bug finit par se révéler.",
+        "Les plantes aussi ont besoin de magie."
+      ]
     },
     {
       "id": "robot_ingenieur",
       "name": "Boulon",
-      "roles": ["code", "renfort"],
+      "roles": [
+        "code",
+        "renfort"
+      ],
       "family": "code",
       "archetype": "Robot ingénieur",
       "pitch": "Le plus robot des robots : un écran pour visage, une ceinture à outils pour le reste.",
-      "palette": ["#efe6d2", "#ec933e", "#4c4e72", "#35e0ff", "#ffd166"],
+      "palette": [
+        "#efe6d2",
+        "#ec933e",
+        "#4c4e72",
+        "#35e0ff",
+        "#ffd166"
+      ],
       "accent": "#ec933e",
       "silhouette": "Tête crème, corps orange, bras et jambes de métal sombre, voyant cyan sur la poitrine.",
-      "accessories": ["yeux cyan", "voyant de poitrine", "ceinture à outils", "antenne orange"],
+      "accessories": [
+        "yeux cyan",
+        "voyant de poitrine",
+        "ceinture à outils",
+        "antenne orange"
+      ],
       "temperament": "Serviable et curieux ; son écran cligne en permanence.",
       "energy": 2,
       "idle": "blink",
       "workLabel": "Il soude, visse et vérifie.",
       "outfit": {
-        "head": "#efe6d2", "visor": "#1d2230", "eyes": "#35e0ff", "body": "#ec933e", "arm": "#4c4e72", "hand": "#ec933e", "leg": "#4c4e72", "tip": "#ec933e",
-        "colors": { "belt": "#ffd166" },
-        "parts": ["chestLight", "toolbelt"]
-      }
+        "head": "#efe6d2",
+        "visor": "#1d2230",
+        "eyes": "#35e0ff",
+        "body": "#ec933e",
+        "arm": "#4c4e72",
+        "hand": "#ec933e",
+        "leg": "#4c4e72",
+        "tip": "#ec933e",
+        "colors": {
+          "belt": "#ffd166"
+        },
+        "parts": [
+          "chestLight",
+          "toolbelt"
+        ]
+      },
+      "hobbies": [
+        "fridge",
+        "pingpong",
+        "arcade",
+        "chat"
+      ],
+      "lines": [
+        "Bip ! Batterie à 12 %. Je recharge.",
+        "J'ai réparé la machine à café. Deux fois.",
+        "Ping-pong ? Je calcule les trajectoires.",
+        "Bip boup. Ça veut dire bonjour."
+      ]
     },
     {
       "id": "analyste_strategique",
       "name": "Margaux",
-      "roles": ["analyse"],
+      "roles": [
+        "analyse"
+      ],
       "family": "analyse",
       "archetype": "Analyste stratégique",
       "pitch": "Gilet bleu nuit, tablette contre elle : chaque chiffre a une place.",
-      "palette": ["#223455", "#f4f1ea", "#e0a526", "#8a5a3c", "#2b2430"],
+      "palette": [
+        "#223455",
+        "#f4f1ea",
+        "#e0a526",
+        "#8a5a3c",
+        "#2b2430"
+      ],
       "accent": "#e0a526",
       "silhouette": "Chignon net, lunettes écaille, gilet bleu nuit, tablette tenue contre la poitrine.",
-      "accessories": ["chignon", "lunettes écaille", "cravate moutarde", "tablette"],
+      "accessories": [
+        "chignon",
+        "lunettes écaille",
+        "cravate moutarde",
+        "tablette"
+      ],
       "temperament": "Méthodique ; elle consulte sa tablette entre deux idées.",
       "energy": 1,
       "idle": "check",
       "workLabel": "Elle compare, souligne, recoupe.",
       "outfit": {
-        "body": "#223455", "arm": "#f4f1ea", "leg": "#111834",
-        "colors": { "hair": "#2b2430", "glasses": "#8a5a3c", "tie": "#e0a526", "tablet": "#2c2c4e", "screen": "#6f849d" },
-        "parts": ["bun", "glasses", "tie", "tablet"]
-      }
+        "body": "#223455",
+        "arm": "#f4f1ea",
+        "leg": "#111834",
+        "colors": {
+          "hair": "#2b2430",
+          "glasses": "#8a5a3c",
+          "tie": "#e0a526",
+          "tablet": "#2c2c4e",
+          "screen": "#6f849d"
+        },
+        "parts": [
+          "bun",
+          "glasses",
+          "tie",
+          "tablet"
+        ]
+      },
+      "hobbies": [
+        "eat",
+        "coffee",
+        "books",
+        "chat"
+      ],
+      "lines": [
+        "Café serré, sans sucre. Comme les chiffres.",
+        "J'ai fait un graphique des pauses café.",
+        "Tu as deux minutes ? J'ai une idée de tableau.",
+        "La pause est un investissement. Rentable."
+      ]
     },
     {
       "id": "styliste_extravagant",
       "name": "Zaza",
-      "roles": ["design", "renfort"],
+      "roles": [
+        "design",
+        "renfort"
+      ],
       "family": "design",
       "archetype": "Styliste extravagante",
       "pitch": "Épaules immenses, banane violette : on la reconnaît de l'autre bout du bureau.",
-      "palette": ["#f4628d", "#7a3dbf", "#fde219", "#1d1a24", "#f3f9f9"],
+      "palette": [
+        "#f4628d",
+        "#7a3dbf",
+        "#fde219",
+        "#1d1a24",
+        "#f3f9f9"
+      ],
       "accent": "#f4628d",
       "silhouette": "Haute banane violette, grandes lunettes jaunes, manteau rose aux épaules rembourrées.",
-      "accessories": ["banane violette", "lunettes de soleil rondes", "mètre ruban", "baskets blanches"],
+      "accessories": [
+        "banane violette",
+        "lunettes de soleil rondes",
+        "mètre ruban",
+        "baskets blanches"
+      ],
       "temperament": "Théâtrale ; elle prend la pose dès qu'elle s'arrête.",
       "energy": 3,
       "idle": "pose",
       "workLabel": "Elle drape, épingle, recommence.",
       "outfit": {
-        "body": "#f4628d", "arm": "#f4628d", "leg": "#1d1a24",
-        "colors": { "hair": "#7a3dbf", "sunglasses": "#fde219", "tape": "#fde219", "shoes": "#f3f9f9" },
-        "parts": ["pompadour", "sunglasses", "puffy", "tape", "sneakers"]
-      }
+        "body": "#f4628d",
+        "arm": "#f4628d",
+        "leg": "#1d1a24",
+        "colors": {
+          "hair": "#7a3dbf",
+          "sunglasses": "#fde219",
+          "tape": "#fde219",
+          "shoes": "#f3f9f9"
+        },
+        "parts": [
+          "pompadour",
+          "sunglasses",
+          "puffy",
+          "tape",
+          "sneakers"
+        ]
+      },
+      "hobbies": [
+        "dance",
+        "sofa",
+        "chat",
+        "foosball"
+      ],
+      "lines": [
+        "Cette salle manque de rose. Je m'en occupe.",
+        "On danse ? Le jukebox est à moi.",
+        "Ta tenue est parfaite. Presque.",
+        "La pause, c'est un défilé."
+      ]
     },
     {
       "id": "explorateur_futuriste",
       "name": "Rook",
-      "roles": ["recherche", "renfort"],
+      "roles": [
+        "recherche",
+        "renfort"
+      ],
       "family": "recherche",
       "archetype": "Explorateur futuriste",
       "pitch": "Sac à radar sur le dos, il rapporte des infos de très loin.",
-      "palette": ["#e8c67e", "#c8462d", "#43748a", "#976e3e", "#9fe8ff"],
+      "palette": [
+        "#e8c67e",
+        "#c8462d",
+        "#43748a",
+        "#976e3e",
+        "#9fe8ff"
+      ],
       "accent": "#43748a",
       "silhouette": "Cheveux roux en bataille, lunettes d'aviateur sur le front, combinaison sable, sac à dos à parabole.",
-      "accessories": ["lunettes d'aviateur", "sac à dos radar", "carte holographique au poignet"],
+      "accessories": [
+        "lunettes d'aviateur",
+        "sac à dos radar",
+        "carte holographique au poignet"
+      ],
       "temperament": "Curieux ; il regarde sans cesse autour de lui.",
       "energy": 2,
       "idle": "scan",
       "workLabel": "Il balaie sa carte holographique, cherche une piste.",
       "outfit": {
-        "body": "#e8c67e", "arm": "#c9a866", "leg": "#976e3e",
-        "colors": { "hair": "#c8462d", "strap": "#57483c", "lens": "#43748a", "pack": "#43748a", "holo": "#9fe8ff" },
-        "parts": ["hairTuft", "goggles", "backpack", "holo"]
-      }
+        "body": "#e8c67e",
+        "arm": "#c9a866",
+        "leg": "#976e3e",
+        "colors": {
+          "hair": "#c8462d",
+          "strap": "#57483c",
+          "lens": "#43748a",
+          "pack": "#43748a",
+          "holo": "#9fe8ff"
+        },
+        "parts": [
+          "hairTuft",
+          "goggles",
+          "backpack",
+          "holo"
+        ]
+      },
+      "hobbies": [
+        "window",
+        "plant",
+        "pingpong",
+        "beanbag"
+      ],
+      "lines": [
+        "J'ai trouvé un raccourci vers la cuisine.",
+        "Il y a une plante rare près de la fenêtre.",
+        "Je cartographie la salle de pause. Pour la science.",
+        "Tu as vu la vue d'ici ?"
+      ]
     }
   ]
 }

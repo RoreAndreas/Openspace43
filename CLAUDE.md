@@ -53,6 +53,11 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
   reste un libre). La galerie : `ui/Characters.tsx` (fenêtre `characters`).
 - **Piloter Roré** : double-clic sur lui (`Office.tsx`) → `ui/drive.ts` (flèches, Échap) → `world.drive` / `steer` ;
   pendant ce temps ses tâches attendent (`driveStep` dans `world.update`), collisions sur `walkGrid`, caméra qui suit.
+- **La salle de pause** (`room: 'annex'` dans le store ; porte dans le mur de droite du bureau, ☕, touche D) :
+  `engine/annex.ts` (plan, activités `SPOTS`, vie des personnages `Pal`, discussions et jeux à deux, `talk`, `poke`,
+  pilotage de Roré), `engine/annexDraw.ts` (pièce, meubles, rendu, lumière). Elle vit aussi quand on n'y est pas. Côté
+  interface : `ui/place.ts` (`goRoom`, les portes), `ui/AnnexLayer.tsx` (prénoms et bulles). Les goûts (`hobbies`) et
+  les répliques (`lines`) de chacun sont dans le catalogue des personnages.
 - **Les thèmes des coins** : `DESKS` et `CHAIRS` dans `furniture.ts`, `themedRug` dans `room.ts` (un style par métier).
 - **`src/ui/`** : l'interface React. `Extras.tsx` : le tiroir, les skills, le règlement, la sauvegarde. `Jukebox.tsx` : la
   liste YouTube et le petit lecteur (`src/audio/music.ts` pilote l'iframe youtube-nocookie par `postMessage`).

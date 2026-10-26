@@ -1,5 +1,11 @@
 # Les versions
 
+## Open space v0.5.0 (26 octobre 2026)
+
+- **La salle de pause**, à côté du bureau : une cuisine (frigo, machine à café, plaques, grande table) et une salle de loisirs (canapé et console, bornes d'arcade, ping-pong, baby-foot, poufs, jukebox, bibliothèque). On y entre par la porte « PAUSE » du bureau, le bouton ☕ ou la touche `D`.
+- **Tous les personnages s'y retrouvent** et y vivent leur vie : chacun fait ce qu'il aime (Nyx à l'arcade, Merlain à la bibliothèque, Zaza qui danse…), ils discutent entre eux (parfois un « tope là »), jouent à deux au ping-pong ou au baby-foot. Clique sur l'un d'eux : il s'arrête et te dit une réplique à son image.
+- **Roré passe les portes** quand tu le diriges : du bureau à la salle de pause et retour. Dans la salle de pause, `Espace` le fait parler au collègue le plus proche.
+
 ## Open space v0.4.1 (26 octobre 2026)
 
 - **Les personnages reprennent le format des robots du bureau** (le même que la copie AK : 20 × 24 pixels, tête-cube, visière) : chacun garde sa tenue et son caractère, dessinés en code. Nyx a sa capuche et ses yeux cyan, Merlain son chapeau, sa barbe et son bâton, Roré sa cape orange, Margaux son chignon et sa tablette, Zaza sa banane et ses lunettes jaunes, Rook son sac à radar.

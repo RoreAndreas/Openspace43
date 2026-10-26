@@ -12,6 +12,7 @@ import { MusicDock } from './ui/Jukebox.tsx';
 import { Panel, PanelToggle, togglePanel } from './ui/Panel.tsx';
 import { Strips } from './ui/Strips.tsx';
 import { party } from './ui/interact.ts';
+import { goRoom } from './ui/place.ts';
 import { Rooms } from './ui/Rooms.tsx';
 import { startTour, stopTour } from './ui/tour.ts';
 import { TopBar } from './ui/TopBar.tsx';
@@ -77,6 +78,7 @@ export function App() {
         return;
       }
       if (k === 't') { if (s.tour) stopTour(); else void startTour(); return; }
+      if (k === 'd') { goRoom(s.room === 'annex' ? 'office' : 'annex'); return; }
       if (k === 'c') { useOffice.setState({ cameraAuto: !s.cameraAuto }); savePref('cameraAuto', !s.cameraAuto); sfx('click'); return; }
       if (k === 'j') { jukebox.toggle(); return; }
       if (k === 'p') { togglePanel(); return; }

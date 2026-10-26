@@ -3,8 +3,12 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { ROLES } from '../../shared/activity.ts';
 import type { ActKind } from '../../shared/protocol.ts';
-import { camera, director, renderer, timeOfDay, world } from '../engine/instance.ts';
+import { annex, annexRenderer, camera, director, renderer, timeOfDay, world } from '../engine/instance.ts';
 import { hitAt, type Hit } from '../engine/hits.ts';
+import { annexHitAt, type AnnexHit } from '../engine/annex.ts';
+import { annexPlacement } from '../engine/annexDraw.ts';
+import { AnnexBubbles, placeAnnexBubbles } from './AnnexLayer.tsx';
+import { goRoom, installDoors, interactAnnex } from './place.ts';
 import { jukebox } from '../audio/music.ts';
 import { installDriving, setDriving } from './drive.ts';
 import { interact } from './interact.ts';
@@ -61,8 +65,10 @@ export function Office() {
   const scaleRef = useRef(scale);
   scaleRef.current = scale;
 
-  // Les flèches, quand tu diriges Roré
+  // Les flèches, quand tu diriges Roré ; les portes entre le bureau et la salle de pause
   useEffect(() => installDriving(), []);
+  useEffect(() => installDoors(), []);
+  const room = useOffice((s) => s.room);
 
   // La taille : la plus grande qui tient (en vertical, toute la largeur du cadre).
   useLayoutEffect(() => {
@@ -115,8 +121,9 @@ export function Office() {
       // la caméra : le réalisateur filme tout seul en mode tournage (sauf pendant la visite guidée)
       director.enabled = st.filming && st.cameraAuto && !st.tour;
       director.tick();
-      // tu diriges Roré : la caméra le suit de près
-      if (world.driving) camera.shot(world.chef.x, world.chef.y - 12, 1.7, 0.5);
+      const inAnnex = st.room === 'annex';
+      // tu diriges Roré : la caméra le suit de près (dans la pièce où il est)
+      if (st.driving) { const me = inAnnex ? annex.rore : world.chef; camera.shot(me.x, me.y - 12, 1.7, 0.5); }
       const camMoving = camera.update(dt);
       // pour filmer le bureau image par image (scripts de capture) : chaque image est dessinée, et le rythme
       // de la musique vient du film, pas du jukebox
@@ -128,9 +135,12 @@ export function Office() {
       world.leverFree = st.engine === 'ollama' || (st.engine === 'cloud' && modelInfo(st.settings.model)?.provider !== 'claude');
       if (!cap && acc < (active || camMoving ? 1 / 24 : 1 / 8)) return;
       const t0 = performance.now();
-      active = world.update(acc);
+      // le bureau et la salle de pause vivent tous les deux ; on dessine celle où tu es
+      active = world.update(acc) || inAnnex;
+      annex.update(acc);
       acc = 0;
-      renderer.draw(lg, world, timeOfDay(todRef.current), new Date());
+      if (inAnnex) annexRenderer.draw(lg, annex, timeOfDay(todRef.current));
+      else renderer.draw(lg, world, timeOfDay(todRef.current), new Date());
       present();
       const { transform, zoomed } = camera.css(scaleRef.current);
       if (stage.current && transform !== lastCss) {
@@ -141,7 +151,8 @@ export function Office() {
         if (frame) frame.dataset.zoomed = zoomed ? '1' : '0';
         lastCss = transform;
       }
-      placeBubbles(scaleRef.current);
+      if (inAnnex) placeAnnexBubbles(scaleRef.current);
+      else placeBubbles(scaleRef.current);
       perf.frames++;
       perf.ms += performance.now() - t0;
     };
@@ -154,11 +165,13 @@ export function Office() {
     const r = stage.current!.getBoundingClientRect();
     return { x: ((e.clientX - r.left) / r.width) * W, y: ((e.clientY - r.top) / r.height) * H };
   };
-  const hover = useRef<Hit | null>(null);
+  const hover = useRef<Hit | AnnexHit | null>(null);
+  /** Ce qu'il y a sous la souris, dans la pièce où tu es. */
+  const hitHere = (x: number, y: number): Hit | AnnexHit | null => (useOffice.getState().room === 'annex' ? annexHitAt(annex, x, y, annexPlacement) : hitAt(world, x, y));
   const onMove = (e: React.PointerEvent) => {
     if ((e.target as HTMLElement).closest('.bubble.ask')) return;
     const p = toWorld(e);
-    const h = hitAt(world, p.x, p.y);
+    const h = hitHere(p.x, p.y);
     hover.current = h;
     const el = tip.current;
     if (!el || !wrap.current) return;
@@ -173,14 +186,22 @@ export function Office() {
   const onClick = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('.bubble.ask')) return;
     const p = toWorld(e);
+    if (useOffice.getState().room === 'annex') {
+      const h = annexHitAt(annex, p.x, p.y, annexPlacement);
+      if (h) interactAnnex(h);
+      return;
+    }
     const h = hitAt(world, p.x, p.y);
     if (h) interact(h);
   };
   // le double-clic sur Roré : tu prends (ou rends) les commandes ; ailleurs, la vue revient au plan large
   const onDoubleClick = (e: React.MouseEvent) => {
-    const h = hitAt(world, toWorld(e).x, toWorld(e).y);
-    if (h?.kind === 'actor' && h.id === 'chef') { setDriving(!world.driving); return; }
-    if (!world.driving) camera.wide(4);
+    const p = toWorld(e);
+    const h = hitHere(p.x, p.y);
+    const driving = useOffice.getState().driving;
+    const onRore = (h?.kind === 'actor' && h.id === 'chef') || (h?.kind === 'pal' && h.id === annex.rore.id);
+    if (onRore) { setDriving(!driving); return; }
+    if (!driving) camera.wide(4);
   };
   const onWheel = (e: React.WheelEvent) => {
     const p = toWorld(e);
@@ -194,9 +215,10 @@ export function Office() {
       <div className="office-frame" style={{ width: W * scale, height: H * scale }}>
         <div className="office-stage" ref={stage} style={{ width: W * scale, height: H * scale, ['--s' as string]: scale }}>
           <canvas ref={canvas} className="office-canvas" style={{ width: W * scale, height: H * scale }} />
-          <Bubbles />
+          {room === 'annex' ? <AnnexBubbles /> : <Bubbles />}
         </div>
         <LiveBadge />
+        <RoomBadge />
         <DriveBadge />
       </div>
       <div className="office-tip" ref={tip} />
@@ -204,13 +226,25 @@ export function Office() {
   );
 }
 
+/** Dans la salle de pause : où tu es, et comment revenir au bureau. */
+function RoomBadge() {
+  const room = useOffice((s) => s.room);
+  if (room !== 'annex') return null;
+  return (
+    <button className="room-badge" onClick={(e) => { e.stopPropagation(); goRoom('office'); }} title="Retour au bureau (touche D)">
+      ☕ Salle de pause <span>← Retour au bureau</span>
+    </button>
+  );
+}
+
 /** Tu diriges Roré : le rappel des touches. */
 function DriveBadge() {
   const driving = useOffice((s) => s.driving);
+  const room = useOffice((s) => s.room);
   if (!driving) return null;
   return (
     <div className="drive-badge" role="status">
-      🎮 Tu diriges Roré · <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> pour marcher · <kbd>Échap</kbd> pour le laisser
+      🎮 Tu diriges Roré · <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> pour marcher{room === 'annex' ? <> · <kbd>Espace</kbd> pour parler</> : null} · <kbd>Échap</kbd> pour le laisser
       <button onClick={(e) => { e.stopPropagation(); setDriving(false); }} aria-label="Rendre la main à Roré">×</button>
     </div>
   );

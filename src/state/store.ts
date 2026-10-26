@@ -121,6 +121,8 @@ interface S {
   filming: boolean;
   /** tu diriges Roré au clavier (double-clic sur lui) */
   driving: boolean;
+  /** la pièce affichée : le bureau, ou la salle de pause (touche D) */
+  room: 'office' | 'annex';
   sound: boolean;
   tod: Tod;
   draft: string;
@@ -184,6 +186,7 @@ export const useOffice = create<S>((set, get) => ({
   portrait: typeof window !== 'undefined' && window.innerWidth / Math.max(1, window.innerHeight) < 0.8,
   filming: false,
   driving: false,
+  room: 'office',
   sound: pref('sound', true),
   tod: pref<Tod>('tod', 'auto'),
   draft: '',

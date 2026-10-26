@@ -123,6 +123,24 @@ button:disabled { cursor: default; opacity: 0.45; }
 }
 .live-badge i { width: 8px; height: 8px; border-radius: 50%; background: #fff; animation: blink-dot 1.2s steps(1) infinite; }
 @keyframes blink-dot { 50% { opacity: 0.25; } }
+.room-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 700 12px var(--pixel);
+  color: #fff;
+  background: rgba(18, 15, 25, 0.92);
+  border: 1px solid rgba(255, 111, 168, 0.6);
+  padding: 5px 10px;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+}
+.room-badge span { font: 600 11.5px var(--font); color: #ffc2dd; }
+.room-badge:hover { border-color: #ff6fa8; }
 .drive-badge {
   position: absolute;
   bottom: 10px;

@@ -7,6 +7,7 @@ import { replaySpeed, stopReplay } from '../net/link.ts';
 import { savePref, useOffice, type Tod } from '../state/store.ts';
 import { fmtClock } from './format.ts';
 import { togglePanel } from './Panel.tsx';
+import { goRoom } from './place.ts';
 import { startTour } from './tour.ts';
 
 export function Logo({ size = 26 }: { size?: number }) {
@@ -61,6 +62,7 @@ export function TopBar() {
   const filming = useOffice((s) => s.filming);
   const sound = useOffice((s) => s.sound);
   const tod = useOffice((s) => s.tod);
+  const room = useOffice((s) => s.room);
   const panelOpen = useOffice((s) => s.panelOpen);
   const full = useFullscreen();
   useTick(busySince !== null);
@@ -124,6 +126,7 @@ export function TopBar() {
             <span className="energy-bar"><i style={{ width: `${Math.max(3, 100 - quota.fiveHour * 100)}%` }} /></span>
           </span>
         )}
+        <button className={`icon-btn ${room === 'annex' ? 'on' : ''}`} title={room === 'annex' ? 'Retour au bureau (D)' : 'La salle de pause : la cuisine et les loisirs, où tout le monde se retrouve (D)'} onClick={() => goRoom(room === 'annex' ? 'office' : 'annex')}>☕</button>
         <button className="icon-btn" title="Visite guidée : Roré présente son bureau (T)" onClick={() => void startTour()}>🎤</button>
         <button className="icon-btn" title="Toute l’équipe : les métiers, leurs outils, l’historique" onClick={() => { sfx('open'); useOffice.setState({ modal: { kind: 'team' } }); }}>👥</button>
         <button className="icon-btn" title="Le tiroir de l’analyste : couleurs, types de texte, infos à retenir" onClick={() => { sfx('open'); useOffice.setState({ modal: { kind: 'drawer' } }); }}>🗄️</button>

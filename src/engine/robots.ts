@@ -9,7 +9,7 @@ import { outfitOf } from './characters.ts';
 import { darken, g2d, lighten, makeCanvas, mirror, outline, P, px, rect } from './pixels.ts';
 
 export type Dir = 'down' | 'up' | 'left' | 'right';
-export type Pose = 'stand' | 'walk' | 'sit' | 'type' | 'read' | 'think' | 'carry' | 'raise' | 'cheer' | 'wave' | 'write';
+export type Pose = 'stand' | 'walk' | 'sit' | 'type' | 'read' | 'think' | 'carry' | 'raise' | 'cheer' | 'wave' | 'write' | 'play';
 export type Eyes = 'open' | 'blink' | 'down' | 'up' | 'left' | 'right' | 'happy';
 
 /** Taille d'un sprite de robot ; les pieds (le bas du contour) sont au point d'ancrage. */
@@ -502,6 +502,7 @@ function limbsFor(pose: Pose, frame: number): Limbs {
     case 'walk':
       return { la: [4, 14 + (f === 1 ? 1 : f === 3 ? -1 : 0), 4], ra: [14, 14 + (f === 1 ? -1 : f === 3 ? 1 : 0), 4], ll: f === 1 ? 1 : 0, rl: f === 3 ? 1 : 0 };
     case 'type':
+    case 'play': // debout, les mains qui s'agitent (baby-foot, arcade, fourneaux)
       return { la: [5, 16 - (frame % 2 === 0 ? 1 : 0), 3], ra: [13, 16 - (frame % 2 === 1 ? 1 : 0), 3], ll: 0, rl: 0 };
     case 'sit':
     case 'read':

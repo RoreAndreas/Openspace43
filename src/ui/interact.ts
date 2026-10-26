@@ -5,6 +5,7 @@ import { say } from '../audio/voice.ts';
 import { world } from '../engine/instance.ts';
 import type { Hit } from '../engine/hits.ts';
 import { pullLever } from '../net/link.ts';
+import { goRoom } from './place.ts';
 import { savePref, useOffice, type Tod } from '../state/store.ts';
 
 const TOD_NEXT: Record<Tod, Tod> = { auto: 'day', day: 'evening', evening: 'night', night: 'auto' };
@@ -76,6 +77,7 @@ export function interact(hit: Hit) {
     }
     case 'shelf': sfx('open'); useOffice.setState({ historyOpen: true }); return;
     case 'door': sfx('open'); useOffice.setState({ modal: { kind: 'team' } }); return;
+    case 'annexDoor': goRoom('annex'); return;
     case 'neon': world.neonNext(); sfx('check'); return;
     case 'window': { const n = TOD_NEXT[st.tod]; useOffice.setState({ tod: n }); savePref('tod', n); sfx('click'); return; }
     case 'coffee': world.coffee(); sfx('pour'); return;

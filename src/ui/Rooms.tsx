@@ -276,6 +276,10 @@ function HowtoRoom() {
         <p className="small">Double-clique sur lui, puis fais-le marcher avec les flèches. Échap (ou un nouveau double-clic) lui rend la main : en pleine mission, il retourne à son bureau.</p>
       </section>
       <section className="room-sec">
+        <h4>La salle de pause</h4>
+        <p className="small">La porte « PAUSE », à droite (ou ☕, ou la touche D) : une cuisine et une salle de loisirs où tout le monde se retrouve. Clique sur quelqu’un : il te parle. Si tu diriges Roré, fais-lui passer la porte, approche-le d’un collègue et appuie sur Espace.</p>
+      </section>
+      <section className="room-sec">
         <h4>Les autres objets</h4>
         <p className="small">Le caisson à côté de l’analyste, c’est son tiroir (tes couleurs, tes types de texte, ce qu’il faut retenir). Le tableau, c’est le plan de Roré. Les archives, les missions passées. Le jukebox joue tes liens YouTube. Et clique sur le reste : il y a des surprises.</p>
       </section>
