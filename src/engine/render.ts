@@ -6,8 +6,7 @@ import type { ActKind } from '../../shared/protocol.ts';
 import { furniturePlacement } from './furniture.ts';
 import { BOARD, CLOCK, FURNITURE, H, NEON, T, W, WINDOWS, type Furn } from './layout.ts';
 import { g2d, makeCanvas, P, rgba, rng, type G } from './pixels.ts';
-import { characterFrame, lookGlow } from './characters.ts';
-import { ANCHOR_X, ANCHOR_Y, robotSprite } from './robots.ts';
+import { ANCHOR_X, ANCHOR_Y, eyeColor, robotSprite } from './robots.ts';
 import { drawRoom, neon, signs, type TimeOfDay } from './room.ts';
 import { ROLES } from '../../shared/activity.ts';
 import type { Actor, World } from './world.ts';
@@ -87,34 +86,16 @@ export class Renderer {
     const x = Math.round(a.x);
     // sur la musique, ceux qui ne marchent pas hochent la tête en rythme
     const y = Math.round(a.y) - (world.musicOn && world.time < world.bobUntil && !a.moving ? 1 : 0);
-    // son personnage PixelLab, s'il en a un et que ses images sont chargées ; sinon le robot de son métier
-    const f = a.character ? characterFrame(a.character, { pose: a.pose, dir: seated ? 'down' : a.dir, moving: a.moving, seated, animT: a.animT, t: world.time + a.phase }) : null;
     g.globalAlpha = a.alpha;
     if (!seated) {
-      const w = f ? 6 : 5;
       g.fillStyle = 'rgba(8,6,16,0.32)';
-      g.fillRect(x - w, y - 1, w * 2, 2);
-      g.fillRect(x - w + 1, y - 2, w * 2 - 2, 1);
+      g.fillRect(x - 5, y - 1, 10, 2);
+      g.fillRect(x - 4, y - 2, 8, 1);
     }
-    if (f) {
-      g.drawImage(f.c, x + f.x, y + f.y);
-      if (a.carrying && a.dir !== 'up') this.paper(g, x + (a.dir === 'right' ? 4 : a.dir === 'left' ? -4 : 0), y - 15);
-    } else {
-      const sprite = robotSprite(a.role, a.pose, seated ? 'down' : a.dir, a.frame, a.eyes);
-      g.drawImage(sprite, x - ANCHOR_X, y - ANCHOR_Y);
-    }
+    // son personnage (sa tenue sur le robot), sinon le robot de son métier
+    const sprite = robotSprite(a.character ?? a.role, a.pose, seated ? 'down' : a.dir, a.frame, a.eyes);
+    g.drawImage(sprite, x - ANCHOR_X, y - ANCHOR_Y - a.hop);
     g.globalAlpha = 1;
-  }
-
-  /** Le rapport qu'un personnage apporte au chef, tenu devant lui. */
-  private paper(g: G, cx: number, y: number) {
-    g.fillStyle = P.ink;
-    g.fillRect(cx - 4, y - 1, 8, 9);
-    g.fillStyle = P.paper;
-    g.fillRect(cx - 3, y, 6, 7);
-    g.fillStyle = P.paperLine;
-    g.fillRect(cx - 2, y + 2, 4, 1);
-    g.fillRect(cx - 2, y + 4, 3, 1);
   }
 
   /** Les parties vivantes des meubles : écrans allumés, voyants, imprimante, rapports sur le bureau du chef. */
@@ -395,6 +376,8 @@ export class Renderer {
     add(13 * T + 8, 7 * T - 4, 12, '#ffd84d', 0.35);
     add(11 * T, 15 * T + 8, 30, '#ffe2b8', 0.4);
     if (t < world.printUntil) add(12 * T + 8, 4 * T - 2, 16, '#9effa8', 0.6);
+    // le liseré néon des bureaux du coin code
+    for (const f of FURNITURE) if (f.kind === 'desk' && f.role === 'code') add(f.tx * T + 16, f.ty * T + 9, 20, '#3fd8ff', 0.35);
     // les écrans éclairent les visages
     for (const a of atDesk.values()) {
       const on = t - a.actAt < 9;
@@ -405,11 +388,9 @@ export class Renderer {
     // un projecteur doux suit Roré (le patron reste toujours bien visible)
     const chef = world.chef;
     add(chef.x, (chef.seated && chef.seat ? chef.seat.y : chef.y) - 8, 26, '#ffe2c4', 0.42);
-    // les yeux des robots, la visière du hacker, le cristal du mage…
-    const glows = [...world.actors.values()].flatMap((a) => {
-      const gl = a.alpha < 0.3 ? null : lookGlow(a.character, a.seated && !!a.seat);
-      return gl ? [{ x: a.x, y: (a.seated && a.seat ? a.seat.y : a.y) - gl.y, color: gl.color }] : [];
-    });
+    // les yeux des robots (de la couleur de leurs yeux : orange, ou cyan pour Nyx et Boulon)
+    const glows = [...world.actors.values()].filter((a) => a.alpha >= 0.3)
+      .map((a) => ({ x: a.x, y: (a.seated && a.seat ? a.seat.y : a.y) - 13 - a.hop, color: eyeColor(a.character ?? a.role) }));
     for (const gl of glows) add(gl.x, gl.y, 7, gl.color, 0.55);
     g.globalCompositeOperation = 'multiply';
     g.drawImage(this.light, 0, 0);

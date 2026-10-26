@@ -43,6 +43,8 @@ ton compte : c'est prévu et autorisé.
 - **Les rendus** : chaque rapport se lit dans le bureau ou se télécharge, avec l'historique de ses versions. Une mission entière se télécharge en `.zip`.
 - **Les missions précédentes** (touche `H`) : on peut les rejouer.
 - **La note « Comment ça marche »** : le post-it jaune, à côté du bureau de Roré.
+- **Prendre les commandes de Roré** : double-clic sur lui, puis les flèches pour le faire marcher (la caméra le suit). `Échap` lui rend la main.
+- **Un coin par métier, chacun son style** : le code en futuriste (métal sombre, néons cyan, tapis en circuit imprimé), le design en flashy (laqué rose, chaises jaunes, confettis), la recherche en bibliothèque d'explorateur, la rédaction en bureau d'écrivain, l'analyse en corporate (bleu nuit et or).
 - **Les idées de mission** : des bulles grises au-dessus du chat. Après une mission, des idées de retouche.
 - **Le jukebox** : colle tes liens YouTube. Lecture, pause, suivant, en boucle (la liste ou un morceau), aléatoire. Un petit lecteur reste en bas à gauche (raccourci `J`).
 - **L'écran** : le panneau de droite se replie (la languette, le bouton ▥ ou la touche `P`), et un bouton passe en plein écran.
@@ -129,19 +131,13 @@ variable d'environnement `TAVILY_KEY`). Si Ollama tourne ailleurs, indique son a
   - `drawer.ts` : le tiroir.
   - `skills.ts` : les skills.
 - **`src/engine/`** : le bureau en pixel art (Canvas 2D ; le décor et les robots sont dessinés en code). **`src/ui/`** : l'interface (React).
-- **`src/characters/`** et **`public/characters/`** : les personnages en pixel art (voir plus bas).
+- **`src/characters/catalog.json`** : les personnages (voir plus bas).
 
 ### Les personnages
 
-Chaque agent a un personnage, généré avec [PixelLab](https://pixellab.ai) (32 px, vue de dessus « low top-down », contour noir) : Roré en commandant spatial, une hacker, un mage du code, un robot ingénieur, une analyste, une styliste, un explorateur… La galerie (panneau de droite, « 🎭 La galerie ») les présente ; la fiche d'un agent permet de lui en choisir un autre. Il le garde d'une mission à l'autre.
+Chaque agent a un personnage : un robot du bureau, au même gabarit que les autres (20 × 24 pixels, tête-cube, visière), avec sa tenue et son caractère. Roré en commandant spatial (cape orange), Nyx la hacker (capuche, yeux cyan), Merlain le mage du code (chapeau pointu, barbe, bâton), Boulon le robot ingénieur, Margaux l'analyste (chignon, tablette), Zaza la styliste (banane violette, lunettes jaunes), Rook l'explorateur (sac à radar). La galerie (panneau de droite, « 🎭 La galerie ») les présente ; la fiche d'un agent permet de lui en choisir un autre. Il le garde d'une mission à l'autre.
 
-Pour en ajouter un :
-
-1. Crée-le sur PixelLab (mode v3, 32 px, « low top-down », « single color black outline », « medium detail ») et, si tu veux, ses animations : nomme-les `walk`, `work`, `interact` ou `special`.
-2. Ajoute-le à `src/characters/catalog.json` : son `id`, son nom, ses métiers (`roles`), sa personnalité (`idle` : `breathe`, `bounce`, `shimmer`, `blink`, `check`, `pose`, `scan` ou `supervise`) et son identifiant PixelLab.
-3. Lance `python scripts/characters.py <id>` (Python 3.10+ et Pillow). Le script range ses images dans `public/characters/<id>/` et ses dimensions dans `src/characters/sheets.json`.
-
-Rien d'autre à toucher : le moteur lit le catalogue. Ce qui n'est pas animé (l'attente, la lecture, la fête…) est joué avec ses huit rotations ; une direction de marche absente vers la gauche est le miroir de la droite.
+Pour en ajouter un, une entrée dans `src/characters/catalog.json` suffit : son `id`, son nom, ses métiers (`roles`), sa personnalité (`idle` : `breathe`, `bounce`, `shimmer`, `blink`, `check`, `pose`, `scan` ou `supervise`) et sa tenue (`outfit`) : les couleurs de la tête, de la visière, des yeux, du corps, des bras et des jambes, et ses pièces, à choisir parmi celles que le moteur sait dessiner (`hood`, `wizardHat`, `beard`, `robe`, `staff`, `cape`, `bun`, `glasses`, `pompadour`, `sunglasses`, `backpack`… la liste est dans `src/engine/robots.ts`). Toutes les poses (marche dans les 4 directions, travail, lecture, fête, salut) viennent avec.
 
 ### Développer
 
@@ -157,7 +153,6 @@ Pour `wrangler dev`, mets le code d'accès dans un fichier `.dev.vars` : `ACCESS
 ## Merci
 
 - **Le Bureau des agents** de VibesMoney (MIT), d'où vient tout le bureau en pixel art.
-- **Les personnages** : générés avec [PixelLab](https://pixellab.ai) (voir ses [conditions d'utilisation](https://pixellab.ai/termsofservice)).
 - **Les bruitages** : [ZzFX](https://github.com/KilledByAPixel/ZzFX) (MIT).
 - **La musique** : les vidéos YouTube que tu ajoutes au jukebox (lecteur youtube-nocookie.com).
 - **Les polices** : Pixelify Sans et Plus Jakarta Sans (licence OFL).

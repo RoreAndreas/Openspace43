@@ -54,6 +54,79 @@ function rug(g: G, x: number, y: number, w: number, h: number, color: string) {
   for (let yy = py0 + 7; yy < py0 + ph - 6; yy += 6) for (let xx = px0 + 7 + ((yy / 6) % 2) * 3; xx < px0 + pw - 6; xx += 6) px(g, xx, yy, inner);
 }
 
+/** Le tapis de chaque coin, à son thème (le chef garde le sien). */
+function themedRug(g: G, role: string, x: number, y: number, w: number, h: number) {
+  const px0 = x * T + 2, py0 = y * T + 2, pw = w * T - 4, ph = h * T - 4;
+  const base = (fill: string, edge: string) => {
+    rect(g, px0 + 1, py0, pw - 2, ph, fill);
+    rect(g, px0, py0 + 1, pw, ph - 2, fill);
+    hline(g, px0 + 1, py0, pw - 2, edge);
+    hline(g, px0 + 1, py0 + ph - 1, pw - 2, edge);
+    vline(g, px0, py0 + 1, ph - 2, edge);
+    vline(g, px0 + pw - 1, py0 + 1, ph - 2, edge);
+  };
+  const r = rng(x * 17 + y * 31);
+  switch (role) {
+    case 'code': {
+      // futuriste : un circuit imprimé, des pistes et des points de soudure qui brillent
+      base('#141b2a', '#2a5a70');
+      for (let yy = py0 + 5; yy < py0 + ph - 3; yy += 8) {
+        let xx = px0 + 3 + Math.floor(r() * 6);
+        while (xx < px0 + pw - 10) {
+          const len = 6 + Math.floor(r() * 14);
+          hline(g, xx, yy, Math.min(len, px0 + pw - 4 - xx), '#1f3a4c');
+          const end = Math.min(xx + len, px0 + pw - 5);
+          if (r() < 0.5 && yy + 4 < py0 + ph - 2) vline(g, end, yy, 4, '#1f3a4c');
+          px(g, end, yy, r() < 0.35 ? '#3fd8ff' : '#2a6a80');
+          xx += len + 4 + Math.floor(r() * 6);
+        }
+      }
+      return;
+    }
+    case 'design': {
+      // flashy : des confettis de toutes les couleurs sur un fond prune, un liseré rose
+      base('#3a2340', '#ff6fa8');
+      hline(g, px0 + 2, py0 + 2, pw - 4, '#ff6fa8');
+      hline(g, px0 + 2, py0 + ph - 3, pw - 4, '#ff6fa8');
+      const cols = ['#ffd166', '#ff6fa8', '#3fd8ff', '#3ddc97', '#ff8a3d', '#f6f2e9'];
+      for (let i = 0; i < (pw * ph) / 40; i++) {
+        const cx = px0 + 4 + Math.floor(r() * (pw - 8)), cy = py0 + 5 + Math.floor(r() * (ph - 10));
+        const c = cols[Math.floor(r() * cols.length)];
+        if (r() < 0.5) rect(g, cx, cy, 2, 1, c); else px(g, cx, cy, c);
+      }
+      return;
+    }
+    case 'recherche': {
+      // l'explorateur : un tapis bleu nuit, des parallèles en pointillé et une rose des vents
+      base('#1c2840', '#a68a5a');
+      for (let yy = py0 + 8; yy < py0 + ph - 4; yy += 12) for (let xx = px0 + 4; xx < px0 + pw - 4; xx += 3) px(g, xx, yy, '#2e4466');
+      const cx = px0 + Math.floor(pw / 2), cy = py0 + Math.floor(ph / 2);
+      vline(g, cx, cy - 9, 19, '#a68a5a');
+      hline(g, cx - 9, cy, 19, '#a68a5a');
+      for (let i = 1; i < 5; i++) { px(g, cx - i, cy - i, '#7d6a48'); px(g, cx + i, cy - i, '#7d6a48'); px(g, cx - i, cy + i, '#7d6a48'); px(g, cx + i, cy + i, '#7d6a48'); }
+      rect(g, cx - 1, cy - 1, 3, 3, '#d9bd84');
+      px(g, cx, cy - 10, '#c8462d');
+      return;
+    }
+    case 'redaction': {
+      // l'écrivain : un tapis bordeaux à rayures, des franges aux deux bouts
+      base('#3e2030', '#7a3b52');
+      for (let xx = px0 + 6; xx < px0 + pw - 5; xx += 9) vline(g, xx, py0 + 2, ph - 4, '#4f2a3e');
+      for (let yy = py0 + 2; yy < py0 + ph - 2; yy += 2) { px(g, px0 - 1, yy, '#d8c7a8'); px(g, px0 + pw, yy, '#d8c7a8'); }
+      return;
+    }
+    case 'analyse': {
+      // la finance : un papier millimétré bleu nuit, quadrillé d'or
+      base('#1b2338', '#8a6f2a');
+      for (let xx = px0 + 6; xx < px0 + pw - 2; xx += 6) vline(g, xx, py0 + 2, ph - 4, '#26314d');
+      for (let yy = py0 + 6; yy < py0 + ph - 2; yy += 6) hline(g, px0 + 2, yy, pw - 4, '#26314d');
+      for (let xx = px0 + 18; xx < px0 + pw - 2; xx += 18) vline(g, xx, py0 + 2, ph - 4, '#4a3f22');
+      return;
+    }
+  }
+  rug(g, x, y, w, h, ROLES[role as keyof typeof ROLES]?.color ?? P.orange);
+}
+
 function backWall(g: G) {
   rect(g, 0, 0, W, 5, P.wallTop);
   rect(g, 0, 5, W, 39, P.wallFace);
@@ -241,7 +314,7 @@ export function drawRoom(tod: TimeOfDay): HTMLCanvasElement {
   const c = makeCanvas(W, H);
   const g = g2d(c);
   floor(g);
-  for (const z of ZONES) rug(g, z.x, z.y, z.w, z.h, ROLES[z.role].color);
+  for (const z of ZONES) themedRug(g, z.role, z.x, z.y, z.w, z.h);
   backWall(g);
   WINDOWS.forEach((w, i) => windowPane(g, w.x, w.y, w.w, w.h, tod, i + 1));
   whiteboard(g);

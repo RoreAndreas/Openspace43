@@ -3,7 +3,7 @@
 // ou lit selon ce qu'il fait vraiment, se lève pour rendre son rapport au chef, puis repart.
 import type { ActKind, OfficeEvent, PlanItem, Role } from '../../shared/protocol.ts';
 import { Cat } from './cat.ts';
-import { lookFor, lookTop, onLooks } from './characters.ts';
+import { characterInfo, idleEffect, lookFor, onLooks } from './characters.ts';
 import { Fx } from './fx.ts';
 import { iconFor } from './icons.ts';
 import { CHEF_SEAT, SEATS, SPOTS, T, WINDOWS, tileFeet, walkGrid, type Seat } from './layout.ts';
@@ -68,8 +68,10 @@ export class Actor {
   deliverSpot = -1;
   /** son personnage (src/characters/catalog.json) ; null = le robot de son métier */
   character: string | null;
-  /** son décalage dans le temps : chacun respire et sautille à son rythme */
+  /** son décalage dans le temps : chacun a son rythme */
   phase = Math.random() * 10;
+  /** un petit saut sur place (en pixels, vers le haut) : l'impatience de Nyx, la pose de Zaza… */
+  hop = 0;
 
   constructor(id: string, role: Role, name: string, x: number, y: number) {
     this.id = id;
@@ -85,13 +87,8 @@ export class Actor {
     return [Math.max(0, Math.floor(this.x / T)), Math.max(0, Math.min(15, Math.floor((this.y - 2) / T)))];
   }
 
-  /** Sa taille debout, des pieds au haut de la tête. */
-  get height(): number { return lookTop(this.character, false); }
-  /** Le haut de sa tête au-dessus des pieds, là où il est (assis, il s'enfonce derrière son bureau). */
-  get top(): number { return lookTop(this.character, this.seated && !!this.seat); }
-
   /** Le haut de la tête (pour accrocher les bulles). */
-  get head(): Pt { return { x: this.x, y: this.y - this.top }; }
+  get head(): Pt { return { x: this.x, y: this.y - 22 }; }
 
   get busy() { return !!this.cur || this.tasks.length > 0; }
 }
@@ -347,7 +344,7 @@ export class World {
         a.act = ev.kind;
         a.actAt = this.time;
         if (!live) break;
-        this.fx.floatIcon(a.x + (a.seated ? 0 : 1), a.y - a.height - 2, iconFor(ev.kind));
+        this.fx.floatIcon(a.x + (a.seated ? 0 : 1), a.y - 24, iconFor(ev.kind));
         if (ev.kind === 'search' || ev.kind === 'web') this.fx.data(this.nearestWindow(a), { x: a.x, y: a.y - 8 }, ev.kind === 'web' ? '#3ddc97' : '#7fd6ff');
         break;
       }
@@ -380,7 +377,7 @@ export class World {
       case 'ask': {
         const a = this.actors.get(ev.who) ?? chef;
         a.asks++;
-        if (live) this.fx.floatIcon(a.x, a.y - a.height - 4, 'alert');
+        if (live) this.fx.floatIcon(a.x, a.y - 26, 'alert');
         break;
       }
       case 'ask_done':
@@ -498,17 +495,24 @@ export class World {
         const kinds: ActKind[] = a.role === 'recherche' ? ['search', 'web'] : a.role === 'code' ? ['write', 'bash'] : a.role === 'analyse' ? ['read', 'write'] : ['write', 'edit'];
         a.act = kinds[Math.floor(Math.random() * kinds.length)];
         a.actAt = this.time;
-        this.fx.floatIcon(a.x, a.y - a.height - 2, iconFor(a.act));
+        this.fx.floatIcon(a.x, a.y - 24, iconFor(a.act));
       }
     }
     // Après 2 minutes sans rien à faire, Roré va se dégourdir les jambes (le café, la fontaine, une fenêtre…),
     // puis il revient à l'accueil, ou à son bureau pendant une mission
-    if (!chef.busy && this.time > this.strollAt) {
+    if (!chef.busy && !this.driving && this.time > this.strollAt) {
       if (!this.missionActive && !chef.seated) this.stroll(false);
       else if (this.missionActive && chef.seated) this.stroll(true);
       else this.strollAt = this.time + IDLE_STROLL;
     }
     for (const a of [...this.actors.values()]) {
+      // tu diriges Roré : ses tâches attendent que tu lui rendes la main
+      if (a === chef && this.driving) {
+        this.driveStep(a, dt);
+        this.animate(a, dt);
+        moving = true;
+        continue;
+      }
       if (!a.cur && a.tasks.length) { a.cur = a.tasks.shift()!; this.startTask(a, a.cur); }
       if (a.cur) {
         const task = a.cur;
@@ -523,6 +527,59 @@ export class World {
 
   /** Tu cliques dans le bureau : Roré reste disponible (la promenade attend encore 2 minutes). */
   touch() { this.strollAt = Math.max(this.strollAt, this.time + IDLE_STROLL); }
+
+  // ── Tu diriges Roré (double-clic sur lui, puis les flèches) ──
+  driving = false;
+  private steerX = 0;
+  private steerY = 0;
+
+  /** Prendre (ou rendre) les commandes de Roré. */
+  drive(on: boolean) {
+    if (on === this.driving) return;
+    const chef = this.chef;
+    this.driving = on;
+    this.steerX = this.steerY = 0;
+    chef.moving = false;
+    if (on) {
+      // il lâche ce qu'il faisait, se lève s'il était assis
+      if (chef.seated) { chef.seated = false; this.standUp(chef); }
+      chef.cur = null;
+      chef.path = [];
+      chef.happyUntil = this.time + 1.2;
+      this.fx.sparkle(chef.x, chef.y - 18, 8, '#ffd2a8');
+    } else {
+      // pendant une mission, il retourne à son bureau ; sinon il reste là où tu l'as laissé
+      if (this.missionActive && !chef.tasks.length) this.queue(chef, { t: 'walk', tile: CHEF_SEAT.tile }, { t: 'sit', seat: CHEF_SEAT });
+      this.strollAt = this.time + IDLE_STROLL;
+    }
+  }
+
+  /** La direction des flèches enfoncées (-1, 0 ou 1 sur chaque axe). */
+  steer(dx: number, dy: number) { this.steerX = dx; this.steerY = dy; }
+
+  /** Un pas de Roré dans la direction des flèches : il s'arrête devant les meubles et glisse le long des murs. */
+  private driveStep(a: Actor, dt: number) {
+    let dx = this.steerX, dy = this.steerY;
+    if (!dx && !dy) { a.moving = false; return; }
+    if (a.seated) { a.seated = false; this.standUp(a); }
+    const n = Math.hypot(dx, dy);
+    dx /= n; dy /= n;
+    const step = WALK_SPEED * 1.15 * dt;
+    // ses pieds (un peu plus larges qu'un point) doivent rester sur des cases libres
+    const free = (x: number, y: number) => !!this.grid[Math.floor((y - 2) / T)]?.[Math.floor(x / T)];
+    const ok = (x: number, y: number) => free(x - 4, y) && free(x + 4, y) && free(x - 4, y - 5) && free(x + 4, y - 5);
+    const nx = a.x + dx * step, ny = a.y + dy * step;
+    // déjà coincé contre un meuble (en se levant, par exemple) : il peut s'en dégager
+    if (ok(nx, ny) || !ok(a.x, a.y)) { a.x = nx; a.y = ny; }
+    else if (dx && ok(nx, a.y)) a.x = nx;
+    else if (dy && ok(a.x, ny)) a.y = ny;
+    // jamais hors de la pièce
+    a.x = Math.max(T + 4, Math.min(21 * T - 4, a.x));
+    a.y = Math.max(3 * T + 8, Math.min(15 * T + 15, a.y));
+    a.moving = true;
+    a.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up';
+    this.strollAt = this.time + IDLE_STROLL;
+  }
 
   /** Les endroits où Roré aime passer, et ce qu’il y fait. */
   private strollSpots(): StrollSpot[] {
@@ -673,6 +730,15 @@ export class World {
     else if (pose === 'write') eyes = 'up';
     else if (t - a.thinkAt < 2.5 && !a.moving) eyes = 'up';
     else if (a.lookUntil > t && !a.moving) eyes = a.look;
+    a.hop = 0;
+    // quand il n'a rien d'autre à faire : sa personnalité (src/characters/catalog.json, « idle »)
+    const idle = characterInfo(a.character)?.idle;
+    if (idle && (pose === 'stand' || pose === 'sit') && eyes !== 'happy' && a.sadUntil <= t) {
+      const fx = idleEffect(idle, t + a.phase, pose === 'stand');
+      a.hop = fx.hop;
+      if (fx.eyes) eyes = fx.eyes;
+      if (fx.frame !== undefined) a.frame = fx.frame;
+    }
     if (a.blinkUntil > t && eyes !== 'happy') eyes = 'blink';
     a.eyes = eyes;
   }

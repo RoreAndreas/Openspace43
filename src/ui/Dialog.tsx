@@ -5,7 +5,6 @@ import { useShallow } from 'zustand/react/shallow';
 import { ROLES } from '../../shared/activity.ts';
 import { sfx } from '../audio/sfx.ts';
 import { world } from '../engine/instance.ts';
-import { characterPortrait } from '../engine/characters.ts';
 import { robotSprite } from '../engine/robots.ts';
 import { getCode, HEAVY_MODEL, modelInfo } from '../local/api.ts';
 import { useOffice } from '../state/store.ts';
@@ -77,10 +76,8 @@ function Portrait({ happy }: { happy: boolean }) {
       const chef = world.chef;
       const eyes = happy ? 'happy' : blink > 0 ? 'blink' : chef.eyes === 'blink' ? 'open' : chef.eyes === 'happy' ? 'happy' : chef.eyes;
       g.clearRect(0, 0, 64, 64);
-      // son personnage PixelLab s'il en a un (il respire), sinon la tête du robot qui cligne des yeux
-      const face = characterPortrait(chef.character);
-      if (face) g.drawImage(face, 0, 0, 16, 16, 0, (Math.floor(performance.now() / 1200) % 2) * 4, 64, 64);
-      else g.drawImage(robotSprite('chef', 'stand', 'down', 0, eyes), 2, 0, 16, 16, 0, 0, 64, 64);
+      // la tête de son personnage (ou du robot du chef)
+      g.drawImage(robotSprite(chef.character ?? 'chef', 'stand', 'down', 0, eyes), 2, 0, 16, 16, 0, 0, 64, 64);
       if (blink > 0) blink--;
       else if (Math.random() < 0.02) blink = 2;
     };

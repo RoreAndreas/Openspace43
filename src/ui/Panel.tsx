@@ -5,7 +5,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { ROLES } from '../../shared/activity.ts';
 import type { Role } from '../../shared/protocol.ts';
 import { sfx } from '../audio/sfx.ts';
-import { characterStill, getLooksVersion, loadCharacter, lookFor, onLooks } from '../engine/characters.ts';
+import { getLooksVersion, lookFor, onLooks } from '../engine/characters.ts';
 import { world } from '../engine/instance.ts';
 import { robotSprite } from '../engine/robots.ts';
 import { savePref, teamList, useOffice, type AgentView } from '../state/store.ts';
@@ -21,25 +21,14 @@ export function Avatar({ role, name, look, size = 32 }: { role: Role; name?: str
   // le personnage qu'il porte dans le bureau s'il y est (le même que là-bas), sinon celui de son prénom
   const who = name ?? (role === 'chef' ? 'Roré' : '');
   const here = [...world.actors.values()].find((a) => a.role === role && a.name === who);
-  const id = look !== undefined ? look : here ? here.character : lookFor(role, who);
-  const [, setLoaded] = useState(0);
-  useEffect(() => {
-    let live = true;
-    if (id && !characterStill(id)) void loadCharacter(id).then((ok) => { if (live && ok) setLoaded((n) => n + 1); });
-    return () => { live = false; };
-  }, [id]);
-  // un personnage : un cadre 24 × 32 autour de lui ; un robot : son sprite entier (20 × 24)
-  const still = characterStill(id);
-  const w = still ? still.w : 20, h = still ? still.h : 24;
+  const key = (look !== undefined ? look : here ? here.character : lookFor(role, who)) ?? role;
   useEffect(() => {
     const g = ref.current!.getContext('2d')!;
     g.imageSmoothingEnabled = false;
-    g.clearRect(0, 0, w, h);
-    if (still) g.drawImage(still.c, still.x, still.y, w, h, 0, 0, w, h);
-    else g.drawImage(robotSprite(role, 'stand', 'down', 0, 'open'), 0, 0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [role, still?.c, version, w, h]);
-  return <canvas ref={ref} width={w} height={h} className="avatar" style={{ width: size * (w / h), height: size }} />;
+    g.clearRect(0, 0, 20, 24);
+    g.drawImage(robotSprite(key, 'stand', 'down', 0, 'open'), 0, 0);
+  }, [key, version]);
+  return <canvas ref={ref} width={20} height={24} className="avatar" style={{ width: size * (20 / 24), height: size }} />;
 }
 
 const STATUS: Record<AgentView['status'], string> = { working: 'Au travail', reporting: 'Rend son rapport', done: 'A rendu son travail', failed: 'N’a pas pu finir' };

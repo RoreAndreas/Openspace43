@@ -272,6 +272,10 @@ function HowtoRoom() {
         <p className="small">Il choisit le cerveau de l’équipe. <b style={{ color: 'var(--orange)' }}>Orange : Claude</b>{engine === 'cloud' ? ' (avec ta clé API Claude)' : ' (Claude Code, avec ton compte Claude)'}. <b style={{ color: 'var(--green)' }}>Vert : l’IA gratuite</b>{engine === 'cloud' ? ' (Cloudflare Workers AI)' : ' (Ollama, qui tourne sur ton ordinateur)'}. Clique dessus pour basculer, entre deux missions.</p>
       </section>
       <section className="room-sec">
+        <h4>Prends les commandes de Roré</h4>
+        <p className="small">Double-clique sur lui, puis fais-le marcher avec les flèches. Échap (ou un nouveau double-clic) lui rend la main : en pleine mission, il retourne à son bureau.</p>
+      </section>
+      <section className="room-sec">
         <h4>Les autres objets</h4>
         <p className="small">Le caisson à côté de l’analyste, c’est son tiroir (tes couleurs, tes types de texte, ce qu’il faut retenir). Le tableau, c’est le plan de Roré. Les archives, les missions passées. Le jukebox joue tes liens YouTube. Et clique sur le reste : il y a des surprises.</p>
       </section>

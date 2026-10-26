@@ -6,6 +6,7 @@ import type { ActKind } from '../../shared/protocol.ts';
 import { camera, director, renderer, timeOfDay, world } from '../engine/instance.ts';
 import { hitAt, type Hit } from '../engine/hits.ts';
 import { jukebox } from '../audio/music.ts';
+import { installDriving, setDriving } from './drive.ts';
 import { interact } from './interact.ts';
 import { H, W } from '../engine/layout.ts';
 import { sfx } from '../audio/sfx.ts';
@@ -29,7 +30,7 @@ function placeBubbles(scale: number) {
     if (!a) continue;
     const seated = a.seated && !!a.seat;
     const x = Math.round(a.x * scale);
-    const y = Math.round(((seated ? a.seat!.y : a.y) - a.top) * scale);
+    const y = Math.round(((seated ? a.seat!.y : a.y) - (seated ? 19 : 22)) * scale);
     // au même rang de bureaux, une bulle sur deux monte un peu plus haut (elles se chevauchent moins)
     const lift = seated && Math.round(a.seat!.x / 32) % 2 === 0 ? 1 : 0;
     el.style.transform = `translate3d(${x}px, ${y}px, 0)`;
@@ -59,6 +60,9 @@ export function Office() {
   todRef.current = tod;
   const scaleRef = useRef(scale);
   scaleRef.current = scale;
+
+  // Les flèches, quand tu diriges Roré
+  useEffect(() => installDriving(), []);
 
   // La taille : la plus grande qui tient (en vertical, toute la largeur du cadre).
   useLayoutEffect(() => {
@@ -111,6 +115,8 @@ export function Office() {
       // la caméra : le réalisateur filme tout seul en mode tournage (sauf pendant la visite guidée)
       director.enabled = st.filming && st.cameraAuto && !st.tour;
       director.tick();
+      // tu diriges Roré : la caméra le suit de près
+      if (world.driving) camera.shot(world.chef.x, world.chef.y - 12, 1.7, 0.5);
       const camMoving = camera.update(dt);
       // pour filmer le bureau image par image (scripts de capture) : chaque image est dessinée, et le rythme
       // de la musique vient du film, pas du jukebox
@@ -170,6 +176,12 @@ export function Office() {
     const h = hitAt(world, p.x, p.y);
     if (h) interact(h);
   };
+  // le double-clic sur Roré : tu prends (ou rends) les commandes ; ailleurs, la vue revient au plan large
+  const onDoubleClick = (e: React.MouseEvent) => {
+    const h = hitAt(world, toWorld(e).x, toWorld(e).y);
+    if (h?.kind === 'actor' && h.id === 'chef') { setDriving(!world.driving); return; }
+    if (!world.driving) camera.wide(4);
+  };
   const onWheel = (e: React.WheelEvent) => {
     const p = toWorld(e);
     const z = Math.max(1, Math.min(2.6, camera.tzoom * (e.deltaY < 0 ? 1.15 : 1 / 1.15)));
@@ -178,15 +190,28 @@ export function Office() {
   };
 
   return (
-    <div className="office" ref={wrap} onPointerMove={onMove} onPointerLeave={onLeave} onClick={onClick} onWheel={onWheel} onDoubleClick={() => camera.wide(4)}>
+    <div className="office" ref={wrap} onPointerMove={onMove} onPointerLeave={onLeave} onClick={onClick} onWheel={onWheel} onDoubleClick={onDoubleClick}>
       <div className="office-frame" style={{ width: W * scale, height: H * scale }}>
         <div className="office-stage" ref={stage} style={{ width: W * scale, height: H * scale, ['--s' as string]: scale }}>
           <canvas ref={canvas} className="office-canvas" style={{ width: W * scale, height: H * scale }} />
           <Bubbles />
         </div>
         <LiveBadge />
+        <DriveBadge />
       </div>
       <div className="office-tip" ref={tip} />
+    </div>
+  );
+}
+
+/** Tu diriges Roré : le rappel des touches. */
+function DriveBadge() {
+  const driving = useOffice((s) => s.driving);
+  if (!driving) return null;
+  return (
+    <div className="drive-badge" role="status">
+      🎮 Tu diriges Roré · <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> pour marcher · <kbd>Échap</kbd> pour le laisser
+      <button onClick={(e) => { e.stopPropagation(); setDriving(false); }} aria-label="Rendre la main à Roré">×</button>
     </div>
   );
 }
@@ -236,7 +261,7 @@ function Bubbles() {
   {
     const boxes: { x: number; y: number; w: number }[] = [];
     const chefActor = world.actors.get('chef');
-    if (chefActor) boxes.push({ x: chefActor.x, y: (chefActor.seated && chefActor.seat ? chefActor.seat.y : chefActor.y) - chefActor.top + 2, w: 86 });
+    if (chefActor) boxes.push({ x: chefActor.x, y: (chefActor.seated && chefActor.seat ? chefActor.seat.y : chefActor.y) - 20, w: 86 });
     const cands = ids.filter((id) => id !== 'chef' && world.actors.get(id)?.seated)
       .map((id) => ({ id, at: agents[id]?.act?.at ?? 0, label: agents[id]?.act?.label ?? '' }))
       .filter((x) => now - x.at < 2800)
@@ -245,7 +270,7 @@ function Bubbles() {
       if (fresh.size >= (vertical ? 2 : 3)) break;
       const a = world.actors.get(c.id)!;
       const lift = Math.round(a.seat!.x / 32) % 2 === 0 ? 12 : 0;
-      const box = { x: a.seat!.x, y: a.seat!.y - a.top - 1 - lift, w: Math.min(80, short(c.label).length * 3.1 + 14) };
+      const box = { x: a.seat!.x, y: a.seat!.y - 20 - lift, w: Math.min(80, short(c.label).length * 3.1 + 14) };
       if (boxes.some((b) => Math.abs(b.x - box.x) < (b.w + box.w) / 2 + 2 && Math.abs(b.y - box.y) < 24)) continue;
       boxes.push(box);
       fresh.add(c.id);

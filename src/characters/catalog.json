@@ -1,8 +1,6 @@
 {
-  "version": 1,
-  "size": 32,
-  "view": "low top-down",
-  "style": "PixelLab v3, 32 px, single color black outline, medium detail",
+  "version": 2,
+  "format": "robots du bureau : 20 × 24 pixels, tête-cube, visière, dessinés en code (src/engine/robots.ts)",
   "characters": [
     {
       "id": "rore",
@@ -11,16 +9,19 @@
       "family": "management",
       "archetype": "Commandant spatial",
       "pitch": "Il garde le cap de la mission, l'œil sur chaque poste.",
-      "palette": ["#f1eff7", "#ff8a3d", "#d9622a", "#3a3d4f", "#5b3a26"],
+      "palette": ["#4a4658", "#f1eff7", "#ff8a3d", "#ffb02e", "#2a2734"],
       "accent": "#ff8a3d",
-      "silhouette": "Veste blanche droite, épaulettes orange, cape orange qui dépasse de chaque côté.",
-      "accessories": ["épaulettes orange", "insigne étoile", "cape courte"],
+      "silhouette": "La tête noire du logo, veste blanche, épaulettes dorées, cape orange qui dépasse de chaque côté.",
+      "accessories": ["cape orange", "épaulettes dorées", "étoile de commandant"],
       "temperament": "Calme et sûr de lui ; il passe en revue son équipage.",
       "energy": 2,
       "idle": "supervise",
-      "workLabel": "Il relit les rapports, la main sur le menton.",
-      "pixellab": "238451eb-8e7e-4fd4-b59d-35d34ebe5488",
-      "prompt": "male space fleet commander, crisp white uniform jacket with orange shoulder epaulettes and an orange diagonal chest stripe, small gold star insignia on the chest, short dark brown hair, confident upright posture, short orange cape on the back, dark grey trousers, black boots"
+      "workLabel": "Il relit les rapports et coche le plan.",
+      "outfit": {
+        "head": "#4a4658", "visor": "#0b0910", "body": "#f1eff7", "arm": "#e4e1ec", "hand": "#3d3a4a", "leg": "#2a2734", "tip": "#ff8a3d",
+        "colors": { "headTop": "#77718a", "headShade": "#33303f", "visorHi": "#4a4566", "cape": "#ff8a3d", "gold": "#ffb02e" },
+        "parts": ["jacket", "cape", "epaulettes", "star"]
+      }
     },
     {
       "id": "hacker_cyberpunk",
@@ -28,18 +29,20 @@
       "roles": ["code", "renfort"],
       "family": "code",
       "archetype": "Hacker cyberpunk",
-      "pitch": "Capuche baissée, visière allumée : elle code plus vite qu'elle ne parle.",
-      "palette": ["#2b2b33", "#4a4a55", "#35e0ff", "#4dff4d", "#f2f2f2"],
+      "pitch": "Capuche rabattue, visière allumée : elle code plus vite qu'elle ne parle.",
+      "palette": ["#2b2b33", "#4e5459", "#35e0ff", "#41f509", "#f3f1f8"],
       "accent": "#35e0ff",
-      "glow": { "y": 25, "color": "#35e0ff" },
-      "silhouette": "Sweat à capuche sombre et ample, visière cyan en bandeau, baskets blanches massives.",
-      "accessories": ["visière cyan", "câbles verts le long des manches", "ordinateur de poignet"],
+      "silhouette": "Capuche sombre qui encadre une visière aux yeux cyan, baskets blanches.",
+      "accessories": ["capuche", "yeux cyan", "câbles verts le long des manches", "baskets blanches"],
       "temperament": "Impatiente ; elle ne tient pas en place quand elle attend.",
       "energy": 3,
       "idle": "bounce",
-      "workLabel": "Elle tape à toute vitesse, la visière qui scintille.",
-      "pixellab": "6062a594-f24d-4e01-b9b6-d2994cab5f48",
-      "prompt": "cyberpunk hacker office worker, dark charcoal hoodie with the hood up, glowing cyan visor goggles over the eyes, neon green cables running down the sleeves, small wrist computer, black cargo pants, chunky white sneakers, slightly slouched posture"
+      "workLabel": "Elle tape à toute vitesse.",
+      "outfit": {
+        "head": "#4e5459", "visor": "#0d2630", "eyes": "#35e0ff", "body": "#3d3d48", "arm": "#4e5459", "hand": "#bdccde", "leg": "#262632",
+        "colors": { "hood": "#2b2b33", "cables": "#41f509", "shoes": "#f3f1f8" },
+        "parts": ["hood", "cables", "sneakers"]
+      }
     },
     {
       "id": "mage_du_code",
@@ -48,17 +51,19 @@
       "family": "code",
       "archetype": "Mage du code",
       "pitch": "Ses runes compilent du premier coup. Presque toujours.",
-      "palette": ["#2e2a6b", "#4a43a0", "#3fe0c8", "#f2efe6", "#7a5230"],
+      "palette": ["#4a2370", "#5a2d82", "#3fe0c8", "#f2efe6", "#7a5230"],
       "accent": "#3fe0c8",
-      "glow": { "y": 28, "color": "#3fe0c8" },
-      "silhouette": "Grande robe indigo, chapeau pointu qui retombe, bâton plus haut que lui.",
-      "accessories": ["bâton à cristal turquoise", "runes lumineuses", "parchemin à la ceinture"],
-      "temperament": "Posé, un peu solennel ; ses runes scintillent quand il réfléchit.",
+      "silhouette": "Chapeau pointu dont la pointe retombe, longue barbe blanche, robe jusqu'aux pieds, bâton plus haut que lui.",
+      "accessories": ["chapeau pointu", "barbe blanche", "robe à runes", "bâton à cristal turquoise"],
+      "temperament": "Posé, un peu solennel ; le cristal de son bâton scintille quand il réfléchit.",
       "energy": 1,
       "idle": "shimmer",
-      "workLabel": "Il trace des runes du bout de son bâton.",
-      "pixellab": "63ecce2d-5c5e-4150-b45f-fa64376791d1",
-      "prompt": "medieval code wizard, long deep indigo robe with glowing teal rune patterns along the hem, tall floppy pointed indigo hat, long white beard, holding a wooden staff topped with a glowing teal crystal, brown leather belt with a rolled scroll"
+      "workLabel": "Il trace des runes sur son clavier.",
+      "outfit": {
+        "head": "#8897a9", "eyes": "#3fe0c8", "body": "#5a2d82", "arm": "#6a3a96", "leg": "#2a1f3d",
+        "colors": { "hat": "#4a2370", "rune": "#3fe0c8", "wood": "#7a5230" },
+        "parts": ["wizardHat", "beard", "robe", "staff"]
+      }
     },
     {
       "id": "robot_ingenieur",
@@ -66,18 +71,20 @@
       "roles": ["code", "renfort"],
       "family": "code",
       "archetype": "Robot ingénieur",
-      "pitch": "Un écran pour visage, une clé à molette pour tout le reste.",
-      "palette": ["#efe6d2", "#ff8a3d", "#1d2230", "#35e0ff", "#ffd166"],
-      "accent": "#35e0ff",
-      "glow": { "y": 22, "color": "#35e0ff" },
-      "silhouette": "Corps rond et trapu, tête carrée à écran, une antenne, petites jambes.",
-      "accessories": ["écran facial", "antenne orange", "ceinture à outils"],
+      "pitch": "Le plus robot des robots : un écran pour visage, une ceinture à outils pour le reste.",
+      "palette": ["#efe6d2", "#ec933e", "#4c4e72", "#35e0ff", "#ffd166"],
+      "accent": "#ec933e",
+      "silhouette": "Tête crème, corps orange, bras et jambes de métal sombre, voyant cyan sur la poitrine.",
+      "accessories": ["yeux cyan", "voyant de poitrine", "ceinture à outils", "antenne orange"],
       "temperament": "Serviable et curieux ; son écran cligne en permanence.",
       "energy": 2,
       "idle": "blink",
-      "workLabel": "Il soude, visse et vérifie, les yeux en pixels plissés.",
-      "pixellab": "ffc2a615-bc5a-4f3a-84cb-43e39a5eb4e6",
-      "prompt": "small friendly engineer robot, rounded cream white and orange metal body, boxy head with a dark screen face showing two glowing cyan eyes, single antenna with an orange tip, thin jointed metal arms, yellow tool belt with a wrench, short stubby metal legs"
+      "workLabel": "Il soude, visse et vérifie.",
+      "outfit": {
+        "head": "#efe6d2", "visor": "#1d2230", "eyes": "#35e0ff", "body": "#ec933e", "arm": "#4c4e72", "hand": "#ec933e", "leg": "#4c4e72", "tip": "#ec933e",
+        "colors": { "belt": "#ffd166" },
+        "parts": ["chestLight", "toolbelt"]
+      }
     },
     {
       "id": "analyste_strategique",
@@ -86,34 +93,40 @@
       "family": "analyse",
       "archetype": "Analyste stratégique",
       "pitch": "Gilet bleu nuit, tablette contre elle : chaque chiffre a une place.",
-      "palette": ["#1f2a4d", "#f4f1ea", "#e0a526", "#8a5a3c", "#2b2430"],
+      "palette": ["#223455", "#f4f1ea", "#e0a526", "#8a5a3c", "#2b2430"],
       "accent": "#e0a526",
-      "silhouette": "Gilet ajusté, chignon net, tablette tenue contre la poitrine.",
-      "accessories": ["tablette", "lunettes rondes écaille", "cravate moutarde"],
+      "silhouette": "Chignon net, lunettes écaille, gilet bleu nuit, tablette tenue contre la poitrine.",
+      "accessories": ["chignon", "lunettes écaille", "cravate moutarde", "tablette"],
       "temperament": "Méthodique ; elle consulte sa tablette entre deux idées.",
       "energy": 1,
       "idle": "check",
       "workLabel": "Elle compare, souligne, recoupe.",
-      "pixellab": "62b3bfa8-0a1c-422e-8bee-f95da0f6972f",
-      "prompt": "elegant financial analyst, navy blue waistcoat over a crisp white shirt with rolled sleeves, mustard yellow tie, round tortoiseshell glasses, neat dark hair bun, holding a tablet against the chest, calm upright posture, dark trousers, brown shoes"
+      "outfit": {
+        "body": "#223455", "arm": "#f4f1ea", "leg": "#111834",
+        "colors": { "hair": "#2b2430", "glasses": "#8a5a3c", "tie": "#e0a526", "tablet": "#2c2c4e", "screen": "#6f849d" },
+        "parts": ["bun", "glasses", "tie", "tablet"]
+      }
     },
     {
       "id": "styliste_extravagant",
       "name": "Zaza",
       "roles": ["design", "renfort"],
       "family": "design",
-      "archetype": "Styliste extravagant",
+      "archetype": "Styliste extravagante",
       "pitch": "Épaules immenses, banane violette : on la reconnaît de l'autre bout du bureau.",
-      "palette": ["#ff4fa3", "#8a3dff", "#ffd23d", "#1d1a24", "#f5f5f5"],
-      "accent": "#ff4fa3",
-      "silhouette": "Manteau rose asymétrique aux épaules énormes, grande banane violette, semelles compensées.",
-      "accessories": ["lunettes rondes jaunes", "mètre ruban autour du cou", "bottines compensées"],
+      "palette": ["#f4628d", "#7a3dbf", "#fde219", "#1d1a24", "#f3f9f9"],
+      "accent": "#f4628d",
+      "silhouette": "Haute banane violette, grandes lunettes jaunes, manteau rose aux épaules rembourrées.",
+      "accessories": ["banane violette", "lunettes de soleil rondes", "mètre ruban", "baskets blanches"],
       "temperament": "Théâtrale ; elle prend la pose dès qu'elle s'arrête.",
       "energy": 3,
       "idle": "pose",
       "workLabel": "Elle drape, épingle, recommence.",
-      "pixellab": "bbdb95df-3317-4878-9035-08e13faafd82",
-      "prompt": "extravagant fashion designer, oversized hot pink asymmetric coat with huge padded shoulders, tall purple pompadour hair, oversized round yellow sunglasses, a measuring tape draped around the neck, black skinny pants, chunky white platform boots"
+      "outfit": {
+        "body": "#f4628d", "arm": "#f4628d", "leg": "#1d1a24",
+        "colors": { "hair": "#7a3dbf", "sunglasses": "#fde219", "tape": "#fde219", "shoes": "#f3f9f9" },
+        "parts": ["pompadour", "sunglasses", "puffy", "tape", "sneakers"]
+      }
     },
     {
       "id": "explorateur_futuriste",
@@ -122,17 +135,19 @@
       "family": "recherche",
       "archetype": "Explorateur futuriste",
       "pitch": "Sac à radar sur le dos, il rapporte des infos de très loin.",
-      "palette": ["#d8c49a", "#2fb5a5", "#c8462d", "#6b4a2b", "#9fe8ff"],
-      "accent": "#2fb5a5",
-      "glow": { "y": 14, "color": "#9fe8ff" },
-      "silhouette": "Combinaison beige, gros sac à dos avec une parabole qui dépasse, lunettes sur le front.",
-      "accessories": ["sac à dos radar", "lunettes d'aviateur", "carte holographique au poignet"],
+      "palette": ["#e8c67e", "#c8462d", "#43748a", "#976e3e", "#9fe8ff"],
+      "accent": "#43748a",
+      "silhouette": "Cheveux roux en bataille, lunettes d'aviateur sur le front, combinaison sable, sac à dos à parabole.",
+      "accessories": ["lunettes d'aviateur", "sac à dos radar", "carte holographique au poignet"],
       "temperament": "Curieux ; il regarde sans cesse autour de lui.",
       "energy": 2,
       "idle": "scan",
       "workLabel": "Il balaie sa carte holographique, cherche une piste.",
-      "pixellab": "41f0bdc5-93a3-459f-bebf-dd53b2859ef1",
-      "prompt": "futuristic explorer, sand beige expedition jumpsuit with teal panels, large backpack with a small satellite dish antenna, round goggles pushed up on the forehead, short messy red hair, glowing holographic map screen on the wrist, sturdy brown boots"
+      "outfit": {
+        "body": "#e8c67e", "arm": "#c9a866", "leg": "#976e3e",
+        "colors": { "hair": "#c8462d", "strap": "#57483c", "lens": "#43748a", "pack": "#43748a", "holo": "#9fe8ff" },
+        "parts": ["hairTuft", "goggles", "backpack", "holo"]
+      }
     }
   ]
 }

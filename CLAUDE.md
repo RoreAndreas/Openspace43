@@ -45,13 +45,15 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
 - **`src/state/store.ts`** (zustand) range les événements et les transmet au moteur (`src/engine/`).
 - **`src/engine/`** : le monde, le dessin (le décor et les robots sont dessinés en code), la caméra, les clics.
   Le tiroir est le meuble `cabinet` (`furniture.ts`, `layout.ts`, `hits.ts`, `ui/interact.ts`).
-- **Les personnages** (PixelLab, 32 px, vue « low top-down ») : le catalogue `src/characters/catalog.json` (identité,
-  rôles, personnalité, identifiant PixelLab) ; `python scripts/characters.py` télécharge leurs exports et écrit
-  `public/characters/<id>/*.png` (une planche par animation : une rangée par direction) et `src/characters/sheets.json`
-  (cases, ancrage aux pieds, animations). `src/engine/characters.ts` choisit l'image selon la pose (`characterFrame`),
-  joue en code ce qui n'a pas d'animation (respiration, regards, sauts, lumières) et garde le choix de chaque agent
-  (`lookFor`, `setLook`, localStorage `bureau:looks`, par prénom). Sans image chargée, le robot du métier s'affiche.
-  La galerie : `ui/Characters.tsx` (fenêtre `characters`). Ne jamais redimensionner un sprite.
+- **Les personnages** : le catalogue `src/characters/catalog.json` (identité, rôles, personnalité `idle`, tenue
+  `outfit`). Ce sont des robots du bureau, au gabarit d'origine (20 × 24, ancrage aux pieds) : `robots.ts` dessine une
+  tenue (couleurs + pièces `Part`) sur le robot ; `robotSprite(clé, …)` prend un personnage ou un métier (son robot
+  d'origine, inchangé). `src/engine/characters.ts` : `idleEffect` (la personnalité au repos, jouée par `world.ts`) et
+  qui porte quoi (`lookFor`, `setLook`, localStorage `bureau:looks`, par prénom ; jamais deux fois le même s'il en
+  reste un libre). La galerie : `ui/Characters.tsx` (fenêtre `characters`).
+- **Piloter Roré** : double-clic sur lui (`Office.tsx`) → `ui/drive.ts` (flèches, Échap) → `world.drive` / `steer` ;
+  pendant ce temps ses tâches attendent (`driveStep` dans `world.update`), collisions sur `walkGrid`, caméra qui suit.
+- **Les thèmes des coins** : `DESKS` et `CHAIRS` dans `furniture.ts`, `themedRug` dans `room.ts` (un style par métier).
 - **`src/ui/`** : l'interface React. `Extras.tsx` : le tiroir, les skills, le règlement, la sauvegarde. `Jukebox.tsx` : la
   liste YouTube et le petit lecteur (`src/audio/music.ts` pilote l'iframe youtube-nocookie par `postMessage`).
 - La note « Comment ça marche » est le meuble `note` (fenêtre `howto` dans `Rooms.tsx`). Roré se promène après 2 minutes
@@ -62,8 +64,7 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
 
 - **Français, tutoiement, phrases courtes** dans tout ce que l'utilisatrice lit. Roré est un homme : accords au masculin. La patronne (l’utilisatrice) reste au féminin.
 - **Moins de données** : rien côté serveur ; pas de fichier de musique ni de voix ; la musique vient des liens YouTube
-  de l'utilisatrice (youtube-nocookie.com, seule exception à la CSP : `frame-src`) ; pas d'image externe (les
-  personnages sont servis par le bureau lui-même, dans `public/characters/`).
+  de l'utilisatrice (youtube-nocookie.com, seule exception à la CSP : `frame-src`) ; pas d'image externe.
 - **Sécurité** : jamais de secret dans le dépôt (`.dev.vars` est ignoré) ; les pages HTML créées par l'équipe s'affichent
   dans un iframe `sandbox` sans `allow-same-origin`.
 - **zustand** : un sélecteur qui renvoie un nouveau tableau ou objet passe par `useShallow`.

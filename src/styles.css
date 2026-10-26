@@ -123,6 +123,28 @@ button:disabled { cursor: default; opacity: 0.45; }
 }
 .live-badge i { width: 8px; height: 8px; border-radius: 50%; background: #fff; animation: blink-dot 1.2s steps(1) infinite; }
 @keyframes blink-dot { 50% { opacity: 0.25; } }
+.drive-badge {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  font: 600 12px var(--font);
+  color: #fff;
+  background: rgba(18, 15, 25, 0.92);
+  border: 1px solid rgba(255, 138, 61, 0.6);
+  padding: 5px 6px 5px 12px;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+}
+.drive-badge kbd { font: 700 11px var(--pixel); padding: 1px 5px; border-radius: 4px; background: var(--surface3); border: 1px solid var(--line2); }
+.drive-badge button { margin-left: 4px; width: 22px; height: 22px; border-radius: 6px; color: #fff; background: rgba(255, 255, 255, 0.08); }
+.drive-badge button:hover { background: rgba(255, 138, 61, 0.35); }
+@media (max-width: 760px) { .drive-badge { font-size: 11px; } .drive-badge kbd { display: none; } }
 
 /* les bulles des robots */
 .bubble-anchor { position: absolute; left: 0; top: 0; width: 0; height: 0; z-index: 2; pointer-events: none; will-change: transform; }
@@ -594,7 +616,7 @@ kbd { font: 600 11px var(--pixel); background: var(--surface3); border: 1px soli
 .char-card.on { box-shadow: 0 0 0 2px var(--c); }
 .char-top { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center; }
 .char-stage { width: 72px; height: 72px; border-radius: 10px; background: #3f3138; border: 1px solid var(--line); display: grid; place-items: center; image-rendering: pixelated; }
-.char-stage canvas { width: 64px; height: 64px; image-rendering: pixelated; }
+.char-stage canvas { width: 50px; height: 60px; image-rendering: pixelated; }
 .char-top b { display: block; font: 700 15px var(--pixel); }
 .char-top span { display: block; font-size: 11.5px; color: var(--muted); }
 .char-card p { margin: 0; font-size: 12.5px; color: #d8d8de; }

@@ -32,7 +32,8 @@ export function interact(hit: Hit) {
     if (hit.id === 'chef') {
       sfx('click');
       world.chef.happyUntil = world.time + 1.5;
-      useOffice.setState({ draft: ' ' });
+      // quand tu le diriges, le clic ne t'envoie pas dans le chat (les flèches iraient dans le texte)
+      if (!world.driving) useOffice.setState({ draft: ' ' });
       return;
     }
     sfx('open');

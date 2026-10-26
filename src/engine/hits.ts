@@ -50,8 +50,8 @@ export function hitAt(world: World, x: number, y: number): Hit | null {
   const actors = [...world.actors.values()].sort((a, b) => (b.seated && b.seat ? b.seat.y : b.y) - (a.seated && a.seat ? a.seat.y : a.y));
   for (const a of actors) {
     const ay = a.seated && a.seat ? a.seat.y : a.y;
-    if (a.alpha > 0.3 && x >= a.x - 7 && x <= a.x + 7 && y >= ay - a.top + 1 && y <= ay + 1) {
-      return { kind: 'actor', id: a.id, label: a.id === 'chef' ? 'Roré, le chef de projet' : `${a.name} · ${ROLES[a.role].label}` };
+    if (a.alpha > 0.3 && x >= a.x - 7 && x <= a.x + 7 && y >= ay - 21 && y <= ay + 1) {
+      return { kind: 'actor', id: a.id, label: a.id === 'chef' ? (world.driving ? 'Roré : tu le diriges (Échap pour le laisser)' : 'Roré, le chef de projet · double-clic : prends les commandes') : `${a.name} · ${ROLES[a.role].label}` };
     }
   }
   if (world.cat.hit(x, y)) return { kind: 'cat', label: 'Pixel, le chat du bureau' };

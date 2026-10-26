@@ -1,67 +1,72 @@
 // La galerie des personnages : qui ils sont, leur caractère, comment ils bougent. On y choisit aussi
 // le personnage d'un agent (depuis sa fiche) et celui de Roré. Pour en ajouter un : une entrée dans
-// src/characters/catalog.json, puis « python scripts/characters.py » (voir le README).
+// src/characters/catalog.json, avec sa tenue (voir le README).
 import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { ROLES } from '../../shared/activity.ts';
 import type { Role } from '../../shared/protocol.ts';
 import { sfx } from '../audio/sfx.ts';
-import {
-  CATALOG, CHARACTERS, characterAnims, characterFrame, characterPalette, getLooksVersion, loadCharacter, lookChosen, lookFor, onLooks, setLook,
-  type CharacterInfo, type FrameArgs,
-} from '../engine/characters.ts';
+import { CHARACTERS, getLooksVersion, idleEffect, lookChosen, lookFor, onLooks, setLook, type CharacterInfo } from '../engine/characters.ts';
 import { world } from '../engine/instance.ts';
+import { robotSprite, type Dir, type Pose } from '../engine/robots.ts';
 import { useOffice } from '../state/store.ts';
 import { Avatar } from './Panel.tsx';
 import { Shell } from './Rooms.tsx';
 
-const ANIM_LABEL: Record<string, string> = { walk: 'Marche', work: 'Travail', interact: 'Geste', special: 'Signature' };
 const IDLE_LABEL: Record<string, string> = {
-  breathe: 'il respire', bounce: 'trépigne', shimmer: 'ses runes scintillent', blink: 'son écran cligne',
+  breathe: 'il attend', bounce: 'trépigne', shimmer: 'son bâton scintille', blink: 'son écran cligne',
   check: 'consulte sa tablette', pose: 'prend la pose', scan: 'regarde autour de lui', supervise: 'surveille l’équipe',
 };
 
-/** La petite démo de l'aperçu : il attend (sa personnalité), marche vers toi, de profil, de dos, puis fait la fête. */
-const REEL: { s: number; args: Pick<FrameArgs, 'pose' | 'dir' | 'moving'> }[] = [
-  { s: 4, args: { pose: 'stand', dir: 'down', moving: false } },
-  { s: 2, args: { pose: 'walk', dir: 'down', moving: true } },
-  { s: 2, args: { pose: 'walk', dir: 'right', moving: true } },
-  { s: 1.6, args: { pose: 'walk', dir: 'up', moving: true } },
-  { s: 2, args: { pose: 'walk', dir: 'left', moving: true } },
-  { s: 1.2, args: { pose: 'cheer', dir: 'down', moving: false } },
+/** La petite démo de l'aperçu : il attend (sa personnalité), marche dans les quatre directions, travaille, fait la fête, salue. */
+const REEL: { s: number; pose: Pose; dir: Dir; fps: number; n: number }[] = [
+  { s: 4, pose: 'stand', dir: 'down', fps: 0, n: 1 },
+  { s: 1.5, pose: 'walk', dir: 'down', fps: 8, n: 4 },
+  { s: 1.5, pose: 'walk', dir: 'right', fps: 8, n: 4 },
+  { s: 1.2, pose: 'walk', dir: 'up', fps: 8, n: 4 },
+  { s: 1.5, pose: 'walk', dir: 'left', fps: 8, n: 4 },
+  { s: 1.6, pose: 'type', dir: 'down', fps: 7, n: 2 },
+  { s: 1.2, pose: 'cheer', dir: 'down', fps: 6, n: 2 },
+  { s: 1.2, pose: 'wave', dir: 'down', fps: 6, n: 2 },
 ];
 const REEL_S = REEL.reduce((n, r) => n + r.s, 0);
 
-function Stage({ id }: { id: string }) {
+function Stage({ c }: { c: CharacterInfo }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const g = ref.current!.getContext('2d')!;
     g.imageSmoothingEnabled = false;
     const t0 = performance.now() / 1000 - Math.random() * 3;
     let raf = 0;
-    void loadCharacter(id);
     const draw = () => {
       raf = requestAnimationFrame(draw);
       const t = performance.now() / 1000 - t0;
       // où en est la démo, et depuis combien de temps dans ce passage
       let k = t % REEL_S;
       const step = REEL.find((r) => { if (k < r.s) return true; k -= r.s; return false; }) ?? REEL[0];
-      const f = characterFrame(id, { ...step.args, seated: false, animT: k, t });
-      g.clearRect(0, 0, 32, 32);
-      if (f) g.drawImage(f.c, 16 + f.x, 30 + f.y);
+      let frame = step.fps ? Math.floor(k * step.fps) % step.n : 0;
+      let eyes: Parameters<typeof robotSprite>[4] = step.pose === 'cheer' ? 'happy' : step.pose === 'type' ? 'down' : 'open';
+      let hop = 0;
+      if (step.pose === 'stand') {
+        const fx = idleEffect(c.idle, t, true);
+        hop = fx.hop;
+        eyes = fx.eyes ?? (Math.floor(t * 1.7) % 9 === 0 ? 'blink' : 'open');
+        frame = fx.frame ?? 0;
+      }
+      g.clearRect(0, 0, 20, 24);
+      g.drawImage(robotSprite(c.id, step.pose, step.dir, frame, eyes), 0, -hop);
     };
     draw();
     return () => cancelAnimationFrame(raf);
-  }, [id]);
-  return <div className="char-stage"><canvas ref={ref} width={32} height={32} /></div>;
+  }, [c]);
+  return <div className="char-stage"><canvas ref={ref} width={20} height={24} /></div>;
 }
 
 function Card({ c, chosen, onPick }: { c: CharacterInfo; chosen: boolean; onPick?: () => void }) {
-  const anims = characterAnims(c.id);
   const wearers = [...world.actors.values()].filter((a) => a.character === c.id).map((a) => a.name);
   return (
     <div className={`char-card ${chosen ? 'on' : ''}`} style={{ ['--c' as string]: c.accent }}>
       <div className="char-top">
-        <Stage id={c.id} />
+        <Stage c={c} />
         <div>
           <b>{c.name}</b>
           <span>{c.archetype}</span>
@@ -71,10 +76,12 @@ function Card({ c, chosen, onPick }: { c: CharacterInfo; chosen: boolean; onPick
       <p>{c.pitch}</p>
       <p className="muted">{c.temperament}</p>
       <p className="muted">{c.accessories.join(' · ')}</p>
-      <div className="swatches" aria-label="Sa palette">{characterPalette(c).map((col) => <i key={col} style={{ background: col }} title={col} />)}</div>
+      <div className="swatches" aria-label="Sa palette">{c.palette.map((col) => <i key={col} style={{ background: col }} title={col} />)}</div>
       <div className="char-anims">
-        {anims.map((k) => <span key={k}>{ANIM_LABEL[k] ?? k}</span>)}
-        <span title="Joué avec ses huit rotations, sans image en plus">En attendant : {IDLE_LABEL[c.idle] ?? c.idle}</span>
+        <span>Marche · 4 directions</span>
+        <span>Travail</span>
+        <span>Fête · Salut</span>
+        <span>En attendant : {IDLE_LABEL[c.idle] ?? c.idle}</span>
       </div>
       {wearers.length > 0 && <p className="muted">Dans le bureau : {wearers.join(', ')}</p>}
       {onPick && <button className={`btn small ${chosen ? '' : 'primary'}`} onClick={onPick}>{chosen ? '✓ Son personnage' : 'Choisir'}</button>}
@@ -84,7 +91,6 @@ function Card({ c, chosen, onPick }: { c: CharacterInfo; chosen: boolean; onPick
 
 export function CharactersRoom({ pick }: { pick?: { role: Role; name: string; agent?: string } }) {
   useSyncExternalStore(onLooks, getLooksVersion);
-  const later = CATALOG.length - CHARACTERS.length;
   const back = () => useOffice.setState({ modal: pick?.agent ? { kind: 'agent', id: pick.agent } : { kind: 'characters' } });
   const choose = (id: string | null | undefined) => {
     if (!pick) return;
@@ -114,7 +120,7 @@ export function CharactersRoom({ pick }: { pick?: { role: Role; name: string; ag
   }
 
   return (
-    <Shell wide title="Les personnages" sub={`${CHARACTERS.length} personnages${later ? `, ${later} en préparation` : ''} · générés avec PixelLab`}>
+    <Shell wide title="Les personnages" sub={`${CHARACTERS.length} personnages · les robots du bureau, chacun avec sa tenue`}>
       <p className="small muted">Chaque agent reçoit un personnage de son métier, toujours le même pour un même prénom. Pour en changer, ouvre sa fiche (clique sur lui dans le bureau).</p>
       <div className="row">
         <button className="btn small" onClick={() => { sfx('open'); useOffice.setState({ modal: { kind: 'characters', pick: { role: 'chef', name: 'Roré' } } }); }}><Avatar role="chef" size={18} /> Changer le personnage de Roré</button>

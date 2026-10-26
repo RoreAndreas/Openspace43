@@ -1,5 +1,13 @@
 # Les versions
 
+## Open space v0.4.1 (26 octobre 2026)
+
+- **Les personnages reprennent le format des robots du bureau** (le même que la copie AK : 20 × 24 pixels, tête-cube, visière) : chacun garde sa tenue et son caractère, dessinés en code. Nyx a sa capuche et ses yeux cyan, Merlain son chapeau, sa barbe et son bâton, Roré sa cape orange, Margaux son chignon et sa tablette, Zaza sa banane et ses lunettes jaunes, Rook son sac à radar.
+- Toutes les poses sont là pour tous : la marche dans les quatre directions, le travail, la lecture, la fête, le salut.
+- Les images PixelLab et leur script d'import sont retirés : ajouter un personnage, c'est une entrée (avec sa tenue) dans `src/characters/catalog.json`.
+- **Prends les commandes de Roré** : double-clic sur lui, puis les flèches. Il s'arrête devant les meubles, glisse le long des murs, la caméra le suit. `Échap` (ou un nouveau double-clic) lui rend la main ; en pleine mission, il retourne à son bureau.
+- **Chaque coin a son style** : bureaux, chaises et tapis changent selon le métier. Code futuriste (métal sombre, liseré néon qui éclaire le soir, fauteuils de gamer, tapis en circuit imprimé), design flashy (laqué blanc et rose, chaises jaunes, confettis), recherche en bibliothèque d'explorateur (noyer, cuir clouté, rose des vents), rédaction en bureau d'écrivain (merisier, velours violet, encrier), analyse corporate (bleu nuit, filet doré, papier millimétré).
+
 ## Open space v0.4.0 (26 octobre 2026)
 
 - **Roré, le chef de projet**, remplace Lilou : un commandant spatial en uniforme blanc, avec une cape orange.

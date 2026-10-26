@@ -119,6 +119,8 @@ interface S {
   /** écran en hauteur (téléphone) : même mise en page que le cadre vertical */
   portrait: boolean;
   filming: boolean;
+  /** tu diriges Roré au clavier (double-clic sur lui) */
+  driving: boolean;
   sound: boolean;
   tod: Tod;
   draft: string;
@@ -181,6 +183,7 @@ export const useOffice = create<S>((set, get) => ({
   vertical: pref('vertical', false),
   portrait: typeof window !== 'undefined' && window.innerWidth / Math.max(1, window.innerHeight) < 0.8,
   filming: false,
+  driving: false,
   sound: pref('sound', true),
   tod: pref<Tod>('tod', 'auto'),
   draft: '',

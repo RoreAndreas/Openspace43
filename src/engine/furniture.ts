@@ -72,22 +72,7 @@ function monitorBack(g: G, x: number, y: number) {
   rect(g, x + 1, y + 11, 7, 1, '#4b465c');
 }
 
-function keyboard(g: G, x: number, y: number) {
-  rect(g, x, y, 12, 3, '#cfcbd9');
-  for (let i = 0; i < 5; i++) px(g, x + 1 + i * 2, y + 1, '#a29db3');
-  hline(g, x, y + 2, 12, '#a9a4b8');
-}
 
-function cactus(g: G, x: number, y: number) {
-  rect(g, x + 2, y, 2, 6, P.leaf);
-  vline(g, x + 2, y, 6, P.leafHi);
-  rect(g, x, y + 2, 2, 1, P.leaf);
-  px(g, x, y + 1, P.leaf);
-  rect(g, x + 4, y + 3, 2, 1, P.leaf);
-  px(g, x + 5, y + 2, P.leaf);
-  rect(g, x, y + 6, 6, 4, P.pot);
-  hline(g, x, y + 6, 6, P.potHi);
-}
 
 function swatches(g: G, x: number, y: number) {
   rect(g, x, y, 7, 5, '#f1eef6');
@@ -118,50 +103,142 @@ function tablet(g: G, x: number, y: number) {
   hline(g, x, y, 13, '#45405a');
 }
 
+/** Un clavier rétroéclairé, touches de couleur (le coin code). */
+function rgbKeyboard(g: G, x: number, y: number) {
+  rect(g, x, y, 12, 3, '#1a1d2a');
+  const keys = ['#3fd8ff', '#a98bff', '#ff5fa2', '#3ddc97', '#3fd8ff'];
+  for (let i = 0; i < 5; i++) px(g, x + 1 + i * 2, y + 1, keys[i]);
+  hline(g, x, y + 2, 12, '#3fd8ff');
+}
+
+/** Une canette de boisson énergisante. */
+function can(g: G, x: number, y: number) {
+  rect(g, x, y, 3, 4, '#3ddc97');
+  hline(g, x, y, 3, '#cfd2e0');
+  px(g, x + 1, y + 2, '#1a1d2a');
+}
+
+/** Un pot de fleurs de toutes les couleurs (le coin design). */
+function flowers(g: G, x: number, y: number) {
+  vline(g, x + 1, y + 2, 4, P.leaf);
+  vline(g, x + 3, y + 1, 5, P.leafHi);
+  vline(g, x + 5, y + 3, 3, P.leaf);
+  rect(g, x, y + 1, 2, 2, '#ffd166');
+  rect(g, x + 3, y, 2, 2, '#ff5fa2');
+  rect(g, x + 5, y + 2, 2, 2, '#3fd8ff');
+  rect(g, x, y + 6, 7, 4, '#ff8fc1');
+  hline(g, x, y + 6, 7, '#ffc2dd');
+}
+
+/** Une pile de livres reliés (le coin recherche). */
+function books(g: G, x: number, y: number) {
+  rect(g, x, y + 4, 8, 2, '#3d6fa8');
+  rect(g, x + 1, y + 2, 7, 2, '#a8433d');
+  rect(g, x, y, 6, 2, '#4f8a4a');
+  hline(g, x + 1, y + 5, 6, '#c9a35a');
+  hline(g, x + 2, y + 3, 5, '#c9a35a');
+}
+
+/** Un encrier et sa plume (le coin rédaction). */
+function quill(g: G, x: number, y: number) {
+  rect(g, x, y + 5, 4, 3, '#1d1b26');
+  hline(g, x, y + 5, 4, '#3a3646');
+  for (let i = 0; i < 6; i++) px(g, x + 2 + Math.floor(i / 2), y + 5 - i, '#f6f2e9');
+  px(g, x + 5, y - 1, '#d8d1c3');
+}
+
+/** Une pile de pièces d'or (le coin analyse). */
+function coins(g: G, x: number, y: number) {
+  for (let i = 0; i < 3; i++) { rect(g, x, y + 4 - i * 2, 5, 2, '#e0a526'); hline(g, x, y + 4 - i * 2, 5, '#ffd84d'); }
+}
+
+// ── Les thèmes de chaque coin ──
+
+interface DeskTheme {
+  top: string; hi: string; edge: string; grain: string; front: string; dark: string; leg: string;
+  /** un liseré sur la façade : le néon du code, le filet doré de l'analyse… */
+  trim?: string;
+}
+
+/** Le bois clair d'origine (renforts, et tout métier sans thème). */
+const WOOD: DeskTheme = { top: P.wood, hi: P.woodHi, edge: P.woodLight, grain: mix(P.wood, P.woodDark, 0.22), front: P.woodFront, dark: P.woodDark, leg: P.woodLeg };
+
+const DESKS: Partial<Record<Role, DeskTheme>> = {
+  // futuriste : métal sombre, liseré néon cyan
+  code: { top: '#2f3447', hi: '#4a5470', edge: '#5f6b88', grain: '#283044', front: '#1f2433', dark: '#141824', leg: '#62667c', trim: '#3fd8ff' },
+  // flashy : plateau laqué blanc, façade rose bonbon, pieds dorés
+  design: { top: '#f6f0f8', hi: '#ffffff', edge: '#ffd0e6', grain: '#ece2f0', front: '#ff8fc1', dark: '#d9609b', leg: '#ffc94d', trim: '#ffd166' },
+  // bibliothèque d'explorateur : noyer foncé, poignée en laiton
+  recherche: { top: '#8a5a36', hi: '#a5703f', edge: '#b9824b', grain: '#774c2c', front: '#64401f', dark: '#4a2f17', leg: '#3a2412', trim: '#c9a35a' },
+  // bureau d'écrivain : merisier chaleureux
+  redaction: { top: '#b0654a', hi: '#c97c5d', edge: '#d8957a', grain: '#9a5540', front: '#7d3f30', dark: '#5f2e24', leg: '#4a2219' },
+  // corporate : plateau clair, façade bleu nuit, filet doré
+  analyse: { top: '#d9dde6', hi: '#eef1f6', edge: '#ffffff', grain: '#c9ced9', front: '#2b3a5c', dark: '#1d2840', leg: '#9aa3b5', trim: '#ffc93d' },
+};
+
+interface ChairTheme { seat: string; hi: string; dark: string; frame: string; accent?: string }
+
+const CHAIRS: Partial<Record<Role, ChairTheme>> = {
+  // un fauteuil de gamer, bandes néon
+  code: { seat: '#1d2030', hi: '#2f3447', dark: '#12141f', frame: '#0d0f17', accent: '#3fd8ff' },
+  // jaune soleil, pieds roses
+  design: { seat: '#ffd166', hi: '#ffe29a', dark: '#e0a526', frame: '#ff5fa2' },
+  // cuir clouté
+  recherche: { seat: '#6b3a24', hi: '#8a4f33', dark: '#4e2918', frame: '#2b1a10', accent: '#c9a35a' },
+  // velours violet
+  redaction: { seat: '#5b3a8a', hi: '#7652a8', dark: '#432a66', frame: '#1d1b26' },
+  // résille bleu nuit
+  analyse: { seat: '#2b3a5c', hi: '#3d5080', dark: '#1d2840', frame: '#9aa3b5', accent: '#3d5080' },
+};
+
 // ── Les meubles ──
 
 function deskSprite(role: Role, seed: number): Sprite {
   const c = makeCanvas(32, 28);
   const g = g2d(c);
   const r = rng(seed + 7);
+  const d = DESKS[role] ?? WOOD;
   // plateau
-  rect(g, 1, 8, 30, 10, P.wood);
-  hline(g, 1, 8, 30, P.woodHi);
-  hline(g, 1, 17, 30, P.woodLight);
-  for (let i = 0; i < 9; i++) hline(g, 2 + Math.floor(r() * 22), 10 + Math.floor(r() * 6), 3 + Math.floor(r() * 5), mix(P.wood, P.woodDark, 0.22));
+  rect(g, 1, 8, 30, 10, d.top);
+  hline(g, 1, 8, 30, d.hi);
+  hline(g, 1, 17, 30, d.edge);
+  for (let i = 0; i < 9; i++) hline(g, 2 + Math.floor(r() * 22), 10 + Math.floor(r() * 6), 3 + Math.floor(r() * 5), d.grain);
   // façade et pieds
-  rect(g, 1, 18, 30, 6, P.woodFront);
-  hline(g, 1, 23, 30, P.woodDark);
-  rect(g, 19, 20, 8, 1, P.woodDark);
-  px(g, 22, 21, P.woodHi);
-  rect(g, 2, 24, 2, 3, P.woodLeg);
-  rect(g, 28, 24, 2, 3, P.woodLeg);
+  rect(g, 1, 18, 30, 6, d.front);
+  hline(g, 1, 23, 30, d.dark);
+  if (d.trim) hline(g, 2, 21, 28, d.trim);
+  rect(g, 19, 19, 8, 1, d.dark);
+  px(g, 22, 19, d.trim ?? d.hi);
+  rect(g, 2, 24, 2, 3, d.leg);
+  rect(g, 28, 24, 2, 3, d.leg);
   // ce qu'il y a sur le bureau dépend du métier
   switch (role) {
     case 'recherche':
       laptop(g, 10, 8);
       globe(g, 2, 4);
-      papers(g, 23, 11);
+      books(g, 22, 9);
       break;
     case 'code':
       monitorBack(g, 1, 1);
       monitorBack(g, 22, 1);
-      keyboard(g, 10, 13);
+      rgbKeyboard(g, 10, 13);
+      can(g, 24, 13);
       break;
     case 'design':
       tablet(g, 9, 11);
-      cactus(g, 2, 5);
+      flowers(g, 1, 4);
       swatches(g, 23, 10);
       break;
     case 'redaction':
       laptop(g, 10, 8);
       papers(g, 2, 10, 4);
-      mug(g, 24, 11, ROLES.redaction.color);
+      quill(g, 24, 8);
       break;
     case 'analyse':
       laptop(g, 9, 8);
       dashboard(g, 22, 1);
       calculator(g, 2, 9);
+      coins(g, 2, 2);
       break;
     default:
       laptop(g, 10, 8);
@@ -204,18 +281,22 @@ function chefDeskSprite(): Sprite {
   return { c, ox: 0, oy: -12, sort: 14 };
 }
 
-function chairSprite(): Sprite {
+function chairSprite(role?: Role): Sprite {
   const c = makeCanvas(16, 18);
   const g = g2d(c);
-  rect(g, 3, 1, 10, 8, P.fabric);
-  hline(g, 3, 1, 10, P.fabricHi);
-  vline(g, 12, 2, 7, P.fabricDark);
-  rect(g, 2, 9, 12, 3, P.fabricHi);
-  hline(g, 2, 11, 12, P.fabric);
-  rect(g, 1, 7, 2, 4, '#1d1b26');
-  rect(g, 13, 7, 2, 4, '#1d1b26');
-  rect(g, 7, 12, 2, 3, '#1d1b26');
-  rect(g, 4, 15, 8, 1, '#1d1b26');
+  const t = (role && CHAIRS[role]) || { seat: P.fabric, hi: P.fabricHi, dark: P.fabricDark, frame: '#1d1b26' };
+  rect(g, 3, 1, 10, 8, t.seat);
+  hline(g, 3, 1, 10, t.hi);
+  vline(g, 12, 2, 7, t.dark);
+  rect(g, 2, 9, 12, 3, t.hi);
+  hline(g, 2, 11, 12, t.seat);
+  rect(g, 1, 7, 2, 4, t.frame);
+  rect(g, 13, 7, 2, 4, t.frame);
+  rect(g, 7, 12, 2, 3, t.frame);
+  rect(g, 4, 15, 8, 1, t.frame);
+  if (role === 'code' && t.accent) { vline(g, 5, 2, 7, t.accent); vline(g, 10, 2, 7, t.accent); }
+  if (role === 'recherche' && t.accent) for (let x = 4; x < 12; x += 2) px(g, x, 2, t.accent);
+  if (role === 'analyse' && t.accent) for (let y = 3; y < 8; y += 2) for (let x = 4; x < 12; x += 2) px(g, x + (y % 4 === 1 ? 1 : 0), y, t.accent);
   outline(c, P.ink);
   return { c, ox: 8, oy: -1, sort: 14 };
 }
@@ -579,7 +660,7 @@ export function furnitureSprite(f: Furn): Sprite {
   switch (f.kind) {
     case 'desk': s = deskSprite(f.role ?? 'renfort', f.seed ?? 1); break;
     case 'chefDesk': s = chefDeskSprite(); break;
-    case 'chair': s = chairSprite(); break;
+    case 'chair': s = chairSprite(f.role); break;
     case 'chefChair': s = chefChairSprite(); break;
     case 'plantBig': s = plantBigSprite(f.seed ?? 1); break;
     case 'plantTall': s = plantTallSprite(f.seed ?? 1); break;
