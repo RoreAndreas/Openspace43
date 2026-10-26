@@ -4,7 +4,7 @@
 //   TAVILY_KEY   facultatif : une clé Tavily pour une recherche web plus fiable
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "openspace",
+  "name": "openspace43",
   "main": "worker/index.ts",
   "compatibility_date": "2026-09-01",
   "assets": {
