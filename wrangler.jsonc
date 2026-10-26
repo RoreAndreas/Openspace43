@@ -7,6 +7,8 @@
   "name": "openspace43",
   "main": "worker/index.ts",
   "compatibility_date": "2026-09-01",
+  // construit le bureau (dossier dist) avant chaque mise en ligne, même si Cloudflare ne lance que « wrangler deploy »
+  "build": { "command": "npm run build" },
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
