@@ -51,13 +51,16 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
   d'origine, inchangé). `src/engine/characters.ts` : `idleEffect` (la personnalité au repos, jouée par `world.ts`) et
   qui porte quoi (`lookFor`, `setLook`, localStorage `bureau:looks`, par prénom ; jamais deux fois le même s'il en
   reste un libre). La galerie : `ui/Characters.tsx` (fenêtre `characters`).
-- **Piloter Roré** : double-clic sur lui (`Office.tsx`) → `ui/drive.ts` (flèches, Échap) → `world.drive` / `steer` ;
+- **Piloter Roré** : double-clic sur lui (`Office.tsx`) → `ui/drive.ts` (flèches, E, Échap) → `world.drive` / `steer` ; `ui/pressE.ts`
+  trouve ce qui est à portée (`nearRore`) et place l'étiquette « E · … » ;
   pendant ce temps ses tâches attendent (`driveStep` dans `world.update`), collisions sur `walkGrid`, caméra qui suit.
 - **La Pause** (`room: 'annex'` dans le store ; à droite : porte dans le mur de droite du bureau, dans celui de gauche de la Pause ; ☕, touche D) :
   `engine/annex.ts` (plan, activités `SPOTS`, vie des personnages `Pal`, discussions et jeux à deux, `talk`, `poke`,
   pilotage de Roré), `engine/annexDraw.ts` (pièce, meubles, rendu, lumière). Elle vit aussi quand on n'y est pas. Côté
   interface : `ui/place.ts` (`goRoom`, les portes), `ui/AnnexLayer.tsx` (prénoms et bulles). Les goûts (`hobbies`) et
   les répliques (`lines`) de chacun sont dans le catalogue des personnages. Le jukebox y joue aussi (`annex.musicOn`, `jukeboxLights`).
+- **Les mini-jeux** (fenêtre `game`) : `ui/games/` (`PingPong.tsx`, `SpartanRun.tsx`, boucle à pas fixe et scores
+  localStorage `bureau:jeux` dans `common.ts`). Ouverts par un clic sur la table de ping-pong ou une borne (`interactAnnex`).
 - **Hares** (rôle `hares`, s'assoit au coin Analyse) : le financier, sur la base 43 WACC. `shared/wacc43.ts` extrait `DATA` de la page
   WACC43 et l'interroge (sociétés, pays, industries, taux, CMPC identique à `moteur/wacc_core.py`). En ligne, `/api/wacc43` du Worker
   relaie la page (pas de parsing côté Worker) et le navigateur l'interroge (`src/local/wacc43.ts`, action `base43` de `runHares`) ;

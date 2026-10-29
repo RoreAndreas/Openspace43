@@ -9,6 +9,7 @@ import { annexHitAt, type AnnexHit } from '../engine/annex.ts';
 import { annexPlacement } from '../engine/annexDraw.ts';
 import { AnnexBubbles, placeAnnexBubbles } from './AnnexLayer.tsx';
 import { goRoom, installDoors, interactAnnex } from './place.ts';
+import { placePressE, pressERef } from './pressE.ts';
 import { jukebox } from '../audio/music.ts';
 import { installDriving, setDriving } from './drive.ts';
 import { interact } from './interact.ts';
@@ -155,6 +156,7 @@ export function Office() {
       }
       if (inAnnex) placeAnnexBubbles(scaleRef.current);
       else placeBubbles(scaleRef.current);
+      placePressE(scaleRef.current);
       perf.frames++;
       perf.ms += performance.now() - t0;
     };
@@ -218,6 +220,7 @@ export function Office() {
         <div className="office-stage" ref={stage} style={{ width: W * scale, height: H * scale, ['--s' as string]: scale }}>
           <canvas ref={canvas} className="office-canvas" style={{ width: W * scale, height: H * scale }} />
           {room === 'annex' ? <AnnexBubbles /> : <Bubbles />}
+          <div className="press-e" ref={pressERef}><kbd>E</kbd><span /></div>
         </div>
         <LiveBadge />
         <RoomBadge />
@@ -242,11 +245,10 @@ function RoomBadge() {
 /** Tu diriges Roré : le rappel des touches. */
 function DriveBadge() {
   const driving = useOffice((s) => s.driving);
-  const room = useOffice((s) => s.room);
   if (!driving) return null;
   return (
     <div className="drive-badge" role="status">
-      🎮 Tu diriges Roré · <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> pour marcher{room === 'annex' ? <> · <kbd>Espace</kbd> pour parler</> : null} · <kbd>Échap</kbd> pour le laisser
+      🎮 Tu diriges Roré · <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> pour marcher · <kbd>E</kbd> pour interagir · <kbd>Échap</kbd> pour le laisser
       <button onClick={(e) => { e.stopPropagation(); setDriving(false); }} aria-label="Rendre la main à Roré">×</button>
     </div>
   );

@@ -45,6 +45,7 @@ ton compte : c'est prévu et autorisé.
 - **Les missions précédentes** (touche `H`) : on peut les rejouer.
 - **La note « Comment ça marche »** : le post-it jaune, à côté du bureau de Roré.
 - **La Pause**, à droite du bureau (la porte « PAUSE », le bouton ☕ ou la touche `D`) : une cuisine et une salle de loisirs où tous les personnages se retrouvent. Chacun y fait ce qu'il aime (café, frigo, repas, console, arcade, bibliothèque, danse, sieste), ils discutent entre eux et jouent à deux au ping-pong ou au baby-foot. Clique sur l'un d'eux : il te parle. Quand le jukebox joue, il s'anime là-bas aussi, et on y danse plus volontiers.
+- **Les mini-jeux de la Pause** : clique sur la table de ping-pong pour affronter un collègue (chacun son niveau, premier à 5 points, flèches ou souris), ou sur une borne d'arcade pour **Spartan Run** (Hares saute par-dessus les bugs, les cafés renversés et les dossiers urgents ; Espace ou ↑). Tes victoires et ton record sont gardés dans le navigateur, et les personnages réagissent dans la Pause.
 
 ### Hares et la base 43 WACC
 
@@ -52,7 +53,7 @@ Hares travaille sur la base du site WACC43 (8 000 sociétés cotées S&P Capital
 
 - **En ligne** : le Worker relaie la page publiée de WACC43 (variable `WACC43_URL` dans `wrangler.jsonc`, par défaut https://43wacc.pages.dev/), derrière le code d'accès, gardée une heure en cache. C'est le navigateur qui en extrait la base et l'interroge (`shared/wacc43.ts`) : le Worker gratuit n'a pas le temps de lire 8 Mo de JSON.
 - **Sur ton ordinateur** : le serveur local lit ta page WACC43 sur le disque (`WACC43_HTML`, sinon le dépôt `43` rangé à côté de l'open space), sinon le site publié. Avec Claude Code, la base est déposée dans le dossier caché `.wacc43` de la mission, une société par ligne.
-- **Prendre les commandes de Roré** : double-clic sur lui, puis les flèches pour le faire marcher (la caméra le suit). `Échap` lui rend la main.
+- **Prendre les commandes de Roré** : double-clic sur lui, puis les flèches pour le faire marcher (la caméra le suit). Quand quelque chose est à portée de main, une étiquette « **E** · … » apparaît : `E` parle au collègue, ouvre le jeu, fait couler le café, passe la porte… `Échap` lui rend la main.
 - **Un coin par métier, chacun son style** : le code en futuriste (métal sombre, néons cyan, tapis en circuit imprimé), le design en flashy (laqué rose, chaises jaunes, confettis), la recherche en bibliothèque d'explorateur, la rédaction en bureau d'écrivain, l'analyse en corporate (bleu nuit et or).
 - **Les idées de mission** : des bulles grises au-dessus du chat. Après une mission, des idées de retouche.
 - **Le jukebox** : colle tes liens YouTube. Lecture, pause, suivant, en boucle (la liste ou un morceau), aléatoire. Un petit lecteur reste en bas à gauche (raccourci `J`).

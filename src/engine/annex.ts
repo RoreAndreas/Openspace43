@@ -38,10 +38,10 @@ export const ANNEX_FURNITURE: AnnexFurn[] = [
   { id: 'sofa', kind: 'sofa', tx: 13, ty: 3, w: 3, h: 1, label: 'Le canapé : on y joue à la console' },
   { id: 'tv', kind: 'tv', tx: 13, ty: 5, w: 3, h: 1, label: 'La console et la télé' },
   { id: 'plant-w', kind: 'plantBig', tx: 16, ty: 3, w: 1, h: 1, seed: 13, label: 'Une plante (elle aime qu’on la chatouille)' },
-  { id: 'arcade-1', kind: 'arcade', tx: 18, ty: 3, w: 1, h: 1, seed: 1, label: 'La borne d’arcade' },
-  { id: 'arcade-2', kind: 'arcade', tx: 19, ty: 3, w: 1, h: 1, seed: 2, label: 'La borne d’arcade' },
+  { id: 'arcade-1', kind: 'arcade', tx: 18, ty: 3, w: 1, h: 1, seed: 1, label: 'La borne d’arcade : Spartan Run (clique pour jouer)' },
+  { id: 'arcade-2', kind: 'arcade', tx: 19, ty: 3, w: 1, h: 1, seed: 2, label: 'La borne d’arcade : Spartan Run (clique pour jouer)' },
   { id: 'plant-r', kind: 'plantTall', tx: 20, ty: 3, w: 1, h: 1, seed: 7, label: 'Une plante (elle aime qu’on la chatouille)' },
-  { id: 'pingpong', kind: 'pingpong', tx: 12, ty: 9, w: 4, h: 2, label: 'La table de ping-pong' },
+  { id: 'pingpong', kind: 'pingpong', tx: 12, ty: 9, w: 4, h: 2, label: 'La table de ping-pong (clique pour jouer contre un collègue)' },
   { id: 'foosball', kind: 'foosball', tx: 18, ty: 8, w: 2, h: 1, label: 'Le baby-foot' },
   { id: 'beanbag-1', kind: 'beanbag', tx: 13, ty: 13, w: 0, h: 0, seed: 1, label: 'Un pouf (pour la sieste)' },
   { id: 'beanbag-2', kind: 'beanbag', tx: 15, ty: 13, w: 0, h: 0, seed: 2, label: 'Un pouf (pour la sieste)' },
@@ -476,6 +476,17 @@ export class Annex {
     p.until = t + 3.4;
     p.happyUntil = t + 0.8;
     this.fx.floatIcon(p.x, (p.seated && p.spot?.seat ? p.spot.seat.y : p.y) - 26, 'heart');
+    this.changed();
+  }
+
+  /** Il réagit à voix haute (la fin d'un match de ping-pong, un record à l'arcade…). */
+  shout(id: string, text: string) {
+    const p = this.pals.find((x) => x.id === id);
+    if (!p) return;
+    p.line = text;
+    p.lineUntil = this.time + 5;
+    p.happyUntil = this.time + 1.2;
+    this.fx.sparkle(p.x, (p.seated && p.spot?.seat ? p.spot.seat.y : p.y) - 20, 8, '#ffd166');
     this.changed();
   }
 

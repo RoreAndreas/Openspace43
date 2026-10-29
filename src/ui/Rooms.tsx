@@ -15,6 +15,7 @@ import { tidy } from './tidy.ts';
 import { bureau } from '../local/bureau.ts';
 import { characterInfo } from '../engine/characters.ts';
 import { CharactersRoom } from './Characters.tsx';
+import { GameRoom } from './games/GameRoom.tsx';
 import { DrawerRoom, RulesRoom, SkillsRoom } from './Extras.tsx';
 import { JukeboxRoom } from './Jukebox.tsx';
 import { startTour } from './tour.ts';
@@ -56,6 +57,7 @@ export function Rooms() {
     case 'rules': return <RulesRoom />;
     case 'howto': return <HowtoRoom />;
     case 'characters': return <CharactersRoom pick={modal.pick} />;
+    case 'game': return <GameRoom game={modal.game} />;
   }
 }
 
@@ -273,7 +275,7 @@ function HowtoRoom() {
       </section>
       <section className="room-sec">
         <h4>Prends les commandes de Roré</h4>
-        <p className="small">Double-clique sur lui, puis fais-le marcher avec les flèches. Échap (ou un nouveau double-clic) lui rend la main : en pleine mission, il retourne à son bureau.</p>
+        <p className="small">Double-clique sur lui, puis fais-le marcher avec les flèches. Près d’un collègue ou d’un objet, appuie sur E pour interagir. Échap (ou un nouveau double-clic) lui rend la main : en pleine mission, il retourne à son bureau.</p>
       </section>
       <section className="room-sec">
         <h4>La Pause</h4>

@@ -1,5 +1,11 @@
 # Les versions
 
+## Open space v0.7.0 (29 octobre 2026)
+
+- **Deux mini-jeux dans la Pause.** La table de ping-pong : tu joues Roré contre le collègue de ton choix (Boulon calcule les trajectoires, Zaza joue à l'instinct…), premier à 5 points, aux flèches ou à la souris. La borne d'arcade : **Spartan Run**, Hares saute par-dessus les bugs, les cafés renversés et les dossiers urgents, de plus en plus vite.
+- **« E » pour interagir** quand tu diriges Roré : une étiquette « E · … » montre ce qui est à portée de main (un collègue, le chat, un meuble, une porte, un jeu), et la touche E fait comme un clic.
+- Tes victoires par adversaire et ton record sont gardés dans le navigateur ; à la fin, ton adversaire (ou Hares, sur un record) réagit dans la Pause.
+
 ## Open space v0.6.1 (26 octobre 2026)
 
 - **La Break room redevient la Pause**, et revient à droite du bureau (la porte « PAUSE »).

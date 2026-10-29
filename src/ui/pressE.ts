@@ -1,0 +1,79 @@
+// « Appuie sur E » : quand tu diriges Roré, ce qui est à portée de main — un collègue, le chat, un meuble,
+// une porte. Une étiquette « E · … » flotte au-dessus de lui ; la touche E fait la même chose qu'un clic.
+import { ANNEX_BACK_DOOR, ANNEX_FURNITURE } from '../engine/annex.ts';
+import { furnitureLabel } from '../engine/hits.ts';
+import { annex, world } from '../engine/instance.ts';
+import { ANNEX_DOOR, BOARD, FURNITURE, T, W, WINDOWS } from '../engine/layout.ts';
+import { useOffice } from '../state/store.ts';
+import { interact } from './interact.ts';
+import { interactAnnex } from './place.ts';
+
+export interface Near { verb: string; act: () => void }
+
+/** La distance d'un point à un rectangle (0 s'il est dedans). */
+const toRect = (px: number, py: number, x0: number, y0: number, x1: number, y1: number) =>
+  Math.hypot(Math.max(x0 - px, 0, px - x1), Math.max(y0 - py, 0, py - y1));
+
+/** Ce que Roré peut atteindre, le plus proche d'abord. */
+export function nearRore(): Near | null {
+  const inAnnex = useOffice.getState().room === 'annex';
+  const me = inAnnex ? annex.rore : world.chef;
+  const px = me.x, py = me.y - 4;
+  const row = Math.floor((me.y - 2) / T);
+  let best: Near | null = null, bd = Infinity;
+  const offer = (d: number, range: number, near: Near) => { if (d <= range && d < bd) { bd = d; best = near; } };
+
+  if (inAnnex) {
+    for (const p of annex.pals) {
+      if (p === me) continue;
+      offer(Math.hypot(p.x - me.x, p.y - me.y), 26, { verb: `Parler à ${p.name}`, act: () => annex.poke() });
+    }
+    for (const f of ANNEX_FURNITURE) {
+      if (f.kind === 'stool') continue;
+      const verb = f.id === 'pingpong' ? 'Jouer au ping-pong'
+        : f.id.startsWith('arcade') ? 'Jouer à Spartan Run'
+          : f.id === 'coffee' ? 'Se faire un café'
+            : f.id === 'fridge' ? 'Ouvrir le frigo'
+              : f.id === 'jukebox' ? 'Lancer la musique'
+                : f.label.split(' (')[0].split(' : ')[0];
+      offer(toRect(px, py, f.tx * T, f.ty * T, (f.tx + Math.max(1, f.w)) * T, (f.ty + Math.max(1, f.h)) * T), 10, { verb, act: () => interactAnnex({ kind: 'object', id: f.id, label: f.label }) });
+    }
+    if (me.x < 2 * T && row >= ANNEX_BACK_DOOR.row && row <= ANNEX_BACK_DOOR.row + 1) offer(0, 1, { verb: 'Retour au bureau', act: () => interactAnnex({ kind: 'door', label: '' }) });
+    return best;
+  }
+
+  for (const a of world.actors.values()) {
+    if (a === me || a.alpha < 0.3) continue;
+    const ay = a.seated && a.seat ? a.seat.y : a.y;
+    offer(Math.hypot(a.x - me.x, ay - me.y), 26, { verb: `Voir la fiche de ${a.name}`, act: () => interact({ kind: 'actor', id: a.id, label: a.name }) });
+  }
+  offer(Math.hypot(world.cat.x - me.x, world.cat.y - me.y), 20, { verb: 'Caresser le chat', act: () => interact({ kind: 'cat', label: '' }) });
+  for (const f of FURNITURE) {
+    if (f.kind === 'chair' || f.kind === 'chefChair') continue;
+    const label = furnitureLabel(f.id, f.kind, f.role).split(' (')[0];
+    offer(toRect(px, py, f.tx * T, f.ty * T, (f.tx + Math.max(1, f.w)) * T, (f.ty + Math.max(1, f.h)) * T), 10, { verb: label, act: () => interact({ kind: 'object', id: f.id, label, role: f.role }) });
+  }
+  // contre le mur du fond : le tableau, les fenêtres
+  if (me.y < 4 * T + 6) {
+    if (me.x >= BOARD.x && me.x <= BOARD.x + BOARD.w) offer(1, 2, { verb: 'Le tableau : le plan', act: () => interact({ kind: 'object', id: 'board', label: '' }) });
+    for (const w of WINDOWS) if (me.x >= w.x && me.x <= w.x + w.w) offer(1, 2, { verb: 'La fenêtre (l’heure du bureau)', act: () => interact({ kind: 'object', id: 'window', label: '' }) });
+  }
+  if (me.x > W - 2 * T && row >= ANNEX_DOOR.row && row <= ANNEX_DOOR.row + 1) offer(0, 1, { verb: 'Entrer dans la Pause', act: () => interact({ kind: 'object', id: 'annexDoor', label: '' }) });
+  return best;
+}
+
+/** L'étiquette « E · … » au-dessus de Roré (placée à chaque image, sans repasser par React). */
+let el: HTMLElement | null = null;
+export const pressERef = (node: HTMLElement | null) => { el = node; };
+
+export function placePressE(scale: number) {
+  if (!el) return;
+  const st = useOffice.getState();
+  const near = st.driving && !st.modal ? nearRore() : null;
+  if (!near) { el.style.opacity = '0'; return; }
+  const me = st.room === 'annex' ? annex.rore : world.chef;
+  const label = el.lastElementChild as HTMLElement | null;
+  if (label && label.textContent !== near.verb) label.textContent = near.verb;
+  el.style.opacity = '1';
+  el.style.transform = `translate3d(${Math.round(me.x * scale)}px, ${Math.round((me.y - 37) * scale)}px, 0) translate(-50%, -100%)`;
+}

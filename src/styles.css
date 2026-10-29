@@ -784,3 +784,24 @@ input[type='color'] { width: 34px; height: 34px; padding: 0; border: 1px solid v
 .seg.brain button.on.claude { background: rgba(255, 138, 61, 0.16); box-shadow: inset 0 0 0 1px rgba(255, 138, 61, 0.55); color: var(--ink); }
 .seg.brain button.on.free { background: rgba(61, 220, 151, 0.14); box-shadow: inset 0 0 0 1px rgba(61, 220, 151, 0.5); color: var(--ink); }
 @media (max-width: 760px) { .panel-toggle { display: none; } .music-dock { left: 8px; bottom: 8px; } }
+
+/* les mini-jeux de la Pause */
+.game { display: grid; gap: 8px; }
+.game-screen { position: relative; border-radius: 10px; overflow: hidden; border: 1px solid var(--line2); background: #120f19; touch-action: none; }
+.game-screen canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; cursor: none; }
+.game-screen.arcade { box-shadow: 0 0 0 3px #7a3dbf, 0 0 24px rgba(169, 139, 255, 0.35); }
+.game-screen.arcade canvas { cursor: pointer; }
+.game-over { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 8px; padding: 16px; text-align: center; background: rgba(18, 15, 25, 0.78); }
+.game-over b { font: 700 22px var(--pixel); color: #fff; }
+.game-over span { font-size: 13px; color: #e8e5f1; max-width: 420px; }
+.game-pick { display: grid; gap: 10px; }
+.game-rivals { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.game-rival { display: grid; justify-items: center; gap: 4px; padding: 10px; border-radius: 10px; background: var(--surface2); border: 1px solid var(--line); border-top: 3px solid var(--c); text-align: center; font-size: 12px; }
+.game-rival:hover { border-color: var(--c); }
+.game-rival b { font: 700 14px var(--pixel); }
+.game-stars { color: #ffd166; letter-spacing: 1px; }
+
+/* « E · … » au-dessus de Roré quand tu le diriges */
+.press-e { position: absolute; left: 0; top: 0; z-index: 3; display: flex; align-items: center; gap: 5px; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.12s; font: 600 12px var(--font); color: #fff; background: rgba(18, 15, 25, 0.92); border: 1px solid rgba(255, 138, 61, 0.7); border-radius: 7px; padding: 3px 8px 3px 4px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45); }
+.press-e kbd { font: 700 12px var(--pixel); color: #160c06; background: var(--orange); border-radius: 4px; padding: 0 5px; box-shadow: 0 2px 0 #9e4019; animation: press-e 1.2s ease-in-out infinite; }
+@keyframes press-e { 50% { transform: translateY(1px); box-shadow: 0 1px 0 #9e4019; } }

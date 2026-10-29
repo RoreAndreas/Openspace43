@@ -46,6 +46,14 @@ export function interactAnnex(hit: AnnexHit) {
     annex.talk(p);
     return;
   }
+  // les mini-jeux : la table de ping-pong et les bornes d'arcade
+  if (hit.id === 'pingpong' || hit.id.startsWith('arcade')) {
+    sfx('open');
+    // les flèches servent au jeu : Roré, s'il était piloté, reprend sa vie
+    if (useOffice.getState().driving) annex.drive(false);
+    useOffice.setState({ driving: false, modal: { kind: 'game', game: hit.id === 'pingpong' ? 'pingpong' : 'arcade' } });
+    return;
+  }
   if (hit.id === 'jukebox') jukebox.toggle();
   annex.objectFx(hit.id);
   sfx(hit.id === 'coffee' ? 'pour' : 'tick');

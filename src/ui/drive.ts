@@ -1,10 +1,12 @@
 // Tu prends les commandes de Roré : double-clic sur lui, puis les flèches pour le faire marcher (dans le
-// bureau ou dans la Pause ; Espace, dans la Pause, pour parler au collègue le plus proche).
+// bureau ou dans la Pause). E agit sur ce qui est à portée de main (un collègue, un objet, une porte) ;
+// Espace, dans la Pause, parle au collègue le plus proche.
 // Échap (ou un nouveau double-clic sur lui) lui rend la main : en pleine mission, il retourne à son bureau.
 import { sfx } from '../audio/sfx.ts';
 import { annex, camera } from '../engine/instance.ts';
 import { useOffice } from '../state/store.ts';
 import { activeRoom } from './place.ts';
+import { nearRore } from './pressE.ts';
 
 const KEYS: Record<string, [number, number]> = { arrowleft: [-1, 0], arrowright: [1, 0], arrowup: [0, -1], arrowdown: [0, 1] };
 const held = new Set<string>();
@@ -38,9 +40,19 @@ const typing = (t: EventTarget | null) => {
 /** Écoute les flèches (avant les autres raccourcis du bureau) tant que tu diriges Roré. */
 export function installDriving() {
   const down = (e: KeyboardEvent) => {
-    if (!useOffice.getState().driving || typing(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
+    const st = useOffice.getState();
+    if (!st.driving || typing(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
     const k = e.key.toLowerCase();
+    // une fenêtre est ouverte par-dessus : Roré ne bouge plus (Échap la ferme)
+    if (st.modal) { if (held.size) { held.clear(); steer(); } return; }
     if (k === 'escape') { e.stopPropagation(); setDriving(false); return; }
+    // E : agir sur ce qui est à portée de main (un collègue, un objet, une porte)
+    if (k === 'e') {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!e.repeat) { held.clear(); steer(); nearRore()?.act(); }
+      return;
+    }
     if (k === ' ' && useOffice.getState().room === 'annex') {
       e.preventDefault();
       e.stopPropagation();

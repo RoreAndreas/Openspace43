@@ -13,7 +13,7 @@ export type Hit =
 
 const ZONE_SIGN: Record<string, string> = { recherche: 'RECHERCHE', code: 'CODE', design: 'DESIGN', redaction: 'RÉDACTION', analyse: 'ANALYSE', chef: 'CHEF' };
 
-function furnitureLabel(id: string, kind: string, role?: Role): string {
+export function furnitureLabel(id: string, kind: string, role?: Role): string {
   switch (kind) {
     case 'desk': return `Un bureau du coin ${ROLES[role ?? 'renfort'].label}`;
     case 'chair': return `Un poste du coin ${ROLES[role ?? 'renfort'].label}`;
