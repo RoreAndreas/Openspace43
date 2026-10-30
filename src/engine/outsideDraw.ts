@@ -369,8 +369,6 @@ function drawBackground(tod: TimeOfDay): HTMLCanvasElement {
   glass(g, 294, 45, 24, 42, tod);
   vline(g, 306, 45, 42, '#2e2e3c');
   rect(g, 294, 81, 24, 6, rgba('#4a3a30', 0.35));
-  rect(g, 310, 72, 5, 9, '#3f7a42');
-  rect(g, 311, 69, 3, 4, '#5a9a52');
   // le socle de béton, les côtés
   rect(g, 234, 90, 88, 6, '#a7a29a');
   hline(g, 234, 90, 88, '#c2bdb4');
@@ -397,10 +395,8 @@ function drawBackground(tod: TimeOfDay): HTMLCanvasElement {
   g.fillRect(234, 96, 20, 3);
   g.fillRect(292, 96, 30, 3);
 
-  // les massifs au pied de la façade, et des fourrés au premier plan
-  bush(g, 236, 102, 14, r);
-  bush(g, 296, 102, 22, r);
-  for (const [bx, by, bw] of [[0, 250, 26], [150, 254, 30], [300, 252, 44], [196, 120, 18]] as [number, number, number][]) bush(g, bx, by, bw, r);
+  // des fourrés au premier plan (rien autour du pavillon)
+  for (const [bx, by, bw] of [[0, 250, 26], [150, 254, 30], [300, 252, 44]] as [number, number, number][]) bush(g, bx, by, bw, r);
   return c;
 }
 
