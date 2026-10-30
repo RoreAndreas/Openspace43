@@ -42,6 +42,25 @@ export interface AskView { requestId: string; who: string; tool: string; label: 
 
 export interface FeedLine { id: number; at: number; who: string; text: string; kind: 'user' | 'chef' | 'hire' | 'act' | 'report' | 'file' | 'ask' | 'end' | 'error' }
 
+/** Les heures de travail de l'équipe (réglables) : en dehors, les collègues peuvent sortir prendre l'air. */
+export interface WorkHours {
+  /** heure de début et de fin (0 à 24) ; une fin avant le début = on travaille la nuit */
+  start: number;
+  end: number;
+  /** les jours travaillés (0 = dimanche, 1 = lundi…) */
+  days: number[];
+}
+
+export const DEFAULT_HOURS: WorkHours = { start: 9, end: 18, days: [1, 2, 3, 4, 5] };
+
+/** Est-ce l'heure du travail ? */
+export function isWorkTime(h: WorkHours, d = new Date()): boolean {
+  if (!h.days.includes(d.getDay())) return false;
+  const x = d.getHours() + d.getMinutes() / 60;
+  if (h.start === h.end) return true;
+  return h.start < h.end ? x >= h.start && x < h.end : x >= h.start || x < h.end;
+}
+
 export interface Toast { id: number; kind: 'info' | 'error'; text: string }
 
 export type Tod = 'auto' | 'day' | 'evening' | 'night';
@@ -125,6 +144,8 @@ interface S {
   driving: boolean;
   /** la pièce affichée : le bureau, ou la Pause (touche D) */
   room: 'office' | 'annex' | 'outside';
+  /** les heures de travail (réglages) */
+  workHours: WorkHours;
   sound: boolean;
   tod: Tod;
   draft: string;
@@ -189,6 +210,7 @@ export const useOffice = create<S>((set, get) => ({
   filming: false,
   driving: false,
   room: 'office',
+  workHours: pref<WorkHours>('workHours', DEFAULT_HOURS),
   sound: pref('sound', true),
   tod: pref<Tod>('tod', 'auto'),
   draft: '',

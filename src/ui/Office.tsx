@@ -10,7 +10,7 @@ import { annexPlacement } from '../engine/annexDraw.ts';
 import { outsideHitAt, type OutHit } from '../engine/outside.ts';
 import { outsidePlacement } from '../engine/outsideDraw.ts';
 import { AnnexBubbles, placeAnnexBubbles } from './AnnexLayer.tsx';
-import { goRoom, installDoors, interactAnnex, interactOutside, roreHere } from './place.ts';
+import { goRoom, installDoors, interactAnnex, interactOutside, roreHere, syncOutside } from './place.ts';
 import { OutsideTag, placeOutsideTag } from './OutsideLayer.tsx';
 import { placePressE, pressERef } from './pressE.ts';
 import { jukebox } from '../audio/music.ts';
@@ -19,7 +19,7 @@ import { interact } from './interact.ts';
 import { H, W } from '../engine/layout.ts';
 import { sfx } from '../audio/sfx.ts';
 import { modelInfo } from '../local/api.ts';
-import { useOffice, type AskView } from '../state/store.ts';
+import { isWorkTime, useOffice, type AskView } from '../state/store.ts';
 
 const ICON: Record<ActKind, string> = {
   search: '🔎', web: '🌐', read: '📖', write: '✍️', edit: '✏️', bash: '💻', plan: '📋', skill: '🎓', mcp: '🔌', other: '⚙️',
@@ -130,6 +130,8 @@ export function Office() {
       // tu diriges Roré : la caméra le suit de près (dans la pièce où il est)
       if (st.driving) { const me = roreHere(); camera.shot(me.x, me.y - 12, 1.7, 0.5); }
       const camMoving = camera.update(dt);
+      // les heures de travail : en dehors, des collègues sortent prendre l'air (vérifié chaque seconde)
+      syncOutside(now);
       // pour filmer le bureau image par image (scripts de capture) : chaque image est dessinée, et le rythme
       // de la musique vient du film, pas du jukebox
       const cap = (window as unknown as { __CAPTURE?: { music?: () => { on: boolean; level: number; beat: boolean } } }).__CAPTURE;
@@ -148,7 +150,7 @@ export function Office() {
       // Dehors n'existe que quand on y est : le vent, l'herbe et la mer
       if (inOutside) outside.update(acc);
       acc = 0;
-      if (inOutside) outsideRenderer.draw(lg, outside, timeOfDay(todRef.current), outside.info.id);
+      if (inOutside) outsideRenderer.draw(lg, outside, timeOfDay(todRef.current));
       else if (inAnnex) annexRenderer.draw(lg, annex, timeOfDay(todRef.current));
       else renderer.draw(lg, world, timeOfDay(todRef.current), new Date());
       present();
@@ -251,10 +253,12 @@ export function Office() {
 /** Dans la Pause ou Dehors : où tu es, et comment revenir au bureau. */
 function RoomBadge() {
   const room = useOffice((s) => s.room);
+  const hours = useOffice((s) => s.workHours);
+  const free = room === 'outside' && !isWorkTime(hours);
   if (room === 'office') return null;
   return (
     <button className={`room-badge ${room === 'outside' ? 'outside' : ''}`} onClick={(e) => { e.stopPropagation(); goRoom('office'); }} title={room === 'outside' ? 'Retour au bureau (touche O)' : 'Retour au bureau (touche D)'}>
-      {room === 'outside' ? '🌿 Dehors' : '☕ Pause'} <span>← Retour au bureau</span>
+      {room === 'outside' ? '🌿 Dehors' : '☕ Pause'}{free && <span>· temps libre</span>} <span>← Retour au bureau</span>
     </button>
   );
 }

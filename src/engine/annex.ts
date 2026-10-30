@@ -153,6 +153,8 @@ export class Pal {
   /** pendant une discussion : celui qui parle (chacun son tour ; `first` parle le premier) */
   speaking = false;
   first = false;
+  /** il est sorti prendre l'air (Dehors, en dehors des heures de travail) : on ne le voit plus dans la Pause */
+  away = false;
   /** sa réplique quand tu viens lui parler */
   line = '';
   lineUntil = 0;
@@ -180,7 +182,10 @@ export class Pal {
 }
 
 export class Annex {
-  pals: Pal[] = [];
+  /** tout le monde, même ceux qui sont sortis */
+  everyone: Pal[] = [];
+  /** ceux qui sont dans la Pause en ce moment */
+  get pals() { return this.everyone.filter((p) => !p.away); }
   fx = new Fx();
   grid = annexGrid();
   time = 0;
@@ -207,11 +212,35 @@ export class Annex {
       const f = tileFeet(t);
       const p = new Pal(info, f.x, f.y);
       p.until = 0.3 + i * 0.4;
-      this.pals.push(p);
+      this.everyone.push(p);
     });
   }
 
-  get rore() { return this.pals.find((p) => p.info.roles.includes('chef')) ?? this.pals[0]; }
+  get rore() { return this.everyone.find((p) => p.info.roles.includes('chef')) ?? this.everyone[0]; }
+
+  /** Ceux qui sortent prendre l'air (ou qui rentrent : ils reviennent par la porte du bureau). Roré n'en fait jamais partie. */
+  setAway(ids: string[]) {
+    let changed = false;
+    for (const p of this.everyone) {
+      const away = p !== this.rore && ids.includes(p.id);
+      if (away === p.away) continue;
+      changed = true;
+      if (p.spot) this.taken.delete(p.spot.id);
+      if (p.partner?.partner === p) { p.partner.partner = null; p.partner.until = this.time; }
+      p.partner = null;
+      p.spot = null;
+      p.seated = false;
+      p.path = [];
+      p.moving = false;
+      p.line = '';
+      p.lineUntil = 0;
+      p.state = 'idle';
+      p.until = this.time + 1 + Math.random() * 2;
+      p.away = away;
+      if (!away) { const f = tileFeet([1, ANNEX_BACK_DOOR.row]); p.x = f.x; p.y = f.y; }
+    }
+    if (changed) this.changed();
+  }
   onChange(fn: () => void) { this.listeners.add(fn); return () => { this.listeners.delete(fn); }; }
   private changed() { this.version++; for (const fn of this.listeners) fn(); }
 

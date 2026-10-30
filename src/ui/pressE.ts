@@ -27,15 +27,15 @@ export function nearRore(): Near | null {
 
   // assis : une seule chose à faire, se relever (les flèches aussi)
   if (me.seated) {
-    const stand = room === 'annex' ? () => annex.standRore() : room === 'outside' ? () => outside.stand() : () => world.standChef();
+    const stand = room === 'annex' ? () => annex.standRore() : room === 'outside' ? () => outside.standRore() : () => world.standChef();
     return { verb: 'Se lever', act: stand };
   }
 
   if (room === 'outside') {
     const seat = outside.seatNear();
-    if (seat) offer(0, 1, { verb: seat.verb, act: () => outside.sit(seat.id) });
+    if (seat) offer(0, 1, { verb: seat.verb, act: () => outside.sitRore(seat.id) });
     // la canne à pêche (dans la brèche de la clôture)
-    offer(Math.hypot(px - (4 * T + 8), py - (11 * T + 4)), 22, { verb: 'Pêcher', act: () => interactOutside({ kind: 'object', id: 'fishing', label: '' }) });
+    offer(Math.hypot(px - (4 * T + 8), py - (10 * T + 4)), 22, { verb: 'Pêcher', act: () => interactOutside({ kind: 'object', id: 'fishing', label: '' }) });
     if (me.y < 7 * T && me.x >= OUT_DOOR.x && me.x <= OUT_DOOR.x + OUT_DOOR.w) offer(0, 1, { verb: 'Rentrer au bureau', act: () => interactOutside({ kind: 'door', label: '' }) });
     return best;
   }

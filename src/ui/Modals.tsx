@@ -2,7 +2,7 @@
 // les missions précédentes, les réglages, et les petites notifications.
 import { useMemo, useRef, useState } from 'react';
 import { sfx } from '../audio/sfx.ts';
-import { savePref, useOffice } from '../state/store.ts';
+import { isWorkTime, savePref, useOffice, type WorkHours } from '../state/store.ts';
 import { api, availableModels, claude, getClaudeKey, getCode, HEAVY_MODEL, LIGHT_MODELS, modelInfo, MODELS, ollama, OLLAMA_PREFIX, setClaudeKey, setCode } from '../local/api.ts';
 import { bureau } from '../local/bureau.ts';
 import { pullLever } from '../net/link.ts';
@@ -283,6 +283,38 @@ function Brain() {
 
 const CLAUDE_CODE_MODELS: [string, string][] = [['sonnet', 'Sonnet (rapide, recommandé)'], ['opus', 'Opus (le plus fin)'], ['haiku', 'Haiku (éclair, économe)'], ['', 'Le modèle par défaut de Claude Code']];
 
+const DAYS: [number, string][] = [[1, 'Lun'], [2, 'Mar'], [3, 'Mer'], [4, 'Jeu'], [5, 'Ven'], [6, 'Sam'], [0, 'Dim']];
+const hourLabel = (h: number) => (h === 24 ? 'minuit' : `${h} h`);
+
+/** Les heures de travail : en dehors, les collègues sortent prendre l'air (Dehors). Pendant, seul Roré sort. */
+function WorkHoursField() {
+  const hours = useOffice((s) => s.workHours);
+  const set = (h: WorkHours) => { useOffice.setState({ workHours: h }); savePref('workHours', h); };
+  const toggleDay = (d: number) => set({ ...hours, days: hours.days.includes(d) ? hours.days.filter((x) => x !== d) : [...hours.days, d] });
+  const now = isWorkTime(hours);
+  return (
+    <div className="field">
+      <span>Les heures de travail</span>
+      <div className="row">
+        <span className="muted">De</span>
+        <select aria-label="Début" value={hours.start} onChange={(e) => set({ ...hours, start: Number(e.target.value) })}>
+          {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{hourLabel(h)}</option>)}
+        </select>
+        <span className="muted">à</span>
+        <select aria-label="Fin" value={hours.end} onChange={(e) => set({ ...hours, end: Number(e.target.value) })}>
+          {Array.from({ length: 24 }, (_, h) => h + 1).map((h) => <option key={h} value={h}>{hourLabel(h)}</option>)}
+        </select>
+      </div>
+      <div className="row">
+        {DAYS.map(([d, l]) => (
+          <label key={d} className="radio"><input type="checkbox" checked={hours.days.includes(d)} onChange={() => toggleDay(d)} /> {l}</label>
+        ))}
+      </div>
+      <small className="muted">En dehors de ces heures, les collègues sortent prendre l’air (🌿 Dehors). Pendant, seul Roré sort. En ce moment : {now ? 'on travaille' : 'temps libre'}.</small>
+    </div>
+  );
+}
+
 export function SettingsPanel() {
   const engine = useOffice((s) => s.engine);
   const claudeInfo = useOffice((s) => s.claude);
@@ -362,6 +394,7 @@ export function SettingsPanel() {
               </div>
             </>
           )}
+          <WorkHoursField />
           <div className="field">
             <span>L’équipe</span>
             <div className="row">

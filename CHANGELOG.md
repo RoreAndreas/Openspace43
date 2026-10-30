@@ -2,9 +2,10 @@
 
 ## À venir
 
-- **Dehors** (🌿, touche O) : derrière la porte d'entrée, un petit pavillon avec l'enseigne 43, une étendue d'herbe qui ondule au vent, des arbres, des papillons, une clôture au bord de la falaise et la mer, au loin. Le vent, la mer et une petite musique lofi sont fabriqués en direct (aucun fichier audio). Seul Roré sort, quand tu le diriges : il franchit la porte d'entrée, ou « E · Sortir dehors ».
-- **S'asseoir avec E** : sur les poufs, les tabourets et le canapé de la Pause, sur le canapé et à son bureau dans le bureau, et sur le **banc près de la falaise**. Une flèche, ou E (« Se lever »), et il se relève.
-- La canne à pêche, dans la brèche de la clôture, attend son jeu de pêche (`outside.onFish`, branché dans `ui/place.ts`).
+- **Dehors** (🌿, touche O) : derrière la porte d'entrée, le pavillon 43 (toit végétalisé, bardage bois, grande baie vitrée), une prairie que le vent parcourt en vagues, des pins parasols couchés par le vent, un chemin de gravier, une manche à air, et le cap : une côte découpée, une falaise en strates, la mer turquoise au pied des rochers, un îlot et son phare (son faisceau tourne la nuit). Le vent, la mer et une petite musique lofi sont fabriqués en direct (aucun fichier audio).
+- **Les heures de travail se règlent** (⚙️ Réglages : début, fin, jours). Pendant, seul Roré sort, quand tu le diriges. En dehors, trois collègues quittent la Pause pour prendre l'air : ils se promènent, regardent la mer, s'assoient sur le banc ou sur le tronc, et rentrent quand le travail reprend.
+- **S'asseoir avec E** : sur les poufs, les tabourets et le canapé de la Pause, sur le canapé et à son bureau dans le bureau, sur le **banc du cap** et sur le vieux tronc. Une flèche, ou E (« Se lever »), et il se relève.
+- Le coin de pêche, au bord de l'anse, attend son jeu de pêche (`outside.onFish`, branché dans `ui/place.ts`).
 
 ## Open space v0.7.0 (29 octobre 2026)
 

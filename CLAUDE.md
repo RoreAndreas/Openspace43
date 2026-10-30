@@ -59,12 +59,16 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
   pilotage de Roré), `engine/annexDraw.ts` (pièce, meubles, rendu, lumière). Elle vit aussi quand on n'y est pas. Côté
   interface : `ui/place.ts` (`goRoom`, les portes), `ui/AnnexLayer.tsx` (prénoms et bulles). Les goûts (`hobbies`) et
   les répliques (`lines`) de chacun sont dans le catalogue des personnages. Le jukebox y joue aussi (`annex.musicOn`, `jukeboxLights`).
-- **Dehors** (`room: 'outside'`, derrière la porte d'entrée en bas du bureau ; 🌿, touche O) : `engine/outside.ts` (plan, Roré seul, banc,
-  canne à pêche, vent), `engine/outsideDraw.ts` (façade avec l'enseigne 43, herbe animée, arbres, falaise, mer, lumière), `audio/outside.ts`
-  (vent, mer et musique lofi en Web Audio, sans fichier ; coupé avec le son). Les autres personnages n'y vont pas. `goRoom` (`ui/place.ts`)
-  repasse toujours par le bureau. Le jeu de pêche se branche sur `outside.onFish`.
+- **Dehors** (`room: 'outside'`, derrière la porte d'entrée en bas du bureau ; 🌿, touche O) : `engine/outside.ts` (la côte `coastY`,
+  la grille, `Walker` pour Roré et les collègues, places assises `SEATS`, chemins `PATHS`, vent `gust`), `engine/outsideDraw.ts`
+  (pavillon avec l'enseigne 43, prairie animée, pins, falaise, mer, phare, manche à air, lumière), `audio/outside.ts` (vent, mer et
+  musique lofi en Web Audio, sans fichier ; coupé avec le son). `goRoom` (`ui/place.ts`) repasse toujours par le bureau. Le jeu de
+  pêche se branche sur `outside.onFish`.
+- **Les heures de travail** (`workHours` dans le store, préférence `bureau:workHours`, `isWorkTime` ; champ dans les Réglages) :
+  pendant, seul Roré sort ; en dehors, `syncOutside` (`ui/place.ts`) envoie trois collègues dehors (`outside.setGuests`) et les
+  retire de la Pause (`annex.setAway`, `Pal.away` ; `annex.pals` ne liste que ceux qui sont là, `annex.everyone` tout le monde).
 - **S'asseoir** : E sur un pouf, un tabouret, le canapé (`annex.seatNear/sitRore/standRore`), le canapé ou son fauteuil au bureau
-  (`world.seatNear/sitChef/standChef`, `SOFA_SEATS`), le banc (`outside.seatNear/sit/stand`). Une flèche ou « E · Se lever » le relève.
+  (`world.seatNear/sitChef/standChef`, `SOFA_SEATS`), le banc et le tronc (`outside.seatNear/sitRore/standRore`). Une flèche ou « E · Se lever » le relève.
 - **Les mini-jeux** (fenêtre `game`) : `ui/games/` (`PingPong.tsx`, `SpartanRun.tsx`, boucle à pas fixe et scores
   localStorage `bureau:jeux` dans `common.ts`). Ouverts par un clic sur la table de ping-pong ou une borne (`interactAnnex`).
 - **Hares** (rôle `hares`, s'assoit au coin Analyse) : le financier, sur la base 43 WACC. `shared/wacc43.ts` extrait `DATA` de la page
