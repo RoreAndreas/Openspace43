@@ -1,5 +1,11 @@
 # Les versions
 
+## À venir
+
+- **Dehors** (🌿, touche O) : derrière la porte d'entrée, un petit pavillon avec l'enseigne 43, une étendue d'herbe qui ondule au vent, des arbres, des papillons, une clôture au bord de la falaise et la mer, au loin. Le vent, la mer et une petite musique lofi sont fabriqués en direct (aucun fichier audio). Seul Roré sort, quand tu le diriges : il franchit la porte d'entrée, ou « E · Sortir dehors ».
+- **S'asseoir avec E** : sur les poufs, les tabourets et le canapé de la Pause, sur le canapé et à son bureau dans le bureau, et sur le **banc près de la falaise**. Une flèche, ou E (« Se lever »), et il se relève.
+- La canne à pêche, dans la brèche de la clôture, attend son jeu de pêche (`outside.onFish`, branché dans `ui/place.ts`).
+
 ## Open space v0.7.0 (29 octobre 2026)
 
 - **Deux mini-jeux dans la Pause.** La table de ping-pong : tu joues Roré contre le collègue de ton choix (Boulon calcule les trajectoires, Zaza joue à l'instinct…), premier à 5 points, aux flèches ou à la souris. La borne d'arcade : **Spartan Run**, Hares saute par-dessus les bugs, les cafés renversés et les dossiers urgents, de plus en plus vite.

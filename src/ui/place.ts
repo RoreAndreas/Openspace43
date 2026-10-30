@@ -2,30 +2,44 @@
 // Si tu diriges Roré et qu'il franchit une porte, il change de pièce avec toi.
 import { sfx } from '../audio/sfx.ts';
 import type { Annex, AnnexHit } from '../engine/annex.ts';
-import { annex, camera, world } from '../engine/instance.ts';
+import { annex, camera, outside, world } from '../engine/instance.ts';
+import type { Outside, OutHit } from '../engine/outside.ts';
 import { jukebox } from '../audio/music.ts';
+import { outsideAudio } from '../audio/outside.ts';
 import { useOffice } from '../state/store.ts';
 
-export type Room = 'office' | 'annex';
+export type Room = 'office' | 'annex' | 'outside';
 
-/** Changer de pièce. */
+/** Changer de pièce. Le bureau est au milieu : la Pause est à sa droite, Dehors derrière sa porte d'entrée. */
 export function goRoom(room: Room) {
   const st = useOffice.getState();
-  if (st.room === room) return;
+  const from = st.room;
+  if (from === room) return;
+  // d'une pièce annexe à l'autre, on repasse par le bureau
+  if (from !== 'office' && room !== 'office') { goRoom('office'); goRoom(room); return; }
   if (st.driving) {
-    // Roré passe la porte avec toi : l'autre pièce le reprend juste derrière elle
-    if (room === 'annex') {
+    if (from === 'office') {
+      // Roré passe la porte avec toi : l'autre pièce le reprend juste derrière elle
       const y = world.chef.y;
       world.drive(false);
-      annex.enterRore(y);
+      if (room === 'annex') annex.enterRore(y);
+      else outside.enterRore();
     } else {
-      const y = annex.rore.y;
-      annex.drive(false);
-      world.chefAtDoor(y);
+      if (from === 'annex') {
+        const y = annex.rore.y;
+        annex.drive(false);
+        world.chefAtDoor(y);
+      } else {
+        outside.drive(false);
+        world.chefAtMainDoor();
+      }
       world.drive(true);
     }
   }
   useOffice.setState({ room, modal: null });
+  // le vent, la mer et la petite musique : seulement Dehors
+  if (room === 'outside') outsideAudio.start();
+  else if (from === 'outside') outsideAudio.stop();
   // un plan large, tout de suite (pas de travelling d'une pièce à l'autre)
   camera.wide();
   camera.x = camera.tx; camera.y = camera.ty; camera.zoom = camera.tzoom;
@@ -33,7 +47,25 @@ export function goRoom(room: Room) {
 }
 
 /** La pièce où tu diriges Roré (celle qu'on voit). */
-export const activeRoom = (): typeof world | Annex => (useOffice.getState().room === 'annex' ? annex : world);
+export const activeRoom = (): typeof world | Annex | Outside => {
+  const room = useOffice.getState().room;
+  return room === 'annex' ? annex : room === 'outside' ? outside : world;
+};
+
+/** Roré, là où tu le vois : le bureau, la Pause ou Dehors (ses coordonnées). */
+export const roreHere = () => {
+  const room = useOffice.getState().room;
+  return room === 'annex' ? annex.rore : room === 'outside' ? outside : world.chef;
+};
+
+/** Un clic Dehors. */
+export function interactOutside(hit: OutHit) {
+  if (hit.kind === 'door') { goRoom('office'); return; }
+  if (hit.kind === 'pal') return;
+  sfx('click');
+  if (hit.id === 'fishing') { outside.fish(); return; }
+  outside.fx.sparkle(outside.x, outside.y - 10, 6, '#ffd2a8');
+}
 
 /** Un clic dans la Pause. */
 export function interactAnnex(hit: AnnexHit) {
@@ -62,5 +94,9 @@ export function interactAnnex(hit: AnnexHit) {
 /** Les portes : Roré, quand tu le diriges, change de pièce en les franchissant. */
 export function installDoors() {
   world.onDoor = () => goRoom('annex');
+  world.onExit = () => goRoom('outside');
   annex.onDoor = () => goRoom('office');
+  outside.onDoor = () => goRoom('office');
+  // la canne à pêche : le jeu de pêche s'ouvrira ici (en attendant, un petit mot)
+  outside.onFish = () => useOffice.getState().toast('info', 'La pêche arrive bientôt : Roré prépare sa canne.');
 }

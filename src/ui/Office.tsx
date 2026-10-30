@@ -3,12 +3,15 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { ROLES } from '../../shared/activity.ts';
 import type { ActKind } from '../../shared/protocol.ts';
-import { annex, annexRenderer, camera, director, renderer, timeOfDay, world } from '../engine/instance.ts';
+import { annex, annexRenderer, camera, director, outside, outsideRenderer, renderer, timeOfDay, world } from '../engine/instance.ts';
 import { hitAt, type Hit } from '../engine/hits.ts';
 import { annexHitAt, type AnnexHit } from '../engine/annex.ts';
 import { annexPlacement } from '../engine/annexDraw.ts';
+import { outsideHitAt, type OutHit } from '../engine/outside.ts';
+import { outsidePlacement } from '../engine/outsideDraw.ts';
 import { AnnexBubbles, placeAnnexBubbles } from './AnnexLayer.tsx';
-import { goRoom, installDoors, interactAnnex } from './place.ts';
+import { goRoom, installDoors, interactAnnex, interactOutside, roreHere } from './place.ts';
+import { OutsideTag, placeOutsideTag } from './OutsideLayer.tsx';
 import { placePressE, pressERef } from './pressE.ts';
 import { jukebox } from '../audio/music.ts';
 import { installDriving, setDriving } from './drive.ts';
@@ -123,8 +126,9 @@ export function Office() {
       director.enabled = st.filming && st.cameraAuto && !st.tour;
       director.tick();
       const inAnnex = st.room === 'annex';
+      const inOutside = st.room === 'outside';
       // tu diriges Roré : la caméra le suit de près (dans la pièce où il est)
-      if (st.driving) { const me = inAnnex ? annex.rore : world.chef; camera.shot(me.x, me.y - 12, 1.7, 0.5); }
+      if (st.driving) { const me = roreHere(); camera.shot(me.x, me.y - 12, 1.7, 0.5); }
       const camMoving = camera.update(dt);
       // pour filmer le bureau image par image (scripts de capture) : chaque image est dessinée, et le rythme
       // de la musique vient du film, pas du jukebox
@@ -137,12 +141,15 @@ export function Office() {
       if (!cap && acc < (active || camMoving ? 1 / 24 : 1 / 8)) return;
       const t0 = performance.now();
       // le bureau et la Pause vivent tous les deux ; on dessine celle où tu es
-      active = world.update(acc) || inAnnex;
+      active = world.update(acc) || inAnnex || inOutside;
       annex.musicOn = world.musicOn;
       annex.musicLevel = world.musicLevel;
       annex.update(acc);
+      // Dehors n'existe que quand on y est : le vent, l'herbe et la mer
+      if (inOutside) outside.update(acc);
       acc = 0;
-      if (inAnnex) annexRenderer.draw(lg, annex, timeOfDay(todRef.current));
+      if (inOutside) outsideRenderer.draw(lg, outside, timeOfDay(todRef.current), outside.info.id);
+      else if (inAnnex) annexRenderer.draw(lg, annex, timeOfDay(todRef.current));
       else renderer.draw(lg, world, timeOfDay(todRef.current), new Date());
       present();
       const { transform, zoomed } = camera.css(scaleRef.current);
@@ -155,6 +162,7 @@ export function Office() {
         lastCss = transform;
       }
       if (inAnnex) placeAnnexBubbles(scaleRef.current);
+      else if (inOutside) placeOutsideTag(scaleRef.current);
       else placeBubbles(scaleRef.current);
       placePressE(scaleRef.current);
       perf.frames++;
@@ -169,9 +177,12 @@ export function Office() {
     const r = stage.current!.getBoundingClientRect();
     return { x: ((e.clientX - r.left) / r.width) * W, y: ((e.clientY - r.top) / r.height) * H };
   };
-  const hover = useRef<Hit | AnnexHit | null>(null);
+  const hover = useRef<Hit | AnnexHit | OutHit | null>(null);
   /** Ce qu'il y a sous la souris, dans la pièce où tu es. */
-  const hitHere = (x: number, y: number): Hit | AnnexHit | null => (useOffice.getState().room === 'annex' ? annexHitAt(annex, x, y, annexPlacement) : hitAt(world, x, y));
+  const hitHere = (x: number, y: number): Hit | AnnexHit | OutHit | null => {
+    const room = useOffice.getState().room;
+    return room === 'annex' ? annexHitAt(annex, x, y, annexPlacement) : room === 'outside' ? outsideHitAt(outside, x, y, outsidePlacement) : hitAt(world, x, y);
+  };
   const onMove = (e: React.PointerEvent) => {
     if ((e.target as HTMLElement).closest('.bubble.ask')) return;
     const p = toWorld(e);
@@ -190,9 +201,15 @@ export function Office() {
   const onClick = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('.bubble.ask')) return;
     const p = toWorld(e);
-    if (useOffice.getState().room === 'annex') {
+    const room = useOffice.getState().room;
+    if (room === 'annex') {
       const h = annexHitAt(annex, p.x, p.y, annexPlacement);
       if (h) interactAnnex(h);
+      return;
+    }
+    if (room === 'outside') {
+      const h = outsideHitAt(outside, p.x, p.y, outsidePlacement);
+      if (h) interactOutside(h);
       return;
     }
     const h = hitAt(world, p.x, p.y);
@@ -219,7 +236,7 @@ export function Office() {
       <div className="office-frame" style={{ width: W * scale, height: H * scale }}>
         <div className="office-stage" ref={stage} style={{ width: W * scale, height: H * scale, ['--s' as string]: scale }}>
           <canvas ref={canvas} className="office-canvas" style={{ width: W * scale, height: H * scale }} />
-          {room === 'annex' ? <AnnexBubbles /> : <Bubbles />}
+          {room === 'annex' ? <AnnexBubbles /> : room === 'outside' ? <OutsideTag /> : <Bubbles />}
           <div className="press-e" ref={pressERef}><kbd>E</kbd><span /></div>
         </div>
         <LiveBadge />
@@ -231,13 +248,13 @@ export function Office() {
   );
 }
 
-/** Dans la Pause : où tu es, et comment revenir au bureau. */
+/** Dans la Pause ou Dehors : où tu es, et comment revenir au bureau. */
 function RoomBadge() {
   const room = useOffice((s) => s.room);
-  if (room !== 'annex') return null;
+  if (room === 'office') return null;
   return (
-    <button className="room-badge" onClick={(e) => { e.stopPropagation(); goRoom('office'); }} title="Retour au bureau (touche D)">
-      ☕ Pause <span>← Retour au bureau</span>
+    <button className={`room-badge ${room === 'outside' ? 'outside' : ''}`} onClick={(e) => { e.stopPropagation(); goRoom('office'); }} title={room === 'outside' ? 'Retour au bureau (touche O)' : 'Retour au bureau (touche D)'}>
+      {room === 'outside' ? '🌿 Dehors' : '☕ Pause'} <span>← Retour au bureau</span>
     </button>
   );
 }

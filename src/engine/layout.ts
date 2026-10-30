@@ -100,6 +100,9 @@ furn.push({ id: 'note', kind: 'note', tx: 13, ty: 7, w: 1, h: 1 });
 // le levier du cerveau de l'équipe (Claude ou l'IA gratuite), à côté du serveur
 furn.push({ id: 'lever', kind: 'lever', tx: 13, ty: 3, w: 1, h: 1 });
 
+/** Les trois places du canapé : Roré s'y assoit (E, quand tu le diriges). Elles ne servent à personne d'autre. */
+export const SOFA_SEATS: Seat[] = [2, 3, 4].map((tx) => ({ id: `seat-sofa-${tx}`, role: 'chef', tile: [tx, 13], x: tx * T + 8, y: 15 * T - 1, deskId: 'sofa' }));
+
 export const FURNITURE = furn;
 export const SEATS = seats;
 

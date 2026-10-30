@@ -2,11 +2,12 @@
 // une porte. Une étiquette « E · … » flotte au-dessus de lui ; la touche E fait la même chose qu'un clic.
 import { ANNEX_BACK_DOOR, ANNEX_FURNITURE } from '../engine/annex.ts';
 import { furnitureLabel } from '../engine/hits.ts';
-import { annex, world } from '../engine/instance.ts';
+import { annex, outside, world } from '../engine/instance.ts';
+import { OUT_DOOR } from '../engine/outside.ts';
 import { ANNEX_DOOR, BOARD, FURNITURE, T, W, WINDOWS } from '../engine/layout.ts';
 import { useOffice } from '../state/store.ts';
 import { interact } from './interact.ts';
-import { interactAnnex } from './place.ts';
+import { goRoom, interactAnnex, interactOutside, roreHere } from './place.ts';
 
 export interface Near { verb: string; act: () => void }
 
@@ -16,14 +17,33 @@ const toRect = (px: number, py: number, x0: number, y0: number, x1: number, y1: 
 
 /** Ce que Roré peut atteindre, le plus proche d'abord. */
 export function nearRore(): Near | null {
-  const inAnnex = useOffice.getState().room === 'annex';
-  const me = inAnnex ? annex.rore : world.chef;
+  const room = useOffice.getState().room;
+  const inAnnex = room === 'annex';
+  const me = roreHere();
   const px = me.x, py = me.y - 4;
   const row = Math.floor((me.y - 2) / T);
   let best: Near | null = null, bd = Infinity;
   const offer = (d: number, range: number, near: Near) => { if (d <= range && d < bd) { bd = d; best = near; } };
 
+  // assis : une seule chose à faire, se relever (les flèches aussi)
+  if (me.seated) {
+    const stand = room === 'annex' ? () => annex.standRore() : room === 'outside' ? () => outside.stand() : () => world.standChef();
+    return { verb: 'Se lever', act: stand };
+  }
+
+  if (room === 'outside') {
+    const seat = outside.seatNear();
+    if (seat) offer(0, 1, { verb: seat.verb, act: () => outside.sit(seat.id) });
+    // la canne à pêche (dans la brèche de la clôture)
+    offer(Math.hypot(px - (4 * T + 8), py - (11 * T + 4)), 22, { verb: 'Pêcher', act: () => interactOutside({ kind: 'object', id: 'fishing', label: '' }) });
+    if (me.y < 7 * T && me.x >= OUT_DOOR.x && me.x <= OUT_DOOR.x + OUT_DOOR.w) offer(0, 1, { verb: 'Rentrer au bureau', act: () => interactOutside({ kind: 'door', label: '' }) });
+    return best;
+  }
+
   if (inAnnex) {
+    // une place libre tout près (pouf, tabouret, canapé) : on peut s'y asseoir
+    const seat = annex.seatNear();
+    if (seat) offer(-6, 1, { verb: seat.verb, act: () => annex.sitRore(seat.id) });
     for (const p of annex.pals) {
       if (p === me) continue;
       offer(Math.hypot(p.x - me.x, p.y - me.y), 26, { verb: `Parler à ${p.name}`, act: () => annex.poke() });
@@ -42,6 +62,8 @@ export function nearRore(): Near | null {
     return best;
   }
 
+  const seat = world.seatNear();
+  if (seat) offer(-6, 1, { verb: seat.verb, act: () => world.sitChef(seat.seat) });
   for (const a of world.actors.values()) {
     if (a === me || a.alpha < 0.3) continue;
     const ay = a.seated && a.seat ? a.seat.y : a.y;
@@ -58,6 +80,8 @@ export function nearRore(): Near | null {
     if (me.x >= BOARD.x && me.x <= BOARD.x + BOARD.w) offer(1, 2, { verb: 'Le tableau : le plan', act: () => interact({ kind: 'object', id: 'board', label: '' }) });
     for (const w of WINDOWS) if (me.x >= w.x && me.x <= w.x + w.w) offer(1, 2, { verb: 'La fenêtre (l’heure du bureau)', act: () => interact({ kind: 'object', id: 'window', label: '' }) });
   }
+  // la porte d'entrée, en bas : Roré sort prendre l'air
+  if (me.y > 14 * T && me.x >= 10 * T - 4 && me.x <= 12 * T + 4) offer(0, 1, { verb: 'Sortir dehors', act: () => goRoom('outside') });
   if (me.x > W - 2 * T && row >= ANNEX_DOOR.row && row <= ANNEX_DOOR.row + 1) offer(0, 1, { verb: 'Entrer dans la Pause', act: () => interact({ kind: 'object', id: 'annexDoor', label: '' }) });
   return best;
 }
@@ -71,7 +95,7 @@ export function placePressE(scale: number) {
   const st = useOffice.getState();
   const near = st.driving && !st.modal ? nearRore() : null;
   if (!near) { el.style.opacity = '0'; return; }
-  const me = st.room === 'annex' ? annex.rore : world.chef;
+  const me = roreHere();
   const label = el.lastElementChild as HTMLElement | null;
   if (label && label.textContent !== near.verb) label.textContent = near.verb;
   el.style.opacity = '1';

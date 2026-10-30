@@ -6,7 +6,7 @@ import { Cat } from './cat.ts';
 import { characterInfo, idleEffect, lookFor, onLooks } from './characters.ts';
 import { Fx } from './fx.ts';
 import { iconFor } from './icons.ts';
-import { ANNEX_DOOR, CHEF_SEAT, SEATS, SPOTS, T, W, WINDOWS, tileFeet, walkGrid, type Seat } from './layout.ts';
+import { ANNEX_DOOR, CHEF_SEAT, SEATS, SOFA_SEATS, SPOTS, T, W, WINDOWS, tileFeet, walkGrid, type Seat } from './layout.ts';
 import { findPath, type Tile } from './path.ts';
 import type { Dir, Eyes, Pose } from './robots.ts';
 
@@ -584,6 +584,57 @@ export class World {
     this.strollAt = this.time + IDLE_STROLL;
     // il franchit la porte : direction la Pause
     if (atDoor && a.x > 21 * T + 6) this.onDoor?.();
+    // la porte d'entrée, en bas : direction dehors
+    if (a.y >= 15 * T + 13 && a.x >= 10 * T && a.x <= 12 * T) this.onExit?.();
+  }
+
+  /** Roré franchit la porte d'entrée en marchant (pour sortir avec lui). */
+  onExit?: () => void;
+
+  /** Roré revient de dehors par la porte d'entrée : il réapparaît juste devant. */
+  chefAtMainDoor() {
+    const chef = this.chef;
+    chef.seated = false;
+    chef.cur = null;
+    chef.path = [];
+    chef.x = 11 * T;
+    chef.y = 14 * T + 10;
+    chef.dir = 'up';
+  }
+
+  /** Une place libre tout près de Roré : son fauteuil, ou le canapé. */
+  seatNear(): { seat: Seat; verb: string } | null {
+    const chef = this.chef;
+    if (chef.seated) return null;
+    let best: { seat: Seat; verb: string } | null = null, bd = 15;
+    for (const seat of [CHEF_SEAT, ...SOFA_SEATS]) {
+      const f = tileFeet(seat.tile);
+      const d = Math.hypot(f.x - chef.x, f.y - chef.y);
+      if (d < bd) { bd = d; best = { seat, verb: seat === CHEF_SEAT ? 'S’asseoir à son bureau' : 'S’asseoir sur le canapé' }; }
+    }
+    return best;
+  }
+
+  /** Roré s'assoit là (E, quand tu le diriges). */
+  sitChef(seat: Seat) {
+    const chef = this.chef;
+    chef.seated = true;
+    chef.seat = seat;
+    chef.x = seat.x;
+    chef.y = seat.y;
+    chef.dir = 'down';
+    chef.moving = false;
+    chef.path = [];
+    chef.happyUntil = this.time + 0.8;
+    this.fx.floatIcon(chef.x, chef.y - 26, 'heart');
+  }
+
+  /** Il se relève (E ou une flèche). */
+  standChef() {
+    const chef = this.chef;
+    if (!chef.seated) return;
+    chef.seated = false;
+    this.standUp(chef);
   }
 
   /** Roré passe une porte en marchant (pour changer de pièce avec lui). */

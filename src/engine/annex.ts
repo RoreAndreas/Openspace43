@@ -536,10 +536,62 @@ export class Annex {
       me.path = [];
       me.state = 'idle';
       me.happyUntil = this.time + 1;
+    } else if (me.seated && me.spot) {
+      // il garde sa place un moment, puis se lève tout seul
+      me.state = 'doing';
+      me.until = this.time + 8;
     } else {
       me.state = 'idle';
       me.until = this.time + 2;
     }
+  }
+
+  /** Une place libre tout près de Roré (pouf, tabouret, canapé) : de quoi lui proposer « E · S'asseoir ». */
+  seatNear(): { id: string; verb: string } | null {
+    const me = this.rore;
+    if (me.seated) return null;
+    let best: Spot | null = null, bd = 15;
+    for (const s of SPOTS) {
+      if (!s.seat || this.taken.has(s.id)) continue;
+      const f = tileFeet(s.tile);
+      const d = Math.hypot(f.x - me.x, f.y - me.y);
+      if (d < bd) { bd = d; best = s; }
+    }
+    if (!best) return null;
+    const what = best.act === 'beanbag' ? 'le pouf' : best.act === 'sofa' ? 'le canapé' : 'le tabouret';
+    return { id: best.id, verb: `S’asseoir sur ${what}` };
+  }
+
+  /** Roré s'assoit (E, quand tu le diriges). */
+  sitRore(id: string) {
+    const me = this.rore;
+    const s = SPOTS.find((x) => x.id === id);
+    if (!s?.seat || this.taken.has(s.id) || !this.driving) return;
+    this.taken.set(s.id, me.id);
+    me.spot = s;
+    me.seated = true;
+    me.x = s.seat.x;
+    me.y = s.seat.y;
+    me.dir = s.face;
+    me.moving = false;
+    me.path = [];
+    me.happyUntil = this.time + 0.8;
+    this.fx.floatIcon(me.x, me.y - 26, s.icons?.[0] ?? 'heart');
+  }
+
+  /** Il se relève, sur la case d'où il s'était assis. */
+  standRore() {
+    const me = this.rore;
+    if (!me.seated) return;
+    if (me.spot) {
+      this.taken.delete(me.spot.id);
+      const f = tileFeet(me.spot.tile);
+      me.x = f.x;
+      me.y = f.y;
+    }
+    me.seated = false;
+    me.spot = null;
+    me.state = 'idle';
   }
 
   steer(dx: number, dy: number) { this.steerX = dx; this.steerY = dy; }
@@ -558,6 +610,8 @@ export class Annex {
   private driveStep(a: Pal, dt: number) {
     let dx = this.steerX, dy = this.steerY;
     if (!dx && !dy) { a.moving = false; return; }
+    // assis (E sur un pouf, un tabouret, le canapé) : une flèche, et il se lève
+    if (a.seated) this.standRore();
     const n = Math.hypot(dx, dy);
     dx /= n; dy /= n;
     const step = 67 * dt;

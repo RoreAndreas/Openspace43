@@ -124,7 +124,7 @@ interface S {
   /** tu diriges Roré au clavier (double-clic sur lui) */
   driving: boolean;
   /** la pièce affichée : le bureau, ou la Pause (touche D) */
-  room: 'office' | 'annex';
+  room: 'office' | 'annex' | 'outside';
   sound: boolean;
   tod: Tod;
   draft: string;
