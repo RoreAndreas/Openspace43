@@ -5,7 +5,11 @@
 //   la prairie que le vent parcourt en vagues, les pins, le chemin de gravier, et le bord de la falaise, face au large.
 // Le décor fixe est dessiné une fois par heure du jour ; le reste bouge à chaque image.
 import { coastY, HORIZON, OUT_DOOR, OUTSIDE_FURNITURE, PATHS, type Outside, type OutFurn, type Walker } from './outside.ts';
-import { H, T, W } from './layout.ts';
+import { H, OX, T, WIDE } from './layout.ts';
+
+/** Dehors est plus large que le bureau : la scène reste au milieu, le décor se prolonge sur les côtés (de X0 à X0 + W). */
+const X0 = -OX;
+const W = WIDE;
 import { g2d, hline, makeCanvas, mix, outline, P, px, rect, rgba, rng, vline, type G } from './pixels.ts';
 import { ANCHOR_X, ANCHOR_Y, robotSprite } from './robots.ts';
 import type { TimeOfDay } from './room.ts';
@@ -35,10 +39,10 @@ const SUN_X = 150;
 
 // ── Le bord de la falaise, colonne par colonne ──
 const EDGE: number[] = [];
-for (let x = 0; x < W; x++) EDGE.push(Math.round(coastY(x)));
-const edgeAt = (x: number) => EDGE[Math.max(0, Math.min(W - 1, Math.round(x)))];
+for (let x = X0; x < X0 + W; x++) EDGE.push(Math.round(coastY(x)));
+const edgeAt = (x: number) => EDGE[Math.max(0, Math.min(W - 1, Math.round(x) - X0))];
 /** Le bas de la mer visible (le bord de la falaise le plus bas). */
-const SEA_BOTTOM = Math.max(...EDGE.slice(0, 200));
+const SEA_BOTTOM = Math.max(...EDGE.slice(OX, OX + 200));
 
 /** La distance d'un point au chemin de gravier. */
 function toPath(x: number, y: number) {
@@ -268,26 +272,26 @@ function drawBackdrop(g: G, tod: TimeOfDay, r: () => number) {
   // le ciel, en bandes qui s'éclaircissent vers l'horizon
   const sky = SKY[tod];
   const bh = Math.ceil(HORIZON / sky.length);
-  sky.forEach((col, i) => rect(g, 0, i * bh, W, bh, col));
-  for (let i = 1; i < sky.length; i++) for (let x = (i % 2) * 2; x < W; x += 4) px(g, x, i * bh, sky[i - 1]);
-  if (tod === 'night') for (let i = 0; i < 60; i++) px(g, Math.floor(r() * W), Math.floor(r() * (HORIZON - 8)), r() < 0.3 ? '#ffffff' : '#9aa8d8');
+  sky.forEach((col, i) => rect(g, X0, i * bh, W, bh, col));
+  for (let i = 1; i < sky.length; i++) for (let x = X0 + (i % 2) * 2; x < X0 + W; x += 4) px(g, x, i * bh, sky[i - 1]);
+  if (tod === 'night') for (let i = 0; i < 80; i++) px(g, X0 + Math.floor(r() * W), Math.floor(r() * (HORIZON - 8)), r() < 0.3 ? '#ffffff' : '#9aa8d8');
   // l'astre : le soleil pâle, le soleil couchant (à moitié dans la mer), ou la lune
   if (tod === 'day') { disc(g, SUN_X, 14, 9, '#eef7fd'); disc(g, SUN_X, 14, 6, '#fffbe8'); }
   else if (tod === 'evening') { disc(g, SUN_X, HORIZON - 2, 12, '#ffcf8a'); disc(g, SUN_X, HORIZON - 2, 9, '#fff0c8'); }
   else { disc(g, SUN_X, 14, 5, '#eef2ff'); disc(g, SUN_X + 2, 13, 4, sky[0]); }
   // la mer, de l'horizon (brumeuse) jusqu'au pied de la vue
   const [far, near] = SEA[tod];
-  for (let y = HORIZON; y < H; y++) rect(g, 0, y, W, 1, mix(far, near, Math.pow(depth(y), 0.7)));
+  for (let y = HORIZON; y < H; y++) rect(g, X0, y, W, 1, mix(far, near, Math.pow(depth(y), 0.7)));
   // la houle : des traits plus longs et plus espacés à mesure qu'on s'approche
   for (let y = HORIZON + 2; y < SEA_BOTTOM; ) {
     const p = depth(y);
     const len = 1 + Math.round(p * 6), gap = 6 + Math.round(p * 16);
     const col = mix(mix(far, near, Math.pow(p, 0.7)), '#ffffff', 0.12 + 0.08 * (1 - p));
-    for (let x = Math.floor(r() * gap); x < W; x += gap + Math.floor(r() * gap)) hline(g, x, y, len, col);
+    for (let x = X0 + Math.floor(r() * gap); x < X0 + W; x += gap + Math.floor(r() * gap)) hline(g, x, y, len, col);
     y += 1 + Math.round(p * 4);
   }
   // la ligne d'horizon, un peu plus claire
-  hline(g, 0, HORIZON, W, mix(far, '#ffffff', 0.25));
+  hline(g, X0, HORIZON, W, mix(far, '#ffffff', 0.25));
   // le cap lointain, à gauche, et son phare (tout petit : il est loin)
   const [land, landHi] = LAND[tod];
   for (let x = 0; x < 72; x++) {
@@ -305,27 +309,28 @@ function drawBackdrop(g: G, tod: TimeOfDay, r: () => number) {
 function drawBackground(tod: TimeOfDay): HTMLCanvasElement {
   const c = makeCanvas(W, H);
   const g = g2d(c);
+  g.translate(OX, 0);
   const r = rng(43);
   drawBackdrop(g, tod, r);
 
   // le sol : la prairie, du bord de la falaise jusqu'à nous
-  for (let x = 0; x < W; x++) rect(g, x, EDGE[x], 1, H - EDGE[x], '#5b9a47');
+  for (let x = X0; x < X0 + W; x++) rect(g, x, edgeAt(x), 1, H - edgeAt(x), '#5b9a47');
   const onGround = (x: number, y: number) => y > edgeAt(x) + 1;
   for (let i = 0; i < 130; i++) {
-    const x = Math.floor(r() * W), y = 40 + Math.floor(r() * (H - 40)), w = 10 + Math.floor(r() * 26), h = 5 + Math.floor(r() * 7);
+    const x = X0 + Math.floor(r() * W), y = 40 + Math.floor(r() * (H - 40)), w = 10 + Math.floor(r() * 26), h = 5 + Math.floor(r() * 7);
     const col = ['#63a34e', '#53913f', '#5f9f49', '#6aa850'][Math.floor(r() * 4)];
     for (let k = 0; k < w; k++) { const top = Math.max(y, edgeAt(x + k) + 2); if (top < y + h) rect(g, x + k, top, 1, y + h - top, col); }
   }
-  for (let i = 0; i < 1300; i++) { const x = Math.floor(r() * W), y = 40 + Math.floor(r() * (H - 40)); if (onGround(x, y) && onGround(x + 1, y)) hline(g, x, y, 2, r() < 0.5 ? '#4a8a3c' : '#70b25a'); }
+  for (let i = 0; i < 1600; i++) { const x = X0 + Math.floor(r() * W), y = 40 + Math.floor(r() * (H - 40)); if (onGround(x, y) && onGround(x + 1, y)) hline(g, x, y, 2, r() < 0.5 ? '#4a8a3c' : '#70b25a'); }
   // le bord de la falaise : une lèvre de terre, des touffes qui se découpent sur la mer, quelques pierres
-  for (let x = 0; x < W; x++) {
-    const e = EDGE[x];
+  for (let x = X0; x < X0 + W; x++) {
+    const e = edgeAt(x);
     px(g, x, e, '#3f6a34');
     px(g, x, e + 1, '#7a5a3a');
     if (r() < 0.35) px(g, x, e - 1, '#5b9a47');
     if (r() < 0.12) { px(g, x, e - 2, '#70b25a'); }
   }
-  for (let i = 0; i < 14; i++) { const x = Math.floor(r() * 200), e = EDGE[x]; rect(g, x, e - 1, 3 + Math.floor(r() * 3), 3, '#9a9488'); hline(g, x, e - 1, 3, '#c2bdb4'); }
+  for (let i = 0; i < 20; i++) { const x = X0 + Math.floor(r() * (200 + OX)), e = edgeAt(x); rect(g, x, e - 1, 3 + Math.floor(r() * 3), 3, '#9a9488'); hline(g, x, e - 1, 3, '#c2bdb4'); }
 
   // le chemin de gravier : un bord plus sombre, le gravier, des cailloux
   for (const [rad, col] of [[8, '#a8936a'], [6, '#d9c8a0']] as [number, string][]) {
@@ -335,7 +340,7 @@ function drawBackground(tod: TimeOfDay): HTMLCanvasElement {
     }
   }
   for (let i = 0; i < 3000; i++) {
-    const x = Math.floor(r() * W), y = 90 + Math.floor(r() * 130);
+    const x = X0 + Math.floor(r() * W), y = 90 + Math.floor(r() * 130);
     if (toPath(x, y) < 6) px(g, x, y, r() < 0.5 ? '#c4b089' : '#efe2c2');
   }
 
@@ -404,7 +409,7 @@ export class OutsideRenderer {
   private bg: HTMLCanvasElement | null = null;
   private bgTod: TimeOfDay | null = null;
   private light = makeCanvas(W, H);
-  private lg = g2d(this.light);
+  private lg = (() => { const l = g2d(this.light); l.translate(OX, 0); return l; })();
   private placed = OUTSIDE_FURNITURE.map((f) => ({ f, ...outsidePlacement(f) }));
   private blades: Blade[] = [];
   private flowers: Flower[] = [];
@@ -415,15 +420,15 @@ export class OutsideRenderer {
     const r = rng(11);
     const blocked = (x: number, y: number) => OUTSIDE_FURNITURE.some((f) => f.w > 0 && x >= f.tx * T - 2 && x < (f.tx + f.w) * T + 2 && y >= f.ty * T && y < (f.ty + f.h) * T + 2);
     const ok = (x: number, y: number) => !inBuilding(x, y) && y > edgeAt(x) + 3 && toPath(x, y) > 8 && !blocked(x, y);
-    for (let i = 0; i < 1100 && this.blades.length < 600; i++) {
-      const x = 2 + Math.floor(r() * (W - 4)), y = 44 + Math.floor(r() * (H - 46));
+    for (let i = 0; i < 1400 && this.blades.length < 740; i++) {
+      const x = X0 + 2 + Math.floor(r() * (W - 4)), y = 44 + Math.floor(r() * (H - 46));
       if (!ok(x, y)) continue;
       const tall = y - edgeAt(x) < 14 || x < 16 || y > H - 18;
       this.blades.push({ x, y, h: tall ? 5 + Math.floor(r() * 3) : 3 + Math.floor(r() * 3), c: Math.floor(r() * 3), tall });
     }
     const cols = ['#ff6fa8', '#ffd166', '#ffffff', '#a98bff', '#ff8a3d', '#6fc3ff'];
     for (let k = 0; k < 16; k++) {
-      const cx = 14 + Math.floor(r() * (W - 28)), cy = 130 + Math.floor(r() * 110);
+      const cx = X0 + 14 + Math.floor(r() * (W - 28)), cy = 130 + Math.floor(r() * 110);
       if (!ok(cx, cy)) continue;
       const col = cols[Math.floor(r() * cols.length)];
       for (let i = 0; i < 10; i++) {
@@ -435,13 +440,20 @@ export class OutsideRenderer {
   }
 
   draw(g: G, o: Outside, tod: TimeOfDay) {
+    g.save();
+    g.translate(OX, 0);
+    this.scene(g, o, tod);
+    g.restore();
+  }
+
+  private scene(g: G, o: Outside, tod: TimeOfDay) {
     if (!this.bg || this.bgTod !== tod) { this.bg = drawBackground(tod); this.bgTod = tod; }
     if (!this.blades.length) this.makeGrass();
     const t = o.time;
     const gust = o.gust();
     g.globalCompositeOperation = 'source-over';
     g.globalAlpha = 1;
-    g.drawImage(this.bg, 0, 0);
+    g.drawImage(this.bg, X0, 0);
     this.sky(g, t, tod);
     this.sea(g, t, tod);
     this.shadows(g, t);
@@ -506,13 +518,13 @@ export class OutsideRenderer {
       // les nuages passent derrière le pavillon
       g.save();
       g.beginPath();
-      g.rect(0, 0, 230, HORIZON);
+      g.rect(X0, 0, 230 - X0, HORIZON);
       g.rect(230, 0, 96, 30);
-      g.rect(326, 0, W - 326, HORIZON - 4);
+      g.rect(326, 0, X0 + W - 326, HORIZON - 4);
       g.clip();
       const col = tod === 'day' ? ['#ffffff', '#e4f1fa'] : ['#ffc9a8', '#d98a8a'];
       for (const [k, y, w] of [[0, 10, 34], [1, 24, 24], [2, 6, 18], [3, 30, 40]] as [number, number, number][]) {
-        const x = ((t * (1.2 + k * 0.5) + k * 97) % (W + 60)) - 50;
+        const x = X0 + ((t * (1.2 + k * 0.5) + k * 97) % (W + 60)) - 50;
         rect(g, x + 4, y, w - 8, 3, col[0]);
         rect(g, x, y + 2, w, 4, col[0]);
         rect(g, x + 2, y + 5, w - 4, 2, col[1]);
@@ -526,7 +538,7 @@ export class OutsideRenderer {
     for (let i = 0; i < 3; i++) {
       const k = (t * (0.9 + i * 0.2) + i * 17) % 60;
       const x = -10 + k * 7, y = 52 + i * 14 + Math.sin(t * 0.7 + i * 2) * 5;
-      if (x > W + 10) continue;
+      if (x > X0 + W + 10) continue;
       const up = Math.floor(t * 4 + i) % 2;
       const rx = Math.round(x), ry = Math.round(y);
       const c = tod === 'night' ? '#c9d0e8' : '#f6f6fa';
@@ -547,7 +559,7 @@ export class OutsideRenderer {
       const amp = 0.4 + p * 2.2, freq = 0.09 - p * 0.05;
       const fade = Math.sin(((k / 7 + t * 0.012) % 1) * Math.PI);
       g.fillStyle = rgba(mix(mix(far, near, p), '#ffffff', 0.35), 0.18 + 0.32 * fade);
-      for (let x = 0; x < W; x += 1) {
+      for (let x = X0; x < X0 + W; x += 1) {
         const y = Math.round(y0 + Math.sin(x * freq + t * (0.8 + k * 0.07) + k * 2) * amp);
         if (y >= edgeAt(x) - 1) continue;
         // la crête : un trait plus clair là où la vague est la plus haute
@@ -562,7 +574,7 @@ export class OutsideRenderer {
       const u = h - Math.floor(h), v = (h * 7.13) - Math.floor(h * 7.13);
       const p = v ** 1.2;
       const y = Math.round(HORIZON + 4 + p * (SEA_BOTTOM - HORIZON - 8));
-      const x = Math.round(u * W);
+      const x = X0 + Math.round(u * W);
       if (y >= edgeAt(x) - 2) continue;
       const a = Math.sin(life * Math.PI);
       const w = 1 + Math.round(p * 4 * a);
@@ -573,7 +585,7 @@ export class OutsideRenderer {
     for (let i = 0; i < 46; i++) {
       const p = ((i * 0.137 + t * 0.018) % 1) ** 1.3;
       const y = Math.round(HORIZON + 2 + p * (SEA_BOTTOM - HORIZON - 2));
-      const x = Math.round(((i * 83 + t * (2 + p * 5)) % (W + 20)) - 10);
+      const x = X0 + Math.round(((i * 83 + t * (2 + p * 5)) % (W + 20)) - 10);
       if (y >= edgeAt(x) - 1) continue;
       const len = 1 + Math.round(p * 7);
       const fade = Math.sin(((i * 0.137 + t * 0.018) % 1) * Math.PI);
@@ -599,13 +611,61 @@ export class OutsideRenderer {
       rect(g, x + sc, y - 3 * sc, 1, 3 * sc, '#cfd2e0');
       rect(g, x + sc + 1, y - 3 * sc + 1, sc, 2 * sc - 1, '#ffffff');
     }
+    if (tod === 'night') this.serpent(g, t);
+  }
+
+  /** La nuit, le serpent de mer sort de sa grotte et nage au large : on le voit souvent depuis la falaise (ses bosses
+   *  qui ondulent, son cou, ses yeux qui luisent, le sillage argenté sous la lune). */
+  private serpent(g: G, t: number) {
+    const per = 34, on = 22;
+    const cyc = Math.floor(t / per), k = t % per;
+    if (k > on) return;
+    const p = k / on, dir = cyc % 2 ? 1 : -1;
+    const span = 230 + OX;
+    const x = Math.round(dir > 0 ? X0 - 20 + p * span : X0 + span - 20 - p * span);
+    const h = Math.sin(cyc * 12.9898) * 43758.5453;
+    const y = Math.round(HORIZON + 16 + (h - Math.floor(h)) * 18);
+    const show = Math.min(1, p * 6, (1 - p) * 6);
+    const dot = (px0: number, py0: number, col: string) => { if (py0 < edgeAt(px0) - 1) { g.fillStyle = col; g.fillRect(px0, py0, 1, 1); } };
+    // le sillage, en V derrière lui
+    for (let i = 1; i < 9; i++) {
+      const a = 0.35 * (1 - i / 9) * show;
+      for (const w of [0, 1]) {
+        dot(x - dir * (22 + i * 4) + w, y - Math.round(i * 0.4), rgba('#dfe6ff', a));
+        dot(x - dir * (22 + i * 4) + w, y + 1 + Math.round(i * 0.6), rgba('#dfe6ff', a));
+      }
+    }
+    // trois bosses qui ondulent
+    for (let i = 0; i < 3; i++) {
+      const hx = x - dir * (7 + i * 7);
+      const hh = Math.max(0, Math.round((3 + Math.sin(t * 2.4 - i * 1.1) * 1.2) * show));
+      for (let q = -3; q <= 3; q++) {
+        const ah = Math.round(hh * Math.sqrt(Math.max(0, 1 - (q / 3.5) ** 2)));
+        for (let r = 1; r <= ah; r++) dot(hx + q, y - r, '#1d4a34');
+        if (ah > 0) dot(hx + q, y - ah, '#7fb0a0');
+      }
+      dot(hx - 4, y, rgba('#ffffff', 0.5 * show)); dot(hx + 4, y, rgba('#ffffff', 0.5 * show));
+    }
+    // le cou et la tête, l'œil qui luit
+    const nh = Math.round(10 * show);
+    for (let r = 0; r < nh; r++) {
+      const nx = x + Math.round(Math.sin(r * 0.4 + t) * 0.8);
+      dot(nx, y - r, '#1d4a34'); dot(nx + 1, y - r, r % 3 === 0 ? '#123224' : '#1d4a34'); dot(nx - dir, y - r, '#5f8f7a');
+    }
+    if (nh > 3) {
+      for (let q = -1; q < 5; q++) { dot(x + dir * q, y - nh, '#1d4a34'); dot(x + dir * q, y - nh - 1, '#1d4a34'); }
+      dot(x + dir * 5, y - nh, '#1d4a34');
+      dot(x + dir * 2, y - nh - 1, '#e8ff7a');
+      dot(x + dir * 2, y - nh - 2, rgba('#e8ff7a', 0.4));
+      dot(x, y - nh - 2, '#123224'); dot(x - dir, y - nh - 1, '#123224');
+    }
   }
 
   /** Des ombres de nuages qui glissent sur la prairie. */
   private shadows(g: G, t: number) {
     g.fillStyle = 'rgba(12,32,20,0.10)';
     for (const [k, y, rw, rh] of [[0, 170, 46, 10], [1, 224, 36, 8]] as [number, number, number, number][]) {
-      const x = ((t * (7 + k * 3) + k * 150) % (W + 120)) - 60;
+      const x = X0 + ((t * (7 + k * 3) + k * 150) % (W + 120)) - 60;
       g.beginPath();
       g.ellipse(x, y, rw, rh, 0, 0, Math.PI * 2);
       g.fill();
@@ -733,11 +793,11 @@ export class OutsideRenderer {
     const l = this.lg;
     l.globalCompositeOperation = 'source-over';
     l.fillStyle = '#ffffff';
-    l.fillRect(0, 0, W, H);
+    l.fillRect(X0, 0, W, H);
     l.fillStyle = mix(AMBIENT[tod], '#ffffff', 0.25);
-    l.fillRect(0, 0, W, H);
+    l.fillRect(X0, 0, W, H);
     l.fillStyle = AMBIENT[tod];
-    for (let x = 0; x < W; x++) l.fillRect(x, EDGE[x] - 2, 1, H - EDGE[x] + 2);
+    for (let x = X0; x < X0 + W; x++) l.fillRect(x, edgeAt(x) - 2, 1, H - edgeAt(x) + 2);
     l.fillRect(230, 28, 96, 72);
     l.globalCompositeOperation = 'lighter';
     const add = (x: number, y: number, r: number, color: string, a: number) => {
@@ -758,7 +818,7 @@ export class OutsideRenderer {
     // le phare, au loin : un petit halo à chaque éclat
     if ((t % 4) < 0.6) add(28, HORIZON - 22, 10, '#fff2c0', 0.9);
     g.globalCompositeOperation = 'multiply';
-    g.drawImage(this.light, 0, 0);
+    g.drawImage(this.light, X0, 0);
     g.globalCompositeOperation = 'source-over';
   }
 }

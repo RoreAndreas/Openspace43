@@ -13,6 +13,8 @@ export class Camera {
   tx = W / 2;
   ty = H / 2;
   tzoom = 1;
+  /** la largeur de la pièce affichée (Dehors et la mer sont plus larges) */
+  vw = W;
   /** jusqu'à quand garder le plan en cours (secondes, horloge du navigateur) */
   holdUntil = 0;
 
@@ -23,7 +25,7 @@ export class Camera {
     this.holdUntil = performance.now() / 1000 + hold;
   }
 
-  wide(hold = 0) { this.shot(W / 2, H / 2, 1, hold); }
+  wide(hold = 0) { this.shot(this.vw / 2, H / 2, 1, hold); }
 
   /** Avance la caméra vers son plan. Renvoie vrai tant qu'elle bouge. */
   update(dt: number) {
@@ -36,7 +38,7 @@ export class Camera {
 
   /** La transformation CSS de la scène (taille d'affichage : W*scale × H*scale). */
   css(scale: number) {
-    const vw = W * scale, vh = H * scale;
+    const vw = this.vw * scale, vh = H * scale;
     const z = this.zoom;
     const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
     const ox = clamp(vw / 2 - this.x * scale * z, vw - vw * z, 0);

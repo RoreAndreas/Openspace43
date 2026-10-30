@@ -5,7 +5,7 @@
 // en dehors, quelques collègues viennent prendre l'air. Même taille que le bureau (352 × 256), vue de dessus en 3/4.
 import { CHARACTERS, idleEffect, type CharacterInfo } from './characters.ts';
 import { Fx } from './fx.ts';
-import { COLS, ROWS, T, tileFeet } from './layout.ts';
+import { COLS, OX, ROWS, T, tileFeet } from './layout.ts';
 import { findPath, type Tile } from './path.ts';
 import type { Dir, Eyes, Pose } from './robots.ts';
 
@@ -181,7 +181,7 @@ export class Outside {
   /** Le vent : une rafale lente (de -1 à 1), la même pour l'herbe, les feuilles, les arbres et la manche à air. */
   gust(t = this.time) { return (Math.sin(t * 0.55) + Math.sin(t * 1.37 + 1.3)) * 0.5; }
 
-  private newLeaf(x = -6): Leaf {
+  private newLeaf(x = -OX - 6): Leaf {
     const cols = ['#a8d86a', '#d9b04a', '#7fc062', '#e08a3d'];
     return { x, y: 130 + Math.random() * 110, vx: 14 + Math.random() * 16, ph: Math.random() * 6, color: cols[Math.floor(Math.random() * cols.length)] };
   }
@@ -237,7 +237,7 @@ export class Outside {
       const l = this.leaves[i];
       l.x += (l.vx + this.gust(t) * 10) * dt;
       l.y += Math.sin(t * 2.1 + l.ph) * 6 * dt;
-      if (l.x > 358) this.leaves[i] = this.newLeaf();
+      if (l.x > 352 + OX + 6) this.leaves[i] = this.newLeaf();
     }
     for (const w of this.walkers) {
       if (w === this.rore && this.driving) this.driveStep(w, dt);

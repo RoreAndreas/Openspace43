@@ -67,14 +67,21 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
   (`outside.onFish`) mène en mer. La pêche est la fenêtre `game` « fishing » (`ui/games/Fishing.tsx`, au timing : lancer, touche, combat ;
   légendaires en boss avec barre de vie ; carnet `fish.journal` dans `bureau:jeux`, `FishSave` dans `common.ts` ; en dev, `window.__fishing`).
 - **La mer** (`room: 'sea'`, le quatrième espace ; ⛵, touche L ; depuis le chemin de la barque, Dehors : deux poteaux et des cordes
-  au bord de la falaise, « Descendre à la barque » ; X pour revenir) : même logique que le jardin, l'île est vue de loin.
-  `engine/sea.ts` (la barque est un angle `at` autour de l'île ; ← → pour ramer, on ne peut pas s'approcher ; sans rame, la houle
-  `swell` la fait dériver ; `LANDMARKS` : pavillon au sud, phare, grotte ; coins de pêche `SPOTS` avec `restUntil`, `near()`),
-  `engine/seaDraw.ts` (le panorama en pixel art : chaque colonne de la falaise montre la face tournée vers la barque, `cliffH` ;
-  arbres, pavillon et échelle jusqu'au ponton, arche de la grotte, phare devant ou derrière l'île ; soleil et îles lointaines en
-  parallaxe ; houle, barque, Roré et ses rames ; mini-carte). `goRoom` suit les voisinages (`NEXT` : bureau ↔ Pause, bureau ↔
+  au bord de la falaise, « Descendre à la barque » ; X pour revenir) : même logique que le jardin, l'île est vue depuis la barque.
+  `engine/sea.ts` (la barque est un angle `at` autour de l'île et une distance `dist`, 0 contre les rochers, 1 au large ; ← → pour
+  tourner, ↑ ↓ pour s'approcher ou s'éloigner ; on cogne les rochers (`bump`), sauf au ponton (`atDock`) : `near()` renvoie
+  `dock` (« Accoster au ponton », retour au jardin) ou un coin de pêche `SPOTS` (`restUntil` ; le grand large demande `OFFSHORE`) ;
+  sans rame, la houle `swell` fait dériver ; `LANDMARKS` : pavillon au sud, phare, grotte au nord ; le serpent de mer `serpent` :
+  `lair`, `peek` quand on approche de sa grotte, `dive`),
+  `engine/seaDraw.ts` (le panorama en pixel art, `viewOf` : l'île grandit avec la distance ; chaque colonne de la falaise montre la
+  face tournée vers la barque, `cliffH` ; arbres, pavillon, échelle et ponton qui avance dans l'eau (`jetty`), la grotte et le
+  serpent (`neck`, ses yeux qui luisent ; la nuit il nage au large, `roam`), phare devant ou derrière l'île ; soleil, îles,
+  voiliers et paquebot rare au loin, en parallaxe ; houle, vaguelettes, poissons qui sautent ; la barque vue d'un peu au-dessus,
+  Roré assis dedans, ses rames, sa lanterne ; mini-carte). On voit aussi le serpent la nuit depuis Dehors (`serpent` dans
+  `outsideDraw.ts`). Dehors et la mer sont plus larges que le bureau (`WIDE`, `OX`, `viewWidth` dans `layout.ts` ; la scène de
+  Dehors est décalée de `OX`, le fond s'étend de `-OX`). `goRoom` suit les voisinages (`NEXT` : bureau ↔ Pause, bureau ↔
   Dehors, Dehors ↔ mer) ; en mer, Roré est toujours dirigé (`outside.roreToSea/roreFromSea`). `interactSea` : la pêche
-  (`modal game fishing`, `lucky` au grand large).
+  (`modal game fishing`, `lucky` au grand large) ou l'accostage.
 - **Les heures de travail** (`state/hours.ts` : `WorkHours`, `isWorkTime` ; `workHours` dans le store, préférence `bureau:workHours` ; champ dans les Réglages) :
   la boucle d'`Office.tsx` les passe à `day.hours`. Pendant, seul Roré sort ; en dehors, les trois habitués qui aiment le grand air
   (`AIRY` dans `day.ts`, d'après leurs `hobbies`) vont Dehors (`place: 'outside'` ; `world.goOut`, `outside.show/sendIn/hide`) ;

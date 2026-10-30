@@ -16,7 +16,7 @@ import { placePressE, pressERef } from './pressE.ts';
 import { jukebox } from '../audio/music.ts';
 import { installDriving, setDriving } from './drive.ts';
 import { interact } from './interact.ts';
-import { H, W } from '../engine/layout.ts';
+import { H, OX, viewWidth, W } from '../engine/layout.ts';
 import { sfx } from '../audio/sfx.ts';
 import { modelInfo } from '../local/api.ts';
 import { isWorkTime, useOffice, type AskView } from '../state/store.ts';
@@ -82,14 +82,15 @@ export function Office() {
       const cs = getComputedStyle(el);
       const w = r.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
       const h = r.height - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
-      const f = vertical ? w / W : Math.min(w / W, h / H);
+      const vw = viewWidth(useOffice.getState().room);
+      const f = vertical ? w / vw : Math.min(w / vw, h / H);
       setScale(Math.max(0.5, Math.floor(f * 16) / 16));
     };
     const ro = new ResizeObserver(fit);
     ro.observe(el);
     fit();
     return () => ro.disconnect();
-  }, [vertical]);
+  }, [vertical, room]);
 
   // La boucle d'animation : 24 images par seconde quand ça bouge, 8 au repos, rien quand l'onglet est caché.
   // Le bureau est dessiné en tout petit (352 × 256) : des pixels nets à n'importe quelle taille.
@@ -111,9 +112,10 @@ export function Office() {
     const present = () => {
       const dpr = window.devicePixelRatio || 1;
       const k = Math.max(1, Math.ceil(scaleRef.current * dpr - 0.001));
-      if (vis.width !== W * k || vis.height !== H * k) { vis.width = W * k; vis.height = H * k; }
+      const vw = low.width;
+      if (vis.width !== vw * k || vis.height !== H * k) { vis.width = vw * k; vis.height = H * k; }
       vg.imageSmoothingEnabled = false;
-      vg.drawImage(low, 0, 0, W * k, H * k);
+      vg.drawImage(low, 0, 0, vw * k, H * k);
     };
     const loop = (now: number) => {
       raf = requestAnimationFrame(loop);
@@ -128,8 +130,12 @@ export function Office() {
       const inAnnex = st.room === 'annex';
       const inOutside = st.room === 'outside';
       const inSea = st.room === 'sea';
+      // Dehors et la mer sont plus larges que le bureau
+      const VW = viewWidth(st.room);
+      if (low.width !== VW) { low.width = VW; lg.imageSmoothingEnabled = false; }
+      camera.vw = VW;
       // tu diriges Roré : la caméra le suit de près (dans la pièce où il est ; en mer, la vue suit déjà la barque)
-      if (st.driving && !inSea) { const me = roreHere(); camera.shot(me.x, me.y - 12, 1.7, 0.5); }
+      if (st.driving && !inSea) { const me = roreHere(); camera.shot(me.x + (inOutside ? OX : 0), me.y - 12, 1.7, 0.5); }
       const camMoving = camera.update(dt);
       // pour filmer le bureau image par image (scripts de capture) : chaque image est dessinée, et le rythme
       // de la musique vient du film, pas du jukebox
@@ -182,14 +188,14 @@ export function Office() {
   // La souris : ce qu'il y a dessous (infobulle), un clic pour interagir, la molette pour zoomer.
   const toWorld = (e: { clientX: number; clientY: number }) => {
     const r = stage.current!.getBoundingClientRect();
-    return { x: ((e.clientX - r.left) / r.width) * W, y: ((e.clientY - r.top) / r.height) * H };
+    return { x: ((e.clientX - r.left) / r.width) * viewWidth(useOffice.getState().room), y: ((e.clientY - r.top) / r.height) * H };
   };
   const hover = useRef<Hit | AnnexHit | OutHit | null>(null);
   /** Ce qu'il y a sous la souris, dans la pièce où tu es. */
   const hitHere = (x: number, y: number): Hit | AnnexHit | OutHit | null => {
     const room = useOffice.getState().room;
     if (room === 'sea') return null;
-    return room === 'annex' ? annexHitAt(annex, x, y, annexPlacement) : room === 'outside' ? outsideHitAt(outside, x, y, outsidePlacement) : hitAt(world, x, y);
+    return room === 'annex' ? annexHitAt(annex, x, y, annexPlacement) : room === 'outside' ? outsideHitAt(outside, x - OX, y, outsidePlacement) : hitAt(world, x, y);
   };
   const onMove = (e: React.PointerEvent) => {
     if ((e.target as HTMLElement).closest('.bubble.ask')) return;
@@ -217,7 +223,7 @@ export function Office() {
       return;
     }
     if (room === 'outside') {
-      const h = outsideHitAt(outside, p.x, p.y, outsidePlacement);
+      const h = outsideHitAt(outside, p.x - OX, p.y, outsidePlacement);
       if (h) interactOutside(h);
       return;
     }
@@ -244,9 +250,9 @@ export function Office() {
 
   return (
     <div className="office" ref={wrap} onPointerMove={onMove} onPointerLeave={onLeave} onClick={onClick} onWheel={onWheel} onDoubleClick={onDoubleClick}>
-      <div className="office-frame" style={{ width: W * scale, height: H * scale }}>
-        <div className="office-stage" ref={stage} style={{ width: W * scale, height: H * scale, ['--s' as string]: scale }}>
-          <canvas ref={canvas} className="office-canvas" style={{ width: W * scale, height: H * scale }} />
+      <div className="office-frame" style={{ width: viewWidth(room) * scale, height: H * scale }}>
+        <div className="office-stage" ref={stage} style={{ width: viewWidth(room) * scale, height: H * scale, ['--s' as string]: scale }}>
+          <canvas ref={canvas} className="office-canvas" style={{ width: viewWidth(room) * scale, height: H * scale }} />
           {room === 'annex' ? <AnnexBubbles /> : room === 'outside' ? <OutsideTag /> : room === 'sea' ? null : <Bubbles />}
           <div className="press-e" ref={pressERef}><kbd>E</kbd><span /></div>
         </div>
@@ -287,7 +293,7 @@ function DriveBadge() {
   return (
     <div className="drive-badge" role="status">
       {room === 'sea'
-        ? <>⛵ <kbd>←</kbd><kbd>→</kbd> ramer autour de l’île · <kbd>E</kbd> pêcher (là où tournent les oiseaux) · <kbd>X</kbd> revenir</>
+        ? <>⛵ <kbd>←</kbd><kbd>→</kbd> autour de l’île · <kbd>↑</kbd><kbd>↓</kbd> s’approcher, s’éloigner · <kbd>E</kbd> pêcher, accoster · <kbd>X</kbd> revenir</>
         : <>🎮 Tu diriges Roré · <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> pour marcher · <kbd>E</kbd> pour interagir · <kbd>Échap</kbd> pour le laisser</>}
       <button onClick={(e) => { e.stopPropagation(); setDriving(false); }} aria-label="Rendre la main à Roré">×</button>
     </div>

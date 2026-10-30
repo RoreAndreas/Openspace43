@@ -8,6 +8,11 @@ export const COLS = 22;
 export const ROWS = 16;
 export const W = COLS * T;
 export const H = ROWS * T;
+/** Dehors et la mer sont plus larges que le bureau : le paysage remplit le cadre. La scène de Dehors reste au milieu
+ *  (décalée de OX), le ciel, la mer et la prairie se prolongent sur les côtés. */
+export const WIDE = 432;
+export const OX = (WIDE - W) / 2;
+export const viewWidth = (room: string) => (room === 'outside' || room === 'sea' ? WIDE : W);
 
 export type FurnKind =
   | 'desk' | 'chefDesk' | 'chair' | 'chefChair' | 'plantBig' | 'plantTall' | 'plantSmall' | 'rack' | 'printer'

@@ -130,6 +130,7 @@ export function installDoors() {
 export function interactSea() {
   const n = sea.near();
   if (!n) return;
+  if (n.kind === 'dock') { goRoom('outside'); return; }
   sfx('open');
   sea.rest(n.spot);
   useOffice.setState({ modal: { kind: 'game', game: 'fishing', lucky: n.spot.lucky } });

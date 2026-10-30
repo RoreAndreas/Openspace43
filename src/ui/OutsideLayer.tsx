@@ -1,6 +1,7 @@
 // Au-dessus de Dehors : le prénom de chacun (Roré, et les collègues sortis prendre l'air), qui suit à chaque image.
 import { useCallback, useSyncExternalStore } from 'react';
 import { outside } from '../engine/instance.ts';
+import { OX } from '../engine/layout.ts';
 
 const els = new Map<string, HTMLElement>();
 
@@ -8,7 +9,7 @@ export function placeOutsideTag(scale: number) {
   for (const w of outside.walkers) {
     const el = els.get(w.id);
     if (!el) continue;
-    const x = Math.round(w.x * scale);
+    const x = Math.round((w.x + OX) * scale);
     const y = Math.round((w.y - (w.seated ? 19 : 22) - w.hop) * scale);
     el.style.transform = `translate3d(${x}px, ${y}px, 0)`;
   }

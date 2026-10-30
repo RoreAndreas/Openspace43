@@ -4,7 +4,7 @@ import { ANNEX_BACK_DOOR, ANNEX_FURNITURE } from '../engine/annex.ts';
 import { furnitureLabel } from '../engine/hits.ts';
 import { annex, outside, sea, world } from '../engine/instance.ts';
 import { FISH_SPOT, OUT_DOOR } from '../engine/outside.ts';
-import { ANNEX_DOOR, BOARD, FURNITURE, T, W, WINDOWS } from '../engine/layout.ts';
+import { ANNEX_DOOR, BOARD, FURNITURE, OX, T, W, WINDOWS } from '../engine/layout.ts';
 import { useOffice } from '../state/store.ts';
 import { interact } from './interact.ts';
 import { goRoom, interactAnnex, interactOutside, interactSea, roreHere } from './place.ts';
@@ -18,10 +18,11 @@ const toRect = (px: number, py: number, x0: number, y0: number, x1: number, y1: 
 /** Ce que Roré peut atteindre, le plus proche d'abord. */
 export function nearRore(): Near | null {
   const room = useOffice.getState().room;
-  // en mer : un coin de pêche (là où les oiseaux tournent)
+  // en mer : le ponton (accoster), ou un coin de pêche (là où les oiseaux tournent)
   if (room === 'sea') {
     const n = sea.near();
-    return n ? { verb: `Pêcher ici : ${n.spot.name.toLowerCase()}`, act: interactSea } : null;
+    if (!n) return null;
+    return { verb: n.kind === 'dock' ? 'Accoster au ponton' : `Pêcher ici : ${n.spot.name.toLowerCase()}`, act: interactSea };
   }
   const inAnnex = room === 'annex';
   const me = roreHere();
@@ -104,5 +105,6 @@ export function placePressE(scale: number) {
   const label = el.lastElementChild as HTMLElement | null;
   if (label && label.textContent !== near.verb) label.textContent = near.verb;
   el.style.opacity = '1';
-  el.style.transform = `translate3d(${Math.round(me.x * scale)}px, ${Math.round((me.y - 37) * scale)}px, 0) translate(-50%, -100%)`;
+  const ox = st.room === 'outside' ? OX : 0;
+  el.style.transform = `translate3d(${Math.round((me.x + ox) * scale)}px, ${Math.round((me.y - 37) * scale)}px, 0) translate(-50%, -100%)`;
 }
