@@ -447,6 +447,7 @@ export class OutsideRenderer {
     this.shadows(g, t);
     this.ropes(g, t, gust);
     this.grass(g, t, gust);
+    this.moored(g, t);
     this.fishingLine(g, t, gust);
 
     const items: { y: number; draw: () => void }[] = [];
@@ -675,6 +676,19 @@ export class OutsideRenderer {
         else { g.fillStyle = i % 2 ? '#ffffff' : '#e5484d'; g.fillRect(Math.round(cx), Math.round(cy - th / 2), 3, th); }
       }
     }
+  }
+
+  /** La barque, amarrée tout en bas au pied du ponton : elle danse sur la houle (on la prend au coin de pêche). */
+  private moored(g: G, t: number) {
+    const x = 58, y = Math.round(edgeAt(58) - 12 + Math.sin(t * 1.6) * 0.6);
+    rect(g, x, y, 11, 2, '#8a5530');
+    rect(g, x + 1, y + 2, 9, 1, '#6b4528');
+    hline(g, x, y, 11, '#b07c4c');
+    px(g, x + 3, y + 1, '#d24a40'); px(g, x + 7, y + 1, '#d24a40');
+    g.fillStyle = 'rgba(255,255,255,0.45)';
+    g.fillRect(x - 2 + Math.round(Math.sin(t * 1.3) * 1), y + 3, 15, 1);
+    // l'amarre, jusqu'au bord
+    for (let k = 0; k < 8; k++) px(g, x + 10 + k * 0.6, y - k * 1.2, 'rgba(232,220,192,0.8)');
   }
 
   /** La canne, penchée au-dessus du vide, et la ligne qui descend jusqu'à la mer, tout en bas. */

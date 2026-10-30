@@ -2,12 +2,12 @@
 // une porte. Une étiquette « E · … » flotte au-dessus de lui ; la touche E fait la même chose qu'un clic.
 import { ANNEX_BACK_DOOR, ANNEX_FURNITURE } from '../engine/annex.ts';
 import { furnitureLabel } from '../engine/hits.ts';
-import { annex, outside, world } from '../engine/instance.ts';
+import { annex, outside, sea, world } from '../engine/instance.ts';
 import { FISH_SPOT, OUT_DOOR } from '../engine/outside.ts';
 import { ANNEX_DOOR, BOARD, FURNITURE, T, W, WINDOWS } from '../engine/layout.ts';
 import { useOffice } from '../state/store.ts';
 import { interact } from './interact.ts';
-import { goRoom, interactAnnex, interactOutside, roreHere } from './place.ts';
+import { goRoom, interactAnnex, interactOutside, interactSea, roreHere } from './place.ts';
 
 export interface Near { verb: string; act: () => void }
 
@@ -18,6 +18,11 @@ const toRect = (px: number, py: number, x0: number, y0: number, x1: number, y1: 
 /** Ce que Roré peut atteindre, le plus proche d'abord. */
 export function nearRore(): Near | null {
   const room = useOffice.getState().room;
+  // en mer : le ponton (accoster), ou un coin de pêche (là où les oiseaux tournent)
+  if (room === 'sea') {
+    const n = sea.near();
+    return n ? { verb: n.kind === 'dock' ? 'Accoster (retour Dehors)' : `Pêcher ici : ${n.spot.name.toLowerCase()}`, act: interactSea } : null;
+  }
   const inAnnex = room === 'annex';
   const me = roreHere();
   const px = me.x, py = me.y - 4;
@@ -35,7 +40,7 @@ export function nearRore(): Near | null {
     const seat = outside.seatNear();
     if (seat) offer(0, 1, { verb: seat.verb, act: () => outside.sitRore(seat.id) });
     // la canne à pêche (dans la brèche de la clôture)
-    offer(Math.hypot(px - FISH_SPOT.x, py - FISH_SPOT.y), 20, { verb: 'Partir pêcher en barque', act: () => interactOutside({ kind: 'object', id: 'fishing', label: '' }) });
+    offer(Math.hypot(px - FISH_SPOT.x, py - FISH_SPOT.y), 20, { verb: 'Prendre la barque (faire le tour de l’île)', act: () => interactOutside({ kind: 'object', id: 'fishing', label: '' }) });
     if (me.y < 7 * T && me.x >= OUT_DOOR.x && me.x <= OUT_DOOR.x + OUT_DOOR.w) offer(0, 1, { verb: 'Rentrer au bureau', act: () => interactOutside({ kind: 'door', label: '' }) });
     return best;
   }

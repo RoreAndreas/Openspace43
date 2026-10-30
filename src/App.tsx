@@ -80,6 +80,7 @@ export function App() {
       if (k === 't') { if (s.tour) stopTour(); else void startTour(); return; }
       if (k === 'd') { goRoom(s.room === 'annex' ? 'office' : 'annex'); return; }
       if (k === 'o') { goRoom(s.room === 'outside' ? 'office' : 'outside'); return; }
+      if (k === 'l') { goRoom(s.room === 'sea' ? 'outside' : 'sea'); return; }
       if (k === 'c') { useOffice.setState({ cameraAuto: !s.cameraAuto }); savePref('cameraAuto', !s.cameraAuto); sfx('click'); return; }
       if (k === 'j') { jukebox.toggle(); return; }
       if (k === 'p') { togglePanel(); return; }

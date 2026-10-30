@@ -49,12 +49,12 @@ const FISH: Record<Kind, Spec> = {
 const SPECIES = (Object.keys(FISH) as Kind[]).filter((k) => !FISH[k].junk);
 
 /** Ce qui mord : selon la longueur du lancer, l'heure, et la chance (un lancer parfait attire les légendes). */
-function pickCatch(power: number, perfect: boolean, tod: TimeOfDay): Kind {
+function pickCatch(power: number, perfect: boolean, tod: TimeOfDay, lucky = false): Kind {
   const r = Math.random();
   if (r < 0.05) return 'botte';
   if (r < 0.08) return 'algue';
   const legends = (['thon', 'nessie'] as Kind[]).filter((k) => FISH[k].when!.includes(tod) && power >= FISH[k].far);
-  if (legends.length && Math.random() < (perfect ? 0.12 : 0.02)) return legends[Math.floor(Math.random() * legends.length)];
+  if (legends.length && Math.random() < (perfect ? 0.12 : 0.02) * (lucky ? 2.5 : 1)) return legends[Math.floor(Math.random() * legends.length)];
   const pool = SPECIES.filter((k) => !FISH[k].legend && power >= FISH[k].far && (!FISH[k].when || FISH[k].when!.includes(tod)));
   const weight = (k: Kind) => FISH[k].often * (k === 'maquereau' && tod === 'evening' ? 3 : 1) * (perfect && FISH[k].far >= 0.4 ? 2 : 1);
   let x = Math.random() * pool.reduce((s, k) => s + weight(k), 0);
@@ -96,7 +96,7 @@ type Phase = 'ready' | 'boat' | 'aim' | 'cast' | 'wait' | 'warn' | 'bite' | 'fig
 interface Bit { x: number; y: number; vx: number; vy: number; life: number; col: string }
 interface Card { title: string; sub: string; legend: boolean; junk: boolean; record: boolean }
 
-export function Fishing() {
+export function Fishing({ lucky = false }: { lucky?: boolean }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const keys = useKeys();
   const tod = timeOfDay(useOffice.getState().tod);
@@ -133,7 +133,7 @@ export function Fishing() {
   /** Une nouvelle touche se prépare : quelle espèce, quand arrive son ombre. */
   const prepare = () => {
     const st = s.current;
-    st.kind = pickCatch(st.power, st.perfect, tod);
+    st.kind = pickCatch(st.power, st.perfect, tod, lucky);
     st.shadow = null;
     st.nibbles = Math.floor(Math.random() * 4);
     st.nextEvent = st.t + 0.8 + Math.random() * 1.8;

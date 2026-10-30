@@ -70,7 +70,7 @@ export type Modal =
   /** la galerie des personnages ; avec `pick`, on choisit celui d'un agent */
   | { kind: 'characters'; pick?: { role: Role; name: string; agent?: string } }
   /** un mini-jeu : le ping-pong ou la borne d'arcade (Spartan Run) dans la Pause, la pêche Dehors */
-  | { kind: 'game'; game: 'pingpong' | 'arcade' | 'fishing' };
+  | { kind: 'game'; game: 'pingpong' | 'arcade' | 'fishing'; lucky?: boolean };
 
 interface S {
   connection: 'connecting' | 'live' | 'offline' | 'demo';
@@ -127,7 +127,7 @@ interface S {
   /** tu diriges Roré au clavier (double-clic sur lui) */
   driving: boolean;
   /** la pièce affichée : le bureau, ou la Pause (touche D) */
-  room: 'office' | 'annex' | 'outside';
+  room: 'office' | 'annex' | 'outside' | 'sea';
   /** les heures de travail (réglages) */
   workHours: WorkHours;
   sound: boolean;

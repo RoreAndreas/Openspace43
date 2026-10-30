@@ -57,7 +57,7 @@ export function Rooms() {
     case 'rules': return <RulesRoom />;
     case 'howto': return <HowtoRoom />;
     case 'characters': return <CharactersRoom pick={modal.pick} />;
-    case 'game': return <GameRoom game={modal.game} />;
+    case 'game': return <GameRoom game={modal.game} lucky={modal.lucky} />;
   }
 }
 

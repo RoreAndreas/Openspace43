@@ -128,6 +128,7 @@ export function TopBar() {
         )}
         <button className={`icon-btn ${room === 'annex' ? 'on' : ''}`} title={room === 'annex' ? 'Retour au bureau (D)' : 'La Pause : la cuisine et les loisirs, où tout le monde se retrouve (D)'} onClick={() => goRoom(room === 'annex' ? 'office' : 'annex')}>☕</button>
         <button className={`icon-btn ${room === 'outside' ? 'on' : ''}`} title={room === 'outside' ? 'Retour au bureau (O)' : 'Dehors : l’entrée, l’herbe au vent et la falaise (O)'} onClick={() => goRoom(room === 'outside' ? 'office' : 'outside')}>🌿</button>
+        <button className={`icon-btn ${room === 'sea' ? 'on' : ''}`} title={room === 'sea' ? 'Accoster au ponton (L)' : 'En mer : la barque, le tour de l’île et la pêche (L)'} onClick={() => goRoom(room === 'sea' ? 'outside' : 'sea')}>⛵</button>
         <button className="icon-btn" title="Visite guidée : Roré présente son bureau (T)" onClick={() => void startTour()}>🎤</button>
         <button className="icon-btn" title="Toute l’équipe : les métiers, leurs outils, l’historique" onClick={() => { sfx('open'); useOffice.setState({ modal: { kind: 'team' } }); }}>👥</button>
         <button className="icon-btn" title="Le tiroir de l’analyste : couleurs, types de texte, infos à retenir" onClick={() => { sfx('open'); useOffice.setState({ modal: { kind: 'drawer' } }); }}>🗄️</button>

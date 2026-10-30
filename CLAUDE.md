@@ -63,9 +63,17 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
   falaise `coastY`, `HORIZON`, la grille, `Walker` pour Roré et les collègues, places assises `SEATS` avec leur regard, chemins `PATHS`,
   vent `gust`), `engine/outsideDraw.ts` (deux plans : le sol en 3/4 comme le bureau, et un fond en perspective, ciel, mer jusqu'à
   l'horizon, phare au loin ; pavillon au toit plat avec le petit logo 43, prairie animée, pins, manche à air, lumière), `audio/outside.ts` (vent, mer et
-  musique lofi en Web Audio, sans fichier ; coupé avec le son). `goRoom` (`ui/place.ts`) repasse toujours par le bureau. Le coin de
-  pêche (`outside.onFish`) ouvre la fenêtre `game` « fishing » (`ui/games/Fishing.tsx`, au timing : lancer, touche, combat ;
+  musique lofi en Web Audio, sans fichier ; coupé avec le son). Le coin de pêche
+  (`outside.onFish`) mène en mer. La pêche est la fenêtre `game` « fishing » (`ui/games/Fishing.tsx`, au timing : lancer, touche, combat ;
   légendaires en boss avec barre de vie ; carnet `fish.journal` dans `bureau:jeux`, `FishSave` dans `common.ts` ; en dev, `window.__fishing`).
+- **La mer** (`room: 'sea'`, le quatrième espace ; ⛵, touche L ; depuis le coin de pêche de Dehors, « Prendre la barque ») :
+  `engine/sea.ts` (la logique : barque `x/z/heading/speed`, `steer`, collisions avec l'île `islandRadius` et l'îlot, `DOCK`,
+  coins de pêche `SPOTS` avec `restUntil`, `near()`), `engine/seaView.ts` (le dessin en 3D, three.js, rendu en 352 × 256 puis
+  recopié dans le canvas du bureau : île, pavillon, pins, phare, houle à facettes `waveY`, barque et avirons, Roré en sprite,
+  sillage, oiseaux, mini-carte). `seaView.ts` est chargé à la demande (`import()` dans la boucle d'`Office.tsx`) : three.js
+  n'est pas dans le paquet principal. `goRoom` suit les voisinages (`NEXT` : bureau ↔ Pause, bureau ↔ Dehors, Dehors ↔ mer) ;
+  en mer, Roré est toujours dirigé (`outside.roreToSea/roreFromSea`). `interactSea` : pêcher (`modal game fishing`, `lucky`
+  au grand large) ou accoster.
 - **Les heures de travail** (`state/hours.ts` : `WorkHours`, `isWorkTime` ; `workHours` dans le store, préférence `bureau:workHours` ; champ dans les Réglages) :
   la boucle d'`Office.tsx` les passe à `day.hours`. Pendant, seul Roré sort ; en dehors, les trois habitués qui aiment le grand air
   (`AIRY` dans `day.ts`, d'après leurs `hobbies`) vont Dehors (`place: 'outside'` ; `world.goOut`, `outside.show/sendIn/hide`) ;

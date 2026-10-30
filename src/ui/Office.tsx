@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { ROLES } from '../../shared/activity.ts';
 import type { ActKind } from '../../shared/protocol.ts';
-import { annex, annexRenderer, camera, day, director, outside, outsideRenderer, renderer, timeOfDay, world } from '../engine/instance.ts';
+import { annex, annexRenderer, camera, day, director, outside, outsideRenderer, renderer, sea, timeOfDay, world } from '../engine/instance.ts';
+import type { SeaView } from '../engine/seaView.ts';
+import { pixelText, textWidth } from '../engine/font.ts';
 import { hitAt, type Hit } from '../engine/hits.ts';
 import { annexHitAt, type AnnexHit } from '../engine/annex.ts';
 import { annexPlacement } from '../engine/annexDraw.ts';
@@ -24,6 +26,10 @@ import { isWorkTime, useOffice, type AskView } from '../state/store.ts';
 const ICON: Record<ActKind, string> = {
   search: '🔎', web: '🌐', read: '📖', write: '✍️', edit: '✏️', bash: '💻', plan: '📋', skill: '🎓', mcp: '🔌', other: '⚙️',
 };
+
+/** La mer en 3D : three.js ne se charge qu'à la première sortie en barque. */
+let seaView: SeaView | null = null;
+let seaLoading = false;
 
 /** Combien coûte le dessin (pour vérifier que le bureau ne fait pas chauffer l'ordinateur). */
 export const perf = { frames: 0, ms: 0 };
@@ -127,8 +133,9 @@ export function Office() {
       director.tick();
       const inAnnex = st.room === 'annex';
       const inOutside = st.room === 'outside';
-      // tu diriges Roré : la caméra le suit de près (dans la pièce où il est)
-      if (st.driving) { const me = roreHere(); camera.shot(me.x, me.y - 12, 1.7, 0.5); }
+      const inSea = st.room === 'sea';
+      // tu diriges Roré : la caméra le suit de près (dans la pièce où il est ; en mer, c'est la caméra 3D qui suit la barque)
+      if (st.driving && !inSea) { const me = roreHere(); camera.shot(me.x, me.y - 12, 1.7, 0.5); }
       const camMoving = camera.update(dt);
       // pour filmer le bureau image par image (scripts de capture) : chaque image est dessinée, et le rythme
       // de la musique vient du film, pas du jukebox
@@ -141,7 +148,7 @@ export function Office() {
       if (!cap && acc < (active || camMoving ? 1 / 24 : 1 / 8)) return;
       const t0 = performance.now();
       // le bureau et la Pause vivent tous les deux ; on dessine celle où tu es
-      active = world.update(acc) || inAnnex || inOutside;
+      active = world.update(acc) || inAnnex || inOutside || inSea;
       day.hours = st.workHours;
       day.update();
       // une coupe sur l'étagère des archives par mission réussie
@@ -151,8 +158,21 @@ export function Office() {
       annex.update(acc);
       // Dehors vit aussi : ceux qui y prennent l'air se promènent, et rentrent à l'heure
       outside.update(acc);
+      if (inSea) { sea.update(acc); if (tip.current) tip.current.style.opacity = '0'; }
       acc = 0;
-      if (inOutside) outsideRenderer.draw(lg, outside, timeOfDay(todRef.current));
+      if (inSea) {
+        if (seaView) seaView.draw(lg, sea, timeOfDay(todRef.current), outside.rore.info.id);
+        else {
+          // le temps de charger la 3D : la mer, et un petit mot
+          lg.fillStyle = '#1d63a0'; lg.fillRect(0, 0, W, H);
+          const msg = 'RORÉ PREND LA BARQUE';
+          pixelText(lg, msg, Math.round(W / 2 - textWidth(msg) / 2), H / 2 - 3, '#ffffff');
+          if (!seaLoading) {
+            seaLoading = true;
+            void import('../engine/seaView.ts').then((m) => { seaView = new m.SeaView(); }).catch(() => { seaLoading = false; });
+          }
+        }
+      } else if (inOutside) outsideRenderer.draw(lg, outside, timeOfDay(todRef.current));
       else if (inAnnex) annexRenderer.draw(lg, annex, timeOfDay(todRef.current));
       else renderer.draw(lg, world, timeOfDay(todRef.current), new Date());
       present();
@@ -185,6 +205,7 @@ export function Office() {
   /** Ce qu'il y a sous la souris, dans la pièce où tu es. */
   const hitHere = (x: number, y: number): Hit | AnnexHit | OutHit | null => {
     const room = useOffice.getState().room;
+    if (room === 'sea') return null;
     return room === 'annex' ? annexHitAt(annex, x, y, annexPlacement) : room === 'outside' ? outsideHitAt(outside, x, y, outsidePlacement) : hitAt(world, x, y);
   };
   const onMove = (e: React.PointerEvent) => {
@@ -206,6 +227,7 @@ export function Office() {
     if ((e.target as HTMLElement).closest('.bubble.ask')) return;
     const p = toWorld(e);
     const room = useOffice.getState().room;
+    if (room === 'sea') return;
     if (room === 'annex') {
       const h = annexHitAt(annex, p.x, p.y, annexPlacement);
       if (h) interactAnnex(h);
@@ -224,6 +246,8 @@ export function Office() {
     const p = toWorld(e);
     const h = hitHere(p.x, p.y);
     const driving = useOffice.getState().driving;
+    // en mer : un double-clic reprend (ou rend) les rames
+    if (useOffice.getState().room === 'sea') { setDriving(!driving); return; }
     const onRore = (h?.kind === 'actor' && h.id === 'chef') || (h?.kind === 'pal' && h.id === annex.rore.id);
     if (onRore) { setDriving(!driving); return; }
     if (!driving) camera.wide(4);
@@ -240,7 +264,7 @@ export function Office() {
       <div className="office-frame" style={{ width: W * scale, height: H * scale }}>
         <div className="office-stage" ref={stage} style={{ width: W * scale, height: H * scale, ['--s' as string]: scale }}>
           <canvas ref={canvas} className="office-canvas" style={{ width: W * scale, height: H * scale }} />
-          {room === 'annex' ? <AnnexBubbles /> : room === 'outside' ? <OutsideTag /> : <Bubbles />}
+          {room === 'annex' ? <AnnexBubbles /> : room === 'outside' ? <OutsideTag /> : room === 'sea' ? null : <Bubbles />}
           <div className="press-e" ref={pressERef}><kbd>E</kbd><span /></div>
         </div>
         <LiveBadge />
@@ -258,6 +282,13 @@ function RoomBadge() {
   const hours = useOffice((s) => s.workHours);
   const free = room === 'outside' && !isWorkTime(hours);
   if (room === 'office') return null;
+  if (room === 'sea') {
+    return (
+      <button className="room-badge sea" onClick={(e) => { e.stopPropagation(); goRoom('outside'); }} title="Accoster au ponton (touche L)">
+        ⛵ En mer <span>← Accoster</span>
+      </button>
+    );
+  }
   return (
     <button className={`room-badge ${room === 'outside' ? 'outside' : ''}`} onClick={(e) => { e.stopPropagation(); goRoom('office'); }} title={room === 'outside' ? 'Retour au bureau (touche O)' : 'Retour au bureau (touche D)'}>
       {room === 'outside' ? '🌿 Dehors' : '☕ Pause'}{free && <span>· temps libre</span>} <span>← Retour au bureau</span>
@@ -268,10 +299,13 @@ function RoomBadge() {
 /** Tu diriges Roré : le rappel des touches. */
 function DriveBadge() {
   const driving = useOffice((s) => s.driving);
+  const room = useOffice((s) => s.room);
   if (!driving) return null;
   return (
     <div className="drive-badge" role="status">
-      🎮 Tu diriges Roré · <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> pour marcher · <kbd>E</kbd> pour interagir · <kbd>Échap</kbd> pour le laisser
+      {room === 'sea'
+        ? <>⛵ Roré rame · <kbd>↑</kbd> avancer · <kbd>↓</kbd> reculer · <kbd>←</kbd><kbd>→</kbd> tourner · <kbd>E</kbd> pêcher (là où tournent les oiseaux) ou accoster</>
+        : <>🎮 Tu diriges Roré · <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> pour marcher · <kbd>E</kbd> pour interagir · <kbd>Échap</kbd> pour le laisser</>}
       <button onClick={(e) => { e.stopPropagation(); setDriving(false); }} aria-label="Rendre la main à Roré">×</button>
     </div>
   );

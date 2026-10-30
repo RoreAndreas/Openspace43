@@ -4,6 +4,7 @@ import { Annex } from './annex.ts';
 import { AnnexRenderer } from './annexDraw.ts';
 import { Outside } from './outside.ts';
 import { OutsideRenderer } from './outsideDraw.ts';
+import { Sea } from './sea.ts';
 import type { Tod } from '../state/store.ts';
 import { Camera, Director } from './camera.ts';
 import { Day } from './day.ts';
@@ -17,6 +18,8 @@ export const annex = new Annex();
 export const annexRenderer = new AnnexRenderer();
 /** Dehors, devant la porte d'entrée : l'herbe, la falaise, la mer. Roré, et ceux qui prennent l'air après le travail. */
 export const outside = new Outside();
+/** la mer, autour de l'île : on y va en barque, depuis le ponton (le dessin en 3D se charge à la demande) */
+export const sea = new Sea();
 export const outsideRenderer = new OutsideRenderer();
 export const renderer = new Renderer();
 export const camera = new Camera();

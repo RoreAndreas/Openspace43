@@ -53,7 +53,7 @@ export const OUTSIDE_FURNITURE: OutFurn[] = [
   // où s'asseoir, où pêcher
   { id: 'bench', kind: 'bench', tx: 6, ty: 7, w: 3, h: 1, label: 'Le banc du promontoire, face au large' },
   { id: 'log', kind: 'log', tx: 3, ty: 13, w: 2, h: 1, label: 'Un vieux tronc, à l’ombre des pins : on s’y assoit' },
-  { id: 'fishing', kind: 'fishing', tx: 2, ty: 8, w: 1, h: 1, label: 'Le coin de pêche : clique pour partir pêcher en barque' },
+  { id: 'fishing', kind: 'fishing', tx: 2, ty: 8, w: 1, h: 1, label: 'Le ponton, en bas de la falaise : prends la barque et fais le tour de l’île' },
   { id: 'windsock', kind: 'windsock', tx: 11, ty: 8, w: 1, h: 1, label: 'La manche à air : elle dit d’où vient le vent' },
   // les bornes lumineuses le long du chemin (on passe à côté)
   { id: 'bollard-1', kind: 'bollard', tx: 15, ty: 6, w: 0, h: 0, label: 'Une borne lumineuse' },
@@ -172,7 +172,9 @@ export class Outside {
     for (let i = 0; i < 9; i++) this.leaves.push(this.newLeaf(Math.random() * 352));
   }
 
-  get walkers() { return [this.rore, ...this.guests]; }
+  /** Roré est parti en mer (la barque) : on ne le voit plus Dehors */
+  roreAway = false;
+  get walkers() { return this.roreAway ? [...this.guests] : [this.rore, ...this.guests]; }
   onChange(fn: () => void) { this.listeners.add(fn); return () => { this.listeners.delete(fn); }; }
   private changed() { this.version++; for (const fn of this.listeners) fn(); }
 
@@ -376,6 +378,27 @@ export class Outside {
   }
 
   steer(dx: number, dy: number) { this.steerX = dx; this.steerY = dy; }
+
+  /** Roré descend au ponton et prend la barque : il quitte Dehors. */
+  roreToSea() {
+    this.drive(false);
+    this.stand(this.rore);
+    this.roreAway = true;
+    this.changed();
+  }
+
+  /** Roré revient de la mer : il remonte du ponton, au coin de pêche. */
+  roreFromSea(driving: boolean) {
+    const me = this.rore;
+    this.roreAway = false;
+    me.x = FISH_SPOT.x + 10;
+    me.y = FISH_SPOT.y + 4;
+    me.dir = 'right';
+    me.path = [];
+    this.drive(false);
+    if (driving) this.drive(true);
+    this.changed();
+  }
 
   /** Roré arrive par la porte du pavillon, avec toi aux commandes. */
   enterRore() {
