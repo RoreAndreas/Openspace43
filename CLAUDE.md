@@ -62,7 +62,7 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
 - **Dehors** (`room: 'outside'`, derrière la porte d'entrée en bas du bureau ; 🌿, touche O) : `engine/outside.ts` (le bord de la
   falaise `coastY`, `HORIZON`, la grille, `Walker` pour Roré et les collègues, places assises `SEATS` avec leur regard, chemins `PATHS`,
   vent `gust`), `engine/outsideDraw.ts` (deux plans : le sol en 3/4 comme le bureau, et un fond en perspective, ciel, mer jusqu'à
-  l'horizon, phare au loin ; maison de bord de mer avec l'enseigne 43, fumée de cheminée, prairie animée, pins, manche à air, lumière), `audio/outside.ts` (vent, mer et
+  l'horizon, phare au loin ; pavillon au toit de zinc avec le petit logo 43, prairie animée, pins, manche à air, lumière), `audio/outside.ts` (vent, mer et
   musique lofi en Web Audio, sans fichier ; coupé avec le son). `goRoom` (`ui/place.ts`) repasse toujours par le bureau. Le jeu de
   pêche se branche sur `outside.onFish`.
 - **Les heures de travail** (`workHours` dans le store, préférence `bureau:workHours`, `isWorkTime` ; champ dans les Réglages) :
