@@ -1,7 +1,7 @@
 // Le dessin de Dehors. Deux plans :
 // - le fond, en perspective : le ciel, la mer qui s'étend jusqu'à l'horizon (brumeuse au loin, plus franche près de
 //   la falaise), le soleil ou la lune et leur reflet, un cap lointain avec son phare, à gauche ;
-// - le sol, vu de dessus en 3/4 comme le bureau : le pavillon 43 à droite (toit végétalisé, bardage bois, grande baie),
+// - le sol, vu de dessus en 3/4 comme le bureau : la maison 43 à droite (toit d'ardoise, cheminées, murs blanchis, volets bleus),
 //   la prairie que le vent parcourt en vagues, les pins, le chemin de gravier, et le bord de la falaise, face au large.
 // Le décor fixe est dessiné une fois par heure du jour ; le reste bouge à chaque image.
 import { coastY, HORIZON, OUT_DOOR, OUTSIDE_FURNITURE, PATHS, type Outside, type OutFurn, type Walker } from './outside.ts';
@@ -52,7 +52,7 @@ function toPath(x: number, y: number) {
   return best;
 }
 
-/** Le pavillon (pour ne pas y faire pousser d'herbe). */
+/** La maison (pour ne pas y faire pousser d'herbe). */
 const inBuilding = (x: number, y: number) => x >= 228 && x <= 328 && y < 104;
 /** La profondeur d'un point de la mer : 0 à l'horizon, 1 au pied de la vue. */
 const depth = (y: number) => Math.max(0, Math.min(1, (y - HORIZON) / (SEA_BOTTOM - HORIZON)));
@@ -115,15 +115,17 @@ function fishingSprite(): Sprite {
   return { c, ox: 0, oy: 0, sort: 10 };
 }
 
+/** Un poteau de bois et sa lanterne, le long du chemin. */
 function bollardSprite(): Sprite {
-  const c = makeCanvas(6, 11);
+  const c = makeCanvas(8, 14);
   const g = g2d(c);
-  rect(g, 1, 2, 4, 8, '#3a3a48');
-  rect(g, 1, 2, 4, 2, '#ffe2a8');
-  hline(g, 1, 1, 4, '#4a4a5c');
-  vline(g, 1, 4, 6, '#4a4a5c');
+  rect(g, 3, 4, 2, 10, '#7a5236');
+  vline(g, 3, 4, 10, '#9a6c48');
+  rect(g, 1, 0, 6, 1, '#2e2e3c');
+  rect(g, 2, 1, 4, 4, '#2e2e3c');
+  rect(g, 3, 2, 2, 2, '#ffd9a0');
   outline(c, P.ink);
-  return { c, ox: 0, oy: 0, sort: 10 };
+  return { c, ox: 0, oy: 0, sort: 12 };
 }
 
 function windsockPole(): Sprite {
@@ -343,53 +345,71 @@ function drawBackground(tod: TimeOfDay): HTMLCanvasElement {
     if (toPath(x, y) < 6) px(g, x, y, r() < 0.5 ? '#c4b089' : '#efe2c2');
   }
 
-  // le pavillon, à droite (petit) : le toit végétalisé, son bord
-  rect(g, 232, 30, 92, 11, '#3a3a48');
-  rect(g, 234, 31, 88, 8, '#6a9a52');
-  for (let i = 0; i < 50; i++) px(g, 235 + Math.floor(r() * 86), 32 + Math.floor(r() * 6), ['#7fb362', '#557f42', '#b8645a', '#e0c35a', '#8fc06a'][Math.floor(r() * 5)]);
-  rect(g, 230, 40, 96, 3, '#2e2e3c');
-  hline(g, 230, 40, 96, '#4a4a5c');
-  // l'aile gauche : un bardage de bois, une fenêtre étroite
-  for (let x = 236; x < 252; x += 3) { rect(g, x, 43, 2, 47, x % 6 ? '#b07c4c' : '#9a6a3e'); vline(g, x + 2, 43, 47, '#6b4528'); }
-  rect(g, 240, 50, 8, 32, '#2e2e3c');
-  glass(g, 241, 51, 6, 30, tod);
-  // le centre, enduit clair : le logo, la porte
-  rect(g, 252, 43, 40, 47, '#efe9de');
-  for (let i = 0; i < 40; i++) px(g, 253 + Math.floor(r() * 38), 44 + Math.floor(r() * 45), '#e2dacb');
-  vline(g, 252, 43, 47, '#d9d0c0');
-  vline(g, 291, 43, 47, '#d9d0c0');
-  // l'aile droite : une baie vitrée
-  rect(g, 292, 43, 28, 47, '#2e2e3c');
-  glass(g, 294, 45, 24, 42, tod);
-  vline(g, 306, 45, 42, '#2e2e3c');
-  rect(g, 294, 81, 24, 6, rgba('#4a3a30', 0.35));
-  rect(g, 310, 72, 5, 9, '#3f7a42');
-  rect(g, 311, 69, 3, 4, '#5a9a52');
-  // le socle de béton, les côtés
-  rect(g, 234, 90, 88, 6, '#a7a29a');
-  hline(g, 234, 90, 88, '#c2bdb4');
-  rect(g, 232, 43, 4, 53, '#7a5236');
-  rect(g, 320, 43, 4, 53, '#232330');
+  // la maison, à droite : une maison de bord de mer, toit d'ardoise, deux cheminées de pierre
+  for (const cx of [236, 312]) {
+    rect(g, cx, 8, 11, 14, '#8f8a80');
+    for (let y = 9; y < 22; y += 3) hline(g, cx, y, 11, '#77726a');
+    for (let y = 9; y < 22; y += 6) { vline(g, cx + 5, y, 3, '#77726a'); vline(g, cx + 2, y + 3, 3, '#77726a'); vline(g, cx + 8, y + 3, 3, '#77726a'); }
+    rect(g, cx - 1, 6, 13, 3, '#6a665e');
+    rect(g, cx + 3, 6, 5, 2, '#2e2a28');
+  }
+  rect(g, 228, 18, 100, 26, '#4a5266');
+  for (let y = 20; y < 44; y += 4) {
+    hline(g, 228, y, 100, '#5c6680');
+    for (let x = 228 + ((y / 4) % 2 ? 0 : 5); x < 328; x += 10) vline(g, x, y + 1, 3, '#3a4152');
+  }
+  rect(g, 228, 17, 100, 2, '#6c7690');
+  rect(g, 226, 43, 104, 2, '#2e3240');
+  // les murs blanchis à la chaux, les pierres d'angle, le soubassement
+  rect(g, 232, 45, 92, 45, '#f1ece0');
+  for (let i = 0; i < 70; i++) px(g, 233 + Math.floor(r() * 90), 46 + Math.floor(r() * 43), r() < 0.5 ? '#e4ddcc' : '#d9d1bf');
+  for (let y = 45; y < 90; y += 6) {
+    const w = (y / 6) % 2 ? 7 : 5;
+    rect(g, 232, y, w, 5, '#b8b0a2'); hline(g, 232, y, w, '#cfc8bb');
+    rect(g, 324 - w, y, w, 5, '#b8b0a2'); hline(g, 324 - w, y, w, '#cfc8bb');
+  }
+  rect(g, 230, 88, 96, 8, '#9a948a');
+  for (let x = 230; x < 326; x += 8) { vline(g, x, 88, 8, '#7d786d'); }
+  hline(g, 230, 88, 96, '#b9b3a6');
+  hline(g, 230, 92, 96, '#7d786d');
+  // deux petites fenêtres à volets bleus, et leurs jardinières
+  for (const wx of [240, 302]) {
+    rect(g, wx - 1, 55, 14, 18, '#5a4a3a');
+    glass(g, wx, 56, 12, 16, tod);
+    vline(g, wx + 6, 56, 16, '#5a4a3a');
+    hline(g, wx, 63, 12, '#5a4a3a');
+    for (const sx of [wx - 6, wx + 13]) { rect(g, sx, 55, 5, 18, '#3f6fa8'); for (let y = 57; y < 72; y += 3) hline(g, sx, y, 5, '#2f5688'); vline(g, sx, 55, 18, '#5a86c0'); }
+    rect(g, wx - 2, 73, 16, 4, '#8a5530');
+    hline(g, wx - 2, 73, 16, '#a86a3e');
+    for (let k = 0; k < 7; k++) px(g, wx - 1 + k * 2, 72, ['#e5484d', '#ff6fa8', '#ffd166'][k % 3]);
+    for (let k = 0; k < 6; k++) px(g, wx + k * 2, 71, '#3f7a42');
+  }
 
   sign43(g, 248, 38);
 
-  // la porte d'entrée : un auvent, deux battants vitrés, une lumière chaude
+  // la porte d'entrée : un encadrement de pierre, une porte de bois peinte, une petite vitre, une lanterne
   const dx = OUT_DOOR.x;
-  rect(g, dx - 6, 69, OUT_DOOR.w + 12, 3, '#2e2e3c');
-  hline(g, dx - 6, 71, OUT_DOOR.w + 12, '#ffe9c2');
-  rect(g, dx - 2, 72, OUT_DOOR.w + 4, 24, '#2e2e3c');
-  rect(g, dx, 73, 15, 23, '#ffd9a0');
-  rect(g, dx + 17, 73, 15, 23, '#ffd9a0');
-  rect(g, dx, 85, 15, 11, '#e8bf80');
-  rect(g, dx + 17, 85, 15, 11, '#e8bf80');
-  hline(g, dx, 73, 32, '#fff0d4');
-  rect(g, dx + 11, 81, 2, 6, P.orangeHi);
-  rect(g, dx + 19, 81, 2, 6, P.orangeHi);
-  rect(g, dx + 2, 96, 28, 6, P.orangeDeep);
-  for (let i = 0; i < 3; i++) hline(g, dx + 4, 97 + i * 2, 24, i % 2 ? P.orangeDark : P.orange);
+  rect(g, dx - 3, 70, OUT_DOOR.w + 6, 26, '#b8b0a2');
+  hline(g, dx - 3, 70, OUT_DOOR.w + 6, '#cfc8bb');
+  rect(g, dx, 73, 32, 23, '#3f6fa8');
+  for (let x = dx + 3; x < dx + 32; x += 4) vline(g, x, 74, 22, '#2f5688');
+  vline(g, dx + 16, 73, 23, '#24467a');
+  hline(g, dx, 73, 32, '#5a86c0');
+  rect(g, dx + 5, 76, 7, 5, '#ffd9a0');
+  rect(g, dx + 20, 76, 7, 5, '#ffd9a0');
+  px(g, dx + 13, 86, '#ffd166');
+  px(g, dx + 18, 86, '#ffd166');
+  // la lanterne, à côté de la porte
+  rect(g, dx + 36, 68, 4, 6, '#2e2e3c');
+  rect(g, dx + 37, 69, 2, 4, '#ffd9a0');
+  px(g, dx + 37, 67, '#2e2e3c');
+  // le seuil de pierre, le paillasson orange
+  rect(g, dx - 2, 96, 36, 2, '#9a948a');
+  rect(g, dx + 2, 98, 28, 5, P.orangeDeep);
+  for (let i = 0; i < 2; i++) hline(g, dx + 4, 99 + i * 2, 24, i % 2 ? P.orangeDark : P.orange);
   g.fillStyle = 'rgba(16,24,12,0.22)';
-  g.fillRect(234, 96, 20, 3);
-  g.fillRect(292, 96, 30, 3);
+  g.fillRect(232, 96, 22, 3);
+  g.fillRect(292, 96, 32, 3);
 
   // les massifs au pied de la façade, et des fourrés au premier plan
   bush(g, 236, 102, 14, r);
@@ -434,7 +454,7 @@ export class OutsideRenderer {
         if (ok(x, y)) this.flowers.push({ x, y, col: r() < 0.2 ? '#ffffff' : col });
       }
     }
-    for (let i = 0; i < 12; i++) this.roof.push({ x: 236 + Math.floor(r() * 84), y: 34 + Math.floor(r() * 5), h: 3, c: Math.floor(r() * 3), tall: false });
+    for (let i = 0; i < 0; i++) this.roof.push({ x: 236 + Math.floor(r() * 84), y: 34 + Math.floor(r() * 5), h: 3, c: Math.floor(r() * 3), tall: false });
   }
 
   draw(g: G, o: Outside, tod: TimeOfDay) {
@@ -446,6 +466,7 @@ export class OutsideRenderer {
     g.globalAlpha = 1;
     g.drawImage(this.bg, 0, 0);
     this.sky(g, t, tod);
+    this.smoke(g, t, gust, tod);
     this.sea(g, t, tod);
     this.shadows(g, t);
     this.ropes(g, t, gust);
@@ -506,11 +527,11 @@ export class OutsideRenderer {
   /** Le ciel : des nuages qui dérivent lentement, des mouettes, le phare qui clignote au loin. */
   private sky(g: G, t: number, tod: TimeOfDay) {
     if (tod !== 'night') {
-      // les nuages passent derrière le pavillon
+      // les nuages passent derrière la maison
       g.save();
       g.beginPath();
       g.rect(0, 0, 230, HORIZON);
-      g.rect(230, 0, 96, 30);
+      g.rect(230, 0, 96, 17);
       g.rect(326, 0, W - 326, HORIZON - 4);
       g.clip();
       const col = tod === 'day' ? ['#ffffff', '#e4f1fa'] : ['#ffc9a8', '#d98a8a'];
@@ -537,6 +558,19 @@ export class OutsideRenderer {
       g.fillRect(rx, ry, 2, 1);
       g.fillRect(rx - 2, ry - up, 2, 1);
       g.fillRect(rx + 2, ry - up, 2, 1);
+    }
+  }
+
+  /** La fumée de la cheminée : elle monte, puis le vent l'emporte vers la droite. */
+  private smoke(g: G, t: number, gust: number, tod: TimeOfDay) {
+    const col = tod === 'night' ? '#8a90a8' : tod === 'evening' ? '#d8c0c0' : '#e8ecf0';
+    for (let i = 0; i < 9; i++) {
+      const u = (t * 0.35 + i / 9) % 1;
+      const x = 241 + u * u * (26 + gust * 10) + Math.sin(t * 2 + i) * 1.2;
+      const y = 5 - u * 10;
+      const r = 1 + Math.round(u * 3);
+      g.fillStyle = rgba(col, 0.7 * (1 - u));
+      g.fillRect(Math.round(x - r / 2), Math.round(y - r / 2), r + 1, r);
     }
   }
 
@@ -716,7 +750,7 @@ export class OutsideRenderer {
     l.fillRect(0, 0, W, H);
     l.fillStyle = AMBIENT[tod];
     for (let x = 0; x < W; x++) l.fillRect(x, EDGE[x] - 2, 1, H - EDGE[x] + 2);
-    l.fillRect(230, 28, 96, 72);
+    l.fillRect(226, 4, 104, 96);
     l.globalCompositeOperation = 'lighter';
     const add = (x: number, y: number, r: number, color: string, a: number) => {
       const grd = l.createRadialGradient(x, y, 0, x, y, r);
@@ -727,9 +761,10 @@ export class OutsideRenderer {
       l.fillRect(x - r, y - r, r * 2, r * 2);
     };
     const night = tod === 'night';
-    add(306, 70, 36, '#ffcf8a', night ? 0.9 : 0.65);
-    add(244, 68, 20, '#ffcf8a', night ? 0.7 : 0.5);
-    add(272, 88, 36, '#ffd9a0', 0.9);
+    add(308, 64, 24, '#ffcf8a', night ? 0.85 : 0.6);
+    add(246, 64, 24, '#ffcf8a', night ? 0.85 : 0.6);
+    add(294, 71, 26, '#ffd9a0', 0.95);
+    add(272, 80, 20, '#ffd9a0', 0.5);
     add(272, 112, 30, '#ffd9a0', 0.45);
     for (const f of OUTSIDE_FURNITURE) if (f.kind === 'bollard') add(f.tx * T + 8, (f.ty + 1) * T - 10, 24, '#ffd9a0', 0.8);
     for (const w of o.walkers) add(w.x, w.y - 13 - w.hop, 8, P.orange, 0.45);

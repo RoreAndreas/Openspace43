@@ -1,4 +1,4 @@
-// Dehors : le pavillon 43 (à droite), une prairie au vent qui s'arrête au bord de la falaise, et au-delà, la mer jusqu'à
+// Dehors : la maison 43 (à droite), une prairie au vent qui s'arrête au bord de la falaise, et au-delà, la mer jusqu'à
 // l'horizon, avec le phare au loin à gauche. Le sol (où l'on marche) est vu de dessus en 3/4, comme le bureau ; le fond
 // (le ciel, la mer, l'horizon) est un panorama en perspective. Un petit promontoire avance vers le large : le banc y regarde la mer.
 // On y arrive par la porte d'entrée du bureau. Pendant les heures de travail, seul Roré sort (quand tu le diriges) ;
@@ -13,9 +13,9 @@ type Pt = { x: number; y: number };
 
 // ── Le plan ──
 
-/** La porte du pavillon : deux cases, dans la façade (rangée 5). Roré y entre en marchant vers le haut. */
+/** La porte de la maison : deux cases, dans la façade (rangée 5). Roré y entre en marchant vers le haut. */
 export const OUT_DOOR = { col: 16, row: 5, x: 16 * T, y: 4 * T + 8, w: 2 * T, h: 2 * T - 8 };
-/** Le pavillon, à droite (en pixels) : on ne marche pas dessus. */
+/** La maison, à droite (en pixels) : on ne marche pas dessus. */
 export const HOUSE = { x0: 232, x1: 324, y1: 6 * T };
 /** La ligne d'horizon (en pixels). */
 export const HORIZON = 46;
@@ -25,7 +25,7 @@ export const GRASS_ROW = 5;
 const bump = (u: number) => (Math.abs(u) >= 1 ? 0 : Math.pow(1 - u * u, 1.5));
 
 /** Le bord de la falaise : là où commence l'herbe (en pixels), pour chaque x ; au-dessus, c'est le vide et la mer, au loin.
- *  Un promontoire avance vers le large (le banc) ; à droite, le terrain remonte derrière le pavillon. */
+ *  Un promontoire avance vers le large (le banc) ; à droite, le terrain remonte derrière la maison. */
 export function coastY(x: number): number {
   const base = 118 - 6 * Math.sin(x * 0.02) - 15 * bump((x - 112) / 36) + 1.6 * Math.sin(x * 0.23) + 1.2 * Math.sin(x * 0.071 + 1);
   const k = Math.max(0, Math.min(1, (x - 188) / 52));
@@ -56,10 +56,10 @@ export const OUTSIDE_FURNITURE: OutFurn[] = [
   { id: 'fishing', kind: 'fishing', tx: 2, ty: 8, w: 1, h: 1, label: 'Le coin de pêche, au bord de la falaise : bientôt un jeu' },
   { id: 'windsock', kind: 'windsock', tx: 11, ty: 8, w: 1, h: 1, label: 'La manche à air : elle dit d’où vient le vent' },
   // les bornes lumineuses le long du chemin (on passe à côté)
-  { id: 'bollard-1', kind: 'bollard', tx: 15, ty: 6, w: 0, h: 0, label: 'Une borne lumineuse' },
-  { id: 'bollard-2', kind: 'bollard', tx: 18, ty: 6, w: 0, h: 0, label: 'Une borne lumineuse' },
-  { id: 'bollard-3', kind: 'bollard', tx: 14, ty: 10, w: 0, h: 0, label: 'Une borne lumineuse' },
-  { id: 'bollard-4', kind: 'bollard', tx: 7, ty: 10, w: 0, h: 0, label: 'Une borne lumineuse' },
+  { id: 'bollard-1', kind: 'bollard', tx: 15, ty: 6, w: 0, h: 0, label: 'Une lanterne sur son poteau' },
+  { id: 'bollard-2', kind: 'bollard', tx: 18, ty: 6, w: 0, h: 0, label: 'Une lanterne sur son poteau' },
+  { id: 'bollard-3', kind: 'bollard', tx: 14, ty: 10, w: 0, h: 0, label: 'Une lanterne sur son poteau' },
+  { id: 'bollard-4', kind: 'bollard', tx: 7, ty: 10, w: 0, h: 0, label: 'Une lanterne sur son poteau' },
 ];
 
 /** Le coin de pêche : là où l'on se tient pour lancer la ligne. */
@@ -154,7 +154,7 @@ export class Outside {
   /** les collègues sortis prendre l'air (en dehors des heures de travail) */
   guests: Walker[] = [];
   driving = false;
-  /** Roré franchit la porte du pavillon en marchant (pour changer de pièce avec lui) */
+  /** Roré franchit la porte de la maison en marchant (pour changer de pièce avec lui) */
   onDoor?: () => void;
   /** le coin de pêche : le jeu de pêche se branchera ici */
   onFish?: () => void;
@@ -350,7 +350,7 @@ export class Outside {
 
   steer(dx: number, dy: number) { this.steerX = dx; this.steerY = dy; }
 
-  /** Roré arrive par la porte du pavillon, avec toi aux commandes. */
+  /** Roré arrive par la porte de la maison, avec toi aux commandes. */
   enterRore() {
     const me = this.rore;
     this.stand(me);
