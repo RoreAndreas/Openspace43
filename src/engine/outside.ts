@@ -45,7 +45,7 @@ export const OUTSIDE_FURNITURE: OutFurn[] = [
   { id: 'tree-1', kind: 'tree', tx: 21, ty: 6, w: 1, h: 1, label: TREE },
   { id: 'tree-2', kind: 'tree', tx: 13, ty: 5, w: 1, h: 1, label: TREE },
   // dans la prairie, au premier plan
-  { id: 'pine-2', kind: 'pine', tx: 1, ty: 10, w: 1, h: 1, label: PINE },
+  { id: 'pine-2', kind: 'pine', tx: 1, ty: 12, w: 1, h: 1, label: PINE },
   { id: 'tree-3', kind: 'tree', tx: 19, ty: 11, w: 1, h: 1, label: TREE },
   { id: 'pine-3', kind: 'pine', tx: 12, ty: 13, w: 1, h: 1, label: PINE },
   { id: 'tree-4', kind: 'tree', tx: 6, ty: 15, w: 1, h: 1, label: TREE },
@@ -53,7 +53,7 @@ export const OUTSIDE_FURNITURE: OutFurn[] = [
   // où s'asseoir, où pêcher
   { id: 'bench', kind: 'bench', tx: 6, ty: 7, w: 3, h: 1, label: 'Le banc du promontoire, face au large' },
   { id: 'log', kind: 'log', tx: 3, ty: 13, w: 2, h: 1, label: 'Un vieux tronc, à l’ombre des pins : on s’y assoit' },
-  { id: 'fishing', kind: 'fishing', tx: 2, ty: 8, w: 1, h: 1, label: 'Le coin de pêche, au bord de la falaise : bientôt un jeu' },
+  { id: 'fishing', kind: 'fishing', tx: 2, ty: 8, w: 1, h: 1, label: 'Le coin de pêche : clique pour partir pêcher en barque' },
   { id: 'windsock', kind: 'windsock', tx: 11, ty: 8, w: 1, h: 1, label: 'La manche à air : elle dit d’où vient le vent' },
   // les bornes lumineuses le long du chemin (on passe à côté)
   { id: 'bollard-1', kind: 'bollard', tx: 15, ty: 6, w: 0, h: 0, label: 'Une borne lumineuse' },
@@ -423,7 +423,9 @@ export function outsideHitAt(o: Outside, x: number, y: number, place: (f: OutFur
     }
   }
   if (x >= OUT_DOOR.x && x < OUT_DOOR.x + OUT_DOOR.w && y >= OUT_DOOR.y && y < (OUT_DOOR.row + 1) * T) return { kind: 'door', label: 'La porte du bureau : retour au travail' };
-  for (const f of OUTSIDE_FURNITURE) {
+  // les petits objets d'abord : un arbre ne doit pas cacher le coin de pêche ou le banc
+  const order = [...OUTSIDE_FURNITURE].sort((a, b) => Number(a.kind === 'tree' || a.kind === 'pine') - Number(b.kind === 'tree' || b.kind === 'pine'));
+  for (const f of order) {
     const p = place(f);
     if (x >= p.x && x < p.x + p.w && y >= p.y && y < p.y + p.h) return { kind: 'object', id: f.id, label: f.label };
   }

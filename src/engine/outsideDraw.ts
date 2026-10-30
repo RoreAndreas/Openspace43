@@ -540,6 +540,36 @@ export class OutsideRenderer {
   /** La mer, en perspective : la houle qui avance vers nous (petite au loin, plus grande près de la falaise), le reflet de l'astre, des voiliers. */
   private sea(g: G, t: number, tod: TimeOfDay) {
     const [far, near] = SEA[tod];
+    // la houle : de longues lignes ondulées qui avancent vers nous, plus amples et plus espacées près de la falaise
+    for (let k = 0; k < 7; k++) {
+      const p = ((k / 7 + t * 0.012) % 1) ** 1.35;
+      const y0 = HORIZON + 2 + p * (SEA_BOTTOM - HORIZON - 2);
+      const amp = 0.4 + p * 2.2, freq = 0.09 - p * 0.05;
+      const fade = Math.sin(((k / 7 + t * 0.012) % 1) * Math.PI);
+      g.fillStyle = rgba(mix(mix(far, near, p), '#ffffff', 0.35), 0.18 + 0.32 * fade);
+      for (let x = 0; x < W; x += 1) {
+        const y = Math.round(y0 + Math.sin(x * freq + t * (0.8 + k * 0.07) + k * 2) * amp);
+        if (y >= edgeAt(x) - 1) continue;
+        // la crête : un trait plus clair là où la vague est la plus haute
+        if (Math.sin(x * freq + t * (0.8 + k * 0.07) + k * 2) < -0.35) g.fillRect(x, y, 1, 1);
+      }
+    }
+    // des moutons d'écume qui naissent et s'effacent ici et là
+    for (let i = 0; i < 18; i++) {
+      const cycle = Math.floor(t / 2.4 + i * 0.37);
+      const life = (t / 2.4 + i * 0.37) % 1;
+      const h = Math.sin(cycle * 12.9898 + i * 78.233) * 43758.5453;
+      const u = h - Math.floor(h), v = (h * 7.13) - Math.floor(h * 7.13);
+      const p = v ** 1.2;
+      const y = Math.round(HORIZON + 4 + p * (SEA_BOTTOM - HORIZON - 8));
+      const x = Math.round(u * W);
+      if (y >= edgeAt(x) - 2) continue;
+      const a = Math.sin(life * Math.PI);
+      const w = 1 + Math.round(p * 4 * a);
+      g.fillStyle = rgba('#ffffff', 0.75 * a);
+      g.fillRect(x - Math.floor(w / 2), y, w, 1);
+      if (p > 0.4 && a > 0.5) g.fillRect(x, y - 1, 1, 1);
+    }
     for (let i = 0; i < 46; i++) {
       const p = ((i * 0.137 + t * 0.018) % 1) ** 1.3;
       const y = Math.round(HORIZON + 2 + p * (SEA_BOTTOM - HORIZON - 2));

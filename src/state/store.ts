@@ -85,8 +85,8 @@ export type Modal =
   | { kind: 'howto' }
   /** la galerie des personnages ; avec `pick`, on choisit celui d'un agent */
   | { kind: 'characters'; pick?: { role: Role; name: string; agent?: string } }
-  /** un mini-jeu de la Pause : le ping-pong, ou la borne d'arcade (Spartan Run) */
-  | { kind: 'game'; game: 'pingpong' | 'arcade' };
+  /** un mini-jeu : le ping-pong ou la borne d'arcade (Spartan Run) dans la Pause, la pêche Dehors */
+  | { kind: 'game'; game: 'pingpong' | 'arcade' | 'fishing' };
 
 interface S {
   connection: 'connecting' | 'live' | 'offline' | 'demo';

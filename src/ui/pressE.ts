@@ -35,7 +35,7 @@ export function nearRore(): Near | null {
     const seat = outside.seatNear();
     if (seat) offer(0, 1, { verb: seat.verb, act: () => outside.sitRore(seat.id) });
     // la canne à pêche (dans la brèche de la clôture)
-    offer(Math.hypot(px - FISH_SPOT.x, py - FISH_SPOT.y), 20, { verb: 'Pêcher', act: () => interactOutside({ kind: 'object', id: 'fishing', label: '' }) });
+    offer(Math.hypot(px - FISH_SPOT.x, py - FISH_SPOT.y), 20, { verb: 'Partir pêcher en barque', act: () => interactOutside({ kind: 'object', id: 'fishing', label: '' }) });
     if (me.y < 7 * T && me.x >= OUT_DOOR.x && me.x <= OUT_DOOR.x + OUT_DOOR.w) offer(0, 1, { verb: 'Rentrer au bureau', act: () => interactOutside({ kind: 'door', label: '' }) });
     return best;
   }

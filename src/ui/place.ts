@@ -98,8 +98,8 @@ export function installDoors() {
   world.onExit = () => goRoom('outside');
   annex.onDoor = () => goRoom('office');
   outside.onDoor = () => goRoom('office');
-  // la canne à pêche : le jeu de pêche s'ouvrira ici (en attendant, un petit mot)
-  outside.onFish = () => useOffice.getState().toast('info', 'La pêche arrive bientôt : Roré prépare sa canne.');
+  // la canne à pêche : Roré part en barque (le mini-jeu de la pêche)
+  outside.onFish = () => { sfx('open'); useOffice.setState({ modal: { kind: 'game', game: 'fishing' } }); };
 }
 
 /** Ceux qui aiment prendre l'air sortent en premier (la fenêtre, les plantes, la promenade). */

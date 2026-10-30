@@ -63,14 +63,15 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
   falaise `coastY`, `HORIZON`, la grille, `Walker` pour Roré et les collègues, places assises `SEATS` avec leur regard, chemins `PATHS`,
   vent `gust`), `engine/outsideDraw.ts` (deux plans : le sol en 3/4 comme le bureau, et un fond en perspective, ciel, mer jusqu'à
   l'horizon, phare au loin ; pavillon au toit plat avec le petit logo 43, prairie animée, pins, manche à air, lumière), `audio/outside.ts` (vent, mer et
-  musique lofi en Web Audio, sans fichier ; coupé avec le son). `goRoom` (`ui/place.ts`) repasse toujours par le bureau. Le jeu de
-  pêche se branche sur `outside.onFish`.
+  musique lofi en Web Audio, sans fichier ; coupé avec le son). `goRoom` (`ui/place.ts`) repasse toujours par le bureau. Le coin de
+  pêche (`outside.onFish`) ouvre la fenêtre `game` « fishing » (`ui/games/Fishing.tsx`, façon *Scale the Depths* : plongée, prises,
+  écaillage, clients, matériel ; sauvegarde `fish` dans `bureau:jeux`, `FishSave` dans `common.ts`).
 - **Les heures de travail** (`workHours` dans le store, préférence `bureau:workHours`, `isWorkTime` ; champ dans les Réglages) :
   pendant, seul Roré sort ; en dehors, `syncOutside` (`ui/place.ts`) envoie trois collègues dehors (`outside.setGuests`) et les
   retire de la Pause (`annex.setAway`, `Pal.away` ; `annex.pals` ne liste que ceux qui sont là, `annex.everyone` tout le monde).
 - **S'asseoir** : E sur un pouf, un tabouret, le canapé (`annex.seatNear/sitRore/standRore`), le canapé ou son fauteuil au bureau
   (`world.seatNear/sitChef/standChef`, `SOFA_SEATS`), le banc et le tronc (`outside.seatNear/sitRore/standRore`). Une flèche ou « E · Se lever » le relève.
-- **Les mini-jeux** (fenêtre `game`) : `ui/games/` (`PingPong.tsx`, `SpartanRun.tsx`, boucle à pas fixe et scores
+- **Les mini-jeux** (fenêtre `game`) : `ui/games/` (`PingPong.tsx`, `SpartanRun.tsx`, `Fishing.tsx`, boucle à pas fixe et scores
   localStorage `bureau:jeux` dans `common.ts`). Ouverts par un clic sur la table de ping-pong ou une borne (`interactAnnex`).
 - **Hares** (rôle `hares`, s'assoit au coin Analyse) : le financier, sur la base 43 WACC. `shared/wacc43.ts` extrait `DATA` de la page
   WACC43 et l'interroge (sociétés, pays, industries, taux, CMPC identique à `moteur/wacc_core.py`). En ligne, `/api/wacc43` du Worker

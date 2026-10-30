@@ -81,10 +81,10 @@ class OutsideAudio {
       this.nodes.push(src, lfo);
     };
     // le vent : un souffle médium, qui varie (deux rythmes qui se croisent)
-    loop(520, 0.7, 0.16, 0.11, 0.8, 'bandpass');
-    loop(1300, 1.2, 0.05, 0.27, 0.9, 'bandpass');
+    loop(520, 0.7, 0.06, 0.11, 0.8, 'bandpass');
+    loop(1300, 1.2, 0.018, 0.27, 0.9, 'bandpass');
     // la mer, tout en bas : un grondement sourd, une vague toutes les huit secondes environ
-    loop(260, 0.5, 0.12, 0.125, 0.9, 'lowpass');
+    loop(260, 0.5, 0.05, 0.125, 0.9, 'lowpass');
 
     const music = ctx.createGain();
     music.gain.value = 0.55;
