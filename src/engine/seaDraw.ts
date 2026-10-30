@@ -28,8 +28,16 @@ const AMBIENT: Record<TimeOfDay, string> = { day: '#ffffff', evening: '#c8a2b0',
 const STRATA = ['#c2b6a0', '#b0a48e', '#9c917f', '#8a806f', '#776e60'];
 
 const hash = (n: number) => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
-/** La hauteur de la falaise selon la face de l'île (son profil, qui tourne avec la barque). */
-const cliffH = (a: number) => CLIFF + 6 * Math.sin(a * 3 + 0.6) + 4 * Math.sin(a * 7 + 1.7) + 2 * Math.sin(a * 13);
+/** La hauteur de la falaise selon la face de l'île (son profil, qui tourne avec la barque). Autour du pavillon, le
+ *  terrain est aplani : une terrasse, pour que la maison soit bien posée. */
+const roughH = (a: number) => CLIFF + 6 * Math.sin(a * 3 + 0.6) + 4 * Math.sin(a * 7 + 1.7) + 2 * Math.sin(a * 13);
+const TERRACE = roughH(LANDMARKS.pavilion) + 2;
+const cliffH = (a: number) => {
+  const d = Math.abs(angleDiff(a, LANDMARKS.pavilion));
+  const k = Math.max(0, Math.min(1, (d - 0.1) / 0.12));
+  const s = k * k * (3 - 2 * k);
+  return TERRACE + (roughH(a) - TERRACE) * s;
+};
 /** Où tombe à l'écran un point de l'île (angle `a`), vu de la barque (angle `at`) ; et s'il est de notre côté. */
 const project = (a: number, at: number, r = RS) => { const d = angleDiff(a, at); return { x: CX + Math.sin(d) * r, front: Math.cos(d) }; };
 /** Le haut de la falaise à l'écran, à une colonne donnée. */
@@ -196,8 +204,17 @@ export class SeaRenderer {
   }
 
   /** Le pavillon 43 au bord du plateau, et le chemin de la barque qui descend la falaise jusqu'au ponton. */
-  private pavilion(g: G, x: number, top: number, front: number, tod: TimeOfDay) {
-    const w = Math.round(22 * front), bx = Math.round(x - w / 2), by = top - 9;
+  private pavilion(g: G, x: number, _top: number, front: number, tod: TimeOfDay) {
+    const w = Math.round(22 * front), bx = Math.round(x - w / 2);
+    // la maison se pose sur le point le plus haut du terrain sous elle ; là où le sol descend, un soubassement de pierre
+    let top = HORIZON;
+    for (let sx = bx; sx < bx + w; sx++) top = Math.min(top, this.tops[sx] || HORIZON);
+    for (let sx = bx - 1; sx <= bx + w; sx++) {
+      const ground = this.tops[sx] || top;
+      if (ground > top) { rect(g, sx, top, 1, ground - top + 1, '#a7a29a'); if ((sx - bx) % 3 === 0) vline(g, sx, top + 1, ground - top, '#8a857c'); }
+    }
+    rect(g, bx - 1, top - 1, w + 2, 1, '#c2bdb4');
+    const by = top - 9;
     rect(g, bx - 1, by - 2, w + 2, 2, '#8a8a92');
     rect(g, bx, by, w, 8, '#efe9de');
     rect(g, bx, by, Math.round(w * 0.25), 8, '#a8743f');
