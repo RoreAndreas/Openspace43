@@ -1,33 +1,44 @@
-// Le dessin de Dehors : le pavillon 43 (toit végétalisé, bardage bois, grande baie), la prairie que le vent parcourt
-// en vagues, les pins parasols couchés par le vent du large, la falaise en strates et la mer, turquoise au pied des
-// rochers, avec un îlot et son phare. Le décor fixe est dessiné une fois par heure du jour ; le reste bouge à chaque image.
-import { coastY, OUT_DOOR, OUTSIDE_FURNITURE, PATHS, type Outside, type OutFurn, type Walker } from './outside.ts';
+// Le dessin de Dehors. Deux plans :
+// - le fond, en perspective : le ciel, la mer qui s'étend jusqu'à l'horizon (brumeuse au loin, plus franche près de
+//   la falaise), le soleil ou la lune et leur reflet, un cap lointain avec son phare, à gauche ;
+// - le sol, vu de dessus en 3/4 comme le bureau : le pavillon 43 à droite (toit végétalisé, bardage bois, grande baie),
+//   la prairie que le vent parcourt en vagues, les pins, le chemin de gravier, et le bord de la falaise, face au large.
+// Le décor fixe est dessiné une fois par heure du jour ; le reste bouge à chaque image.
+import { coastY, HORIZON, OUT_DOOR, OUTSIDE_FURNITURE, PATHS, type Outside, type OutFurn, type Walker } from './outside.ts';
 import { H, T, W } from './layout.ts';
-import { g2d, hline, makeCanvas, outline, P, px, rect, rgba, rng, vline, type G } from './pixels.ts';
+import { g2d, hline, makeCanvas, mix, outline, P, px, rect, rgba, rng, vline, type G } from './pixels.ts';
 import { ANCHOR_X, ANCHOR_Y, robotSprite } from './robots.ts';
 import type { TimeOfDay } from './room.ts';
 import type { Sprite } from './furniture.ts';
 
 // ── Les couleurs, selon l'heure ──
-/** La mer, du pied de la falaise (turquoise) vers le large (profond). */
-const SEA: Record<TimeOfDay, string[]> = {
-  day: ['#7fd3cf', '#4fb3c4', '#2f8fb8', '#2873a8', '#225c94'],
-  evening: ['#e0a08a', '#b5717f', '#7d4f7f', '#55406f', '#3d3462'],
-  night: ['#2a4a6a', '#1f3a5c', '#172e50', '#122544', '#0e1d38'],
+const SKY: Record<TimeOfDay, string[]> = {
+  day: ['#5fa8e6', '#7cbaec', '#9bcdf1', '#bcdff5', '#dcedf7'],
+  evening: ['#2e2a5e', '#56397a', '#9a4c7c', '#e0755f', '#ffb77a'],
+  night: ['#080b22', '#0c1230', '#111a3e', '#18234c', '#202d5a'],
 };
-const GLINT: Record<TimeOfDay, string> = { day: '#ffffff', evening: '#ffd2a8', night: '#c9d6f5' };
+/** La mer : au loin (brumeuse, presque la couleur de l'horizon), et tout près de la falaise. */
+const SEA: Record<TimeOfDay, [string, string]> = {
+  day: ['#a6d2ea', '#2a78b2'],
+  evening: ['#f0a88a', '#3e3470'],
+  night: ['#28335e', '#0d1734'],
+};
+const LAND: Record<TimeOfDay, [string, string]> = {
+  day: ['#86a6b6', '#9ab8c6'],
+  evening: ['#7a4f78', '#8e5e84'],
+  night: ['#161d3c', '#1d2648'],
+};
+const GLINT: Record<TimeOfDay, string> = { day: '#ffffff', evening: '#ffd2a0', night: '#dfe6ff' };
 const AMBIENT: Record<TimeOfDay, string> = { day: '#ffffff', evening: '#b79db3', night: '#36447c' };
-const STONE = ['#c2b6a0', '#a99d88', '#8f8472', '#766c5e', '#5f5750'];
+/** Le soleil (ou la lune) : sa place dans le ciel ; son reflet descend vers nous. */
+const SUN_X = 150;
 
-// ── La côte, colonne par colonne ──
+// ── Le bord de la falaise, colonne par colonne ──
 const EDGE: number[] = [];
-const SEA_TOP: number[] = [];
-for (let x = 0; x < W; x++) {
-  const e = Math.round(coastY(x));
-  EDGE.push(e);
-  SEA_TOP.push(e + 3 + Math.round(15 + 3 * Math.sin(x * 0.05) + 2 * Math.sin(x * 0.13)));
-}
+for (let x = 0; x < W; x++) EDGE.push(Math.round(coastY(x)));
 const edgeAt = (x: number) => EDGE[Math.max(0, Math.min(W - 1, Math.round(x)))];
+/** Le bas de la mer visible (le bord de la falaise le plus bas). */
+const SEA_BOTTOM = Math.max(...EDGE.slice(0, 200));
 
 /** La distance d'un point au chemin de gravier. */
 function toPath(x: number, y: number) {
@@ -42,28 +53,32 @@ function toPath(x: number, y: number) {
 }
 
 /** Le pavillon (pour ne pas y faire pousser d'herbe). */
-const inBuilding = (x: number, y: number) => x >= 88 && x <= 264 && y < 104;
+const inBuilding = (x: number, y: number) => x >= 228 && x <= 328 && y < 104;
+/** La profondeur d'un point de la mer : 0 à l'horizon, 1 au pied de la vue. */
+const depth = (y: number) => Math.max(0, Math.min(1, (y - HORIZON) / (SEA_BOTTOM - HORIZON)));
 
 // ── Les meubles de Dehors ──
 
-function benchSprite(): Sprite {
-  const c = makeCanvas(48, 24);
+/** Le banc, vu de dos : on s'y assoit face à la mer. Le dossier passe devant celui qui est assis. */
+function benchBackSprite(): Sprite {
+  const c = makeCanvas(48, 20);
   const g = g2d(c);
-  rect(g, 2, 1, 3, 15, P.woodDark);
-  rect(g, 43, 1, 3, 15, P.woodDark);
-  rect(g, 4, 2, 40, 3, P.wood);
-  hline(g, 4, 2, 40, P.woodHi);
-  rect(g, 4, 6, 40, 3, P.wood);
-  hline(g, 4, 6, 40, P.woodHi);
-  rect(g, 1, 10, 46, 6, P.woodHi);
-  hline(g, 1, 10, 46, P.woodLight);
-  for (const x of [16, 32]) vline(g, x, 11, 5, P.wood);
-  rect(g, 1, 16, 46, 2, P.woodFront);
-  rect(g, 4, 18, 3, 5, '#2b2836');
-  rect(g, 41, 18, 3, 5, '#2b2836');
+  // l'assise, qu'on voit par-dessus le dossier
+  rect(g, 2, 1, 44, 5, P.woodHi);
+  hline(g, 2, 1, 44, P.woodLight);
+  for (const x of [16, 32]) vline(g, x, 2, 4, P.wood);
+  // les montants et les deux lattes du dossier
+  rect(g, 2, 2, 3, 15, P.woodDark);
+  rect(g, 43, 2, 3, 15, P.woodDark);
+  rect(g, 4, 7, 40, 3, P.wood);
+  hline(g, 4, 7, 40, P.woodHi);
+  rect(g, 4, 11, 40, 3, P.wood);
+  hline(g, 4, 11, 40, P.woodHi);
+  rect(g, 4, 16, 3, 3, '#2b2836');
+  rect(g, 41, 16, 3, 3, '#2b2836');
   outline(c, P.ink);
   g.fillStyle = P.shadow;
-  g.fillRect(3, 23, 42, 1);
+  g.fillRect(3, 19, 42, 1);
   return { c, ox: 0, oy: 0, sort: 14 };
 }
 
@@ -76,7 +91,6 @@ function logSprite(): Sprite {
   hline(g, 3, 3, 28, '#8a5f3e');
   for (const x of [8, 15, 22, 27]) vline(g, x, 4, 5, '#5e3d26');
   hline(g, 3, 10, 28, '#5e3d26');
-  // les deux bouts, avec leurs cernes
   for (const x of [1, 29]) { rect(g, x, 3, 4, 8, '#c89b6a'); rect(g, x + 1, 5, 2, 4, '#a87a4c'); px(g, x + 1, 6, '#c89b6a'); }
   for (const [x, y] of [[10, 2], [11, 2], [18, 1], [19, 2], [24, 2]]) px(g, x, y, '#6aa84a');
   outline(c, P.ink);
@@ -85,22 +99,20 @@ function logSprite(): Sprite {
   return { c, ox: 0, oy: 0, sort: 8 };
 }
 
-/** Le coin du pêcheur : un porte-canne, un seau, une boîte d'hameçons. */
+/** Le coin du pêcheur : une boîte d'hameçons, un seau. */
 function fishingSprite(): Sprite {
-  const c = makeCanvas(18, 16);
+  const c = makeCanvas(18, 12);
   const g = g2d(c);
-  rect(g, 1, 9, 7, 5, '#c0563a');
-  hline(g, 1, 9, 7, '#e07a5a');
-  rect(g, 3, 11, 3, 1, '#2b2836');
-  rect(g, 10, 7, 6, 8, '#3a7fc4');
-  hline(g, 10, 7, 6, '#9fd0ff');
-  hline(g, 10, 14, 6, '#285d94');
-  px(g, 11, 6, '#cfd2e0'); px(g, 15, 6, '#cfd2e0'); hline(g, 12, 5, 3, '#cfd2e0');
-  px(g, 12, 8, '#e8eef7'); px(g, 13, 8, '#e8eef7'); px(g, 14, 9, '#e8eef7');
-  // le porte-canne, planté dans l'herbe
-  vline(g, 8, 4, 11, '#563821');
+  rect(g, 1, 5, 7, 5, '#c0563a');
+  hline(g, 1, 5, 7, '#e07a5a');
+  rect(g, 3, 7, 3, 1, '#2b2836');
+  rect(g, 10, 3, 6, 8, '#3a7fc4');
+  hline(g, 10, 3, 6, '#9fd0ff');
+  hline(g, 10, 10, 6, '#285d94');
+  px(g, 11, 2, '#cfd2e0'); px(g, 15, 2, '#cfd2e0'); hline(g, 12, 1, 3, '#cfd2e0');
+  px(g, 12, 4, '#e8eef7'); px(g, 13, 4, '#e8eef7'); px(g, 14, 5, '#e8eef7');
   outline(c, P.ink);
-  return { c, ox: 0, oy: 0, sort: 12 };
+  return { c, ox: 0, oy: 0, sort: 10 };
 }
 
 function bollardSprite(): Sprite {
@@ -125,13 +137,13 @@ function windsockPole(): Sprite {
   return { c, ox: 0, oy: 0, sort: 26 };
 }
 
-/** Un arbre rond : le tronc (fixe) et le feuillage (qui se balance), en trois verts. */
 const LEAVES = [
   [P.leafDark, P.leaf, P.leafHi, P.leafLight, P.leafDeep],
   ['#245c4c', '#2f8266', '#4fae86', '#8be0b0', '#173d34'],
   ['#4a6e2a', '#6a9a36', '#98c250', '#cde87c', '#2f4a1a'],
 ];
 
+/** Un arbre rond : le tronc (fixe) et le feuillage (qui se balance), en trois verts. */
 function roundTree(pal: string[]) {
   const trunk = makeCanvas(10, 16);
   const tg = g2d(trunk);
@@ -185,7 +197,7 @@ const roundOf = (f: OutFurn) => ROUND[(f.tx * 7 + f.ty * 3) % ROUND.length];
 function outSprite(f: OutFurn): Sprite {
   let s = sprites.get(f.kind);
   if (s) return s;
-  s = f.kind === 'bench' ? benchSprite() : f.kind === 'log' ? logSprite() : f.kind === 'fishing' ? fishingSprite() : f.kind === 'windsock' ? windsockPole() : bollardSprite();
+  s = f.kind === 'bench' ? benchBackSprite() : f.kind === 'log' ? logSprite() : f.kind === 'fishing' ? fishingSprite() : f.kind === 'windsock' ? windsockPole() : bollardSprite();
   sprites.set(f.kind, s);
   return s;
 }
@@ -197,9 +209,9 @@ export function outsidePlacement(f: OutFurn): { x: number; y: number; w: number;
   if (f.kind === 'tree') return { x: cx - 17, y: by - 42, w: 34, h: 42, sortY: by };
   const s = outSprite(f);
   const w = s.c.width, h = s.c.height;
-  if (f.kind === 'bench') return { s, x: f.tx * T, y: 189, w, h, sortY: 203 };
-  if (f.kind === 'log') return { s, x: f.tx * T - 1, y: 9 * T - 12, w, h, sortY: 9 * T - 4 };
-  if (f.kind === 'fishing') return { s, x: f.tx * T - 1, y: by - h + 2, w, h, sortY: by - 4 };
+  // le banc passe devant celui qui y est assis (on le voit de dos), mais derrière celui qui se tient derrière
+  if (f.kind === 'bench') return { s, x: f.tx * T, y: (f.ty + 1) * T - 10, w, h, sortY: (f.ty + 1) * T };
+  if (f.kind === 'log') return { s, x: f.tx * T - 1, y: (f.ty + 1) * T - 12, w, h, sortY: (f.ty + 1) * T - 4 };
   return { s, x: cx - Math.floor(w / 2), y: by - h + 1, w, h, sortY: by };
 }
 
@@ -255,134 +267,134 @@ function disc(g: G, cx: number, cy: number, r: number, color: string) {
   for (let dy = -r; dy <= r; dy++) { const w = Math.round(Math.sqrt(r * r - dy * dy)); hline(g, cx - w, cy + dy, w * 2 + 1, color); }
 }
 
+/** Le fond : le ciel, l'astre, le cap lointain et son phare, la mer jusqu'à l'horizon. */
+function drawBackdrop(g: G, tod: TimeOfDay, r: () => number) {
+  // le ciel, en bandes qui s'éclaircissent vers l'horizon
+  const sky = SKY[tod];
+  const bh = Math.ceil(HORIZON / sky.length);
+  sky.forEach((col, i) => rect(g, 0, i * bh, W, bh, col));
+  for (let i = 1; i < sky.length; i++) for (let x = (i % 2) * 2; x < W; x += 4) px(g, x, i * bh, sky[i - 1]);
+  if (tod === 'night') for (let i = 0; i < 60; i++) px(g, Math.floor(r() * W), Math.floor(r() * (HORIZON - 8)), r() < 0.3 ? '#ffffff' : '#9aa8d8');
+  // l'astre : le soleil pâle, le soleil couchant (à moitié dans la mer), ou la lune
+  if (tod === 'day') { disc(g, SUN_X, 14, 9, '#eef7fd'); disc(g, SUN_X, 14, 6, '#fffbe8'); }
+  else if (tod === 'evening') { disc(g, SUN_X, HORIZON - 2, 12, '#ffcf8a'); disc(g, SUN_X, HORIZON - 2, 9, '#fff0c8'); }
+  else { disc(g, SUN_X, 14, 5, '#eef2ff'); disc(g, SUN_X + 2, 13, 4, sky[0]); }
+  // la mer, de l'horizon (brumeuse) jusqu'au pied de la vue
+  const [far, near] = SEA[tod];
+  for (let y = HORIZON; y < H; y++) rect(g, 0, y, W, 1, mix(far, near, Math.pow(depth(y), 0.7)));
+  // la houle : des traits plus longs et plus espacés à mesure qu'on s'approche
+  for (let y = HORIZON + 2; y < SEA_BOTTOM; ) {
+    const p = depth(y);
+    const len = 1 + Math.round(p * 6), gap = 6 + Math.round(p * 16);
+    const col = mix(mix(far, near, Math.pow(p, 0.7)), '#ffffff', 0.12 + 0.08 * (1 - p));
+    for (let x = Math.floor(r() * gap); x < W; x += gap + Math.floor(r() * gap)) hline(g, x, y, len, col);
+    y += 1 + Math.round(p * 4);
+  }
+  // la ligne d'horizon, un peu plus claire
+  hline(g, 0, HORIZON, W, mix(far, '#ffffff', 0.25));
+  // le cap lointain, à gauche, et son phare (tout petit : il est loin)
+  const [land, landHi] = LAND[tod];
+  for (let x = 0; x < 72; x++) {
+    const top = Math.round(HORIZON - 9 + Math.pow(Math.max(0, (x - 28) / 44), 1.6) * 9 - (x < 28 ? Math.sin(x * 0.4) * 1 : 0));
+    if (top < HORIZON) { rect(g, x, top, 1, HORIZON - top + 1, land); px(g, x, top, landHi); }
+  }
+  rect(g, 27, HORIZON - 20, 3, 11, '#f1ede6');
+  rect(g, 27, HORIZON - 16, 3, 2, '#d24a40');
+  rect(g, 26, HORIZON - 22, 5, 2, '#2e2e3c');
+  px(g, 28, HORIZON - 23, '#2e2e3c');
+  // une île au loin
+  for (let x = 92; x < 116; x++) { const top = Math.round(HORIZON - 3 * Math.sin(((x - 92) / 24) * Math.PI)); if (top < HORIZON) rect(g, x, top, 1, HORIZON - top, land); }
+}
+
 function drawBackground(tod: TimeOfDay): HTMLCanvasElement {
   const c = makeCanvas(W, H);
   const g = g2d(c);
   const r = rng(43);
+  drawBackdrop(g, tod, r);
 
-  // la prairie, avec ses plaques plus claires et plus sombres
-  rect(g, 0, 0, W, H, '#5b9a47');
-  for (let i = 0; i < 110; i++) {
-    const x = Math.floor(r() * W), y = Math.floor(r() * 220), w = 10 + Math.floor(r() * 26);
-    rect(g, x, y, w, 5 + Math.floor(r() * 7), ['#63a34e', '#53913f', '#5f9f49', '#6aa850'][Math.floor(r() * 4)]);
+  // le sol : la prairie, du bord de la falaise jusqu'à nous
+  for (let x = 0; x < W; x++) rect(g, x, EDGE[x], 1, H - EDGE[x], '#5b9a47');
+  const onGround = (x: number, y: number) => y > edgeAt(x) + 1;
+  for (let i = 0; i < 130; i++) {
+    const x = Math.floor(r() * W), y = 40 + Math.floor(r() * (H - 40)), w = 10 + Math.floor(r() * 26), h = 5 + Math.floor(r() * 7);
+    const col = ['#63a34e', '#53913f', '#5f9f49', '#6aa850'][Math.floor(r() * 4)];
+    for (let k = 0; k < w; k++) { const top = Math.max(y, edgeAt(x + k) + 2); if (top < y + h) rect(g, x + k, top, 1, y + h - top, col); }
   }
-  for (let i = 0; i < 1100; i++) hline(g, Math.floor(r() * W), Math.floor(r() * 220), 2, r() < 0.5 ? '#4a8a3c' : '#70b25a');
+  for (let i = 0; i < 1300; i++) { const x = Math.floor(r() * W), y = 40 + Math.floor(r() * (H - 40)); if (onGround(x, y) && onGround(x + 1, y)) hline(g, x, y, 2, r() < 0.5 ? '#4a8a3c' : '#70b25a'); }
+  // le bord de la falaise : une lèvre de terre, des touffes qui se découpent sur la mer, quelques pierres
+  for (let x = 0; x < W; x++) {
+    const e = EDGE[x];
+    px(g, x, e, '#3f6a34');
+    px(g, x, e + 1, '#7a5a3a');
+    if (r() < 0.35) px(g, x, e - 1, '#5b9a47');
+    if (r() < 0.12) { px(g, x, e - 2, '#70b25a'); }
+  }
+  for (let i = 0; i < 14; i++) { const x = Math.floor(r() * 200), e = EDGE[x]; rect(g, x, e - 1, 3 + Math.floor(r() * 3), 3, '#9a9488'); hline(g, x, e - 1, 3, '#c2bdb4'); }
 
   // le chemin de gravier : un bord plus sombre, le gravier, des cailloux
-  for (const line of PATHS) for (let i = 0; i < line.length - 1; i++) {
-    const a = line[i], b = line[i + 1], n = Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 1.5);
-    for (let k = 0; k <= n; k++) disc(g, Math.round(a.x + ((b.x - a.x) * k) / n), Math.round(a.y + ((b.y - a.y) * k) / n), 8, '#a8936a');
+  for (const [rad, col] of [[8, '#a8936a'], [6, '#d9c8a0']] as [number, string][]) {
+    for (const line of PATHS) for (let i = 0; i < line.length - 1; i++) {
+      const a = line[i], b = line[i + 1], n = Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 1.5);
+      for (let k = 0; k <= n; k++) disc(g, Math.round(a.x + ((b.x - a.x) * k) / n), Math.round(a.y + ((b.y - a.y) * k) / n), rad, col);
+    }
   }
-  for (const line of PATHS) for (let i = 0; i < line.length - 1; i++) {
-    const a = line[i], b = line[i + 1], n = Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 1.5);
-    for (let k = 0; k <= n; k++) disc(g, Math.round(a.x + ((b.x - a.x) * k) / n), Math.round(a.y + ((b.y - a.y) * k) / n), 6, '#d9c8a0');
-  }
-  for (let i = 0; i < 2600; i++) {
-    const x = Math.floor(r() * W), y = 96 + Math.floor(r() * 100);
+  for (let i = 0; i < 3000; i++) {
+    const x = Math.floor(r() * W), y = 90 + Math.floor(r() * 130);
     if (toPath(x, y) < 6) px(g, x, y, r() < 0.5 ? '#c4b089' : '#efe2c2');
   }
 
-  // la falaise et la mer, colonne par colonne
-  const sea = SEA[tod];
-  for (let x = 0; x < W; x++) {
-    const e = EDGE[x], top = e + 3, bottom = SEA_TOP[x];
-    // le rebord de terre
-    rect(g, x, e, 1, 3, '#8a6a44');
-    px(g, x, e, '#a8824f');
-    // la paroi, en strates (plus claire en haut), et ses fissures
-    const f = bottom - top;
-    for (let y = top; y < bottom; y++) {
-      const k = (y - top) / f;
-      let col = STONE[Math.min(STONE.length - 1, Math.floor(k * STONE.length))];
-      if ((x * 7 + Math.floor((y - top) / 4) * 13) % 17 === 0) col = '#4f4842';
-      px(g, x, y, col);
-    }
-    // la mer : turquoise au pied des rochers, plus profonde vers le large
-    const bands = [[0, 3], [3, 9], [9, 18], [18, 30], [30, 999]];
-    bands.forEach(([d0, d1], i) => { const y0 = bottom + d0, y1 = Math.min(H, bottom + d1); if (y1 > y0) rect(g, x, y0, 1, y1 - y0, sea[i]); });
-  }
-  // l'herbe qui déborde du rebord, des touffes de mousse et de lichen sur la paroi
-  for (let x = 0; x < W; x += 2) if (r() < 0.6) px(g, x, EDGE[x] + (r() < 0.5 ? 0 : 1), '#5b9a47');
-  for (let i = 0; i < 40; i++) { const x = Math.floor(r() * W); rect(g, x, EDGE[x] + 4 + Math.floor(r() * 8), 2 + Math.floor(r() * 2), 1, r() < 0.5 ? '#6a8a4a' : '#c9b25a'); }
-  // des rochers au pied, et l'îlot du phare
-  for (let x = 10; x < W; x += 24 + Math.floor(r() * 26)) {
-    const w = 6 + Math.floor(r() * 8), y = SEA_TOP[x] + 2 + Math.floor(r() * 4);
-    rect(g, x, y, w, 4, '#5f5750');
-    hline(g, x + 1, y, w - 2, '#8f8472');
-  }
-  rect(g, 20, 240, 36, 8, '#5f5750');
-  rect(g, 24, 236, 26, 6, '#766c5e');
-  hline(g, 26, 236, 22, '#a99d88');
-  rect(g, 32, 232, 12, 6, '#8f8472');
-  // le phare : blanc à bandes rouges, sa galerie, sa lanterne
-  rect(g, 35, 214, 7, 20, '#f4f1ea');
-  for (const y of [218, 226]) rect(g, 35, y, 7, 3, '#d9473f');
-  vline(g, 35, 214, 20, '#ffffff');
-  vline(g, 41, 214, 20, '#c9c3b8');
-  rect(g, 34, 212, 9, 2, '#2e2e3c');
-  rect(g, 36, 208, 5, 4, '#2e2e3c');
-  rect(g, 37, 209, 3, 2, '#ffe9a0');
-  px(g, 38, 207, '#d9473f');
-
-  // le pavillon : le toit végétalisé, son bord
-  rect(g, 90, 12, 172, 17, '#3a3a48');
-  rect(g, 92, 13, 168, 14, '#6a9a52');
-  for (let i = 0; i < 120; i++) px(g, 93 + Math.floor(r() * 166), 14 + Math.floor(r() * 12), ['#7fb362', '#557f42', '#b8645a', '#e0c35a', '#8fc06a'][Math.floor(r() * 5)]);
-  rect(g, 88, 28, 176, 4, '#2e2e3c');
-  hline(g, 88, 28, 176, '#4a4a5c');
-  // l'aile gauche : un bardage de bois vertical, une haute fenêtre
-  for (let x = 96; x < 152; x += 3) { rect(g, x, 32, 2, 58, x % 6 ? '#b07c4c' : '#9a6a3e'); vline(g, x + 2, 32, 58, '#6b4528'); }
-  rect(g, 114, 40, 20, 44, '#2e2e3c');
-  glass(g, 116, 42, 16, 40, tod);
-  vline(g, 124, 42, 40, '#2e2e3c');
+  // le pavillon, à droite (petit) : le toit végétalisé, son bord
+  rect(g, 232, 30, 92, 11, '#3a3a48');
+  rect(g, 234, 31, 88, 8, '#6a9a52');
+  for (let i = 0; i < 50; i++) px(g, 235 + Math.floor(r() * 86), 32 + Math.floor(r() * 6), ['#7fb362', '#557f42', '#b8645a', '#e0c35a', '#8fc06a'][Math.floor(r() * 5)]);
+  rect(g, 230, 40, 96, 3, '#2e2e3c');
+  hline(g, 230, 40, 96, '#4a4a5c');
+  // l'aile gauche : un bardage de bois, une fenêtre étroite
+  for (let x = 236; x < 252; x += 3) { rect(g, x, 43, 2, 47, x % 6 ? '#b07c4c' : '#9a6a3e'); vline(g, x + 2, 43, 47, '#6b4528'); }
+  rect(g, 240, 50, 8, 32, '#2e2e3c');
+  glass(g, 241, 51, 6, 30, tod);
   // le centre, enduit clair : le logo, la porte
-  rect(g, 152, 32, 48, 58, '#efe9de');
-  for (let i = 0; i < 60; i++) px(g, 153 + Math.floor(r() * 46), 33 + Math.floor(r() * 56), '#e2dacb');
-  vline(g, 152, 32, 58, '#d9d0c0');
-  vline(g, 199, 32, 58, '#d9d0c0');
-  // l'aile droite : une grande baie vitrée, et l'intérieur qu'on devine
-  rect(g, 200, 32, 56, 58, '#2e2e3c');
-  glass(g, 203, 35, 50, 52, tod);
-  for (const x of [219, 236]) vline(g, x, 35, 52, '#2e2e3c');
-  rect(g, 203, 80, 50, 7, rgba('#4a3a30', 0.35));
-  // une plante et une lampe derrière la vitre
-  rect(g, 240, 70, 6, 10, '#3f7a42');
-  rect(g, 241, 66, 4, 5, '#5a9a52');
-  rect(g, 241, 80, 4, 4, '#b8643f');
-  vline(g, 208, 52, 26, '#2e2e3c');
-  rect(g, 206, 50, 5, 3, '#ffd9a0');
-  // le socle de béton, la façade de côté
-  rect(g, 92, 90, 168, 6, '#a7a29a');
-  hline(g, 92, 90, 168, '#c2bdb4');
-  rect(g, 92, 32, 4, 64, '#7a5236');
-  rect(g, 256, 32, 4, 64, '#232330');
+  rect(g, 252, 43, 40, 47, '#efe9de');
+  for (let i = 0; i < 40; i++) px(g, 253 + Math.floor(r() * 38), 44 + Math.floor(r() * 45), '#e2dacb');
+  vline(g, 252, 43, 47, '#d9d0c0');
+  vline(g, 291, 43, 47, '#d9d0c0');
+  // l'aile droite : une baie vitrée
+  rect(g, 292, 43, 28, 47, '#2e2e3c');
+  glass(g, 294, 45, 24, 42, tod);
+  vline(g, 306, 45, 42, '#2e2e3c');
+  rect(g, 294, 81, 24, 6, rgba('#4a3a30', 0.35));
+  rect(g, 310, 72, 5, 9, '#3f7a42');
+  rect(g, 311, 69, 3, 4, '#5a9a52');
+  // le socle de béton, les côtés
+  rect(g, 234, 90, 88, 6, '#a7a29a');
+  hline(g, 234, 90, 88, '#c2bdb4');
+  rect(g, 232, 43, 4, 53, '#7a5236');
+  rect(g, 320, 43, 4, 53, '#232330');
 
-  sign43(g, 152, 29);
+  sign43(g, 248, 38);
 
   // la porte d'entrée : un auvent, deux battants vitrés, une lumière chaude
-  rect(g, 150, 61, 52, 4, '#2e2e3c');
-  hline(g, 150, 64, 52, '#ffe9c2');
   const dx = OUT_DOOR.x;
-  rect(g, dx - 2, 65, OUT_DOOR.w + 4, 31, '#2e2e3c');
-  rect(g, dx, 66, 15, 30, '#ffd9a0');
-  rect(g, dx + 17, 66, 15, 30, '#ffd9a0');
-  rect(g, dx, 82, 15, 14, '#e8bf80');
-  rect(g, dx + 17, 82, 15, 14, '#e8bf80');
-  hline(g, dx, 66, 32, '#fff0d4');
-  rect(g, dx + 11, 78, 2, 7, P.orangeHi);
-  rect(g, dx + 19, 78, 2, 7, P.orangeHi);
-  // le paillasson orange (comme à l'intérieur)
+  rect(g, dx - 6, 69, OUT_DOOR.w + 12, 3, '#2e2e3c');
+  hline(g, dx - 6, 71, OUT_DOOR.w + 12, '#ffe9c2');
+  rect(g, dx - 2, 72, OUT_DOOR.w + 4, 24, '#2e2e3c');
+  rect(g, dx, 73, 15, 23, '#ffd9a0');
+  rect(g, dx + 17, 73, 15, 23, '#ffd9a0');
+  rect(g, dx, 85, 15, 11, '#e8bf80');
+  rect(g, dx + 17, 85, 15, 11, '#e8bf80');
+  hline(g, dx, 73, 32, '#fff0d4');
+  rect(g, dx + 11, 81, 2, 6, P.orangeHi);
+  rect(g, dx + 19, 81, 2, 6, P.orangeHi);
   rect(g, dx + 2, 96, 28, 6, P.orangeDeep);
   for (let i = 0; i < 3; i++) hline(g, dx + 4, 97 + i * 2, 24, i % 2 ? P.orangeDark : P.orange);
-  // l'ombre du pavillon sur l'herbe
   g.fillStyle = 'rgba(16,24,12,0.22)';
-  g.fillRect(92, 96, 64, 3);
-  g.fillRect(196, 96, 64, 3);
+  g.fillRect(234, 96, 20, 3);
+  g.fillRect(292, 96, 30, 3);
 
-  // les massifs au pied de la façade, et des fourrés sur les côtés
-  bush(g, 96, 102, 54, r);
-  bush(g, 202, 102, 54, r);
-  for (const [bx, by, bw] of [[4, 22, 30], [60, 64, 22], [290, 70, 28], [318, 30, 24], [6, 178, 18], [326, 182, 18]] as [number, number, number][]) bush(g, bx, by, bw, r);
+  // les massifs au pied de la façade, et des fourrés au premier plan
+  bush(g, 236, 102, 14, r);
+  bush(g, 296, 102, 22, r);
+  for (const [bx, by, bw] of [[0, 250, 26], [150, 254, 30], [300, 252, 44], [196, 120, 18]] as [number, number, number][]) bush(g, bx, by, bw, r);
   return c;
 }
 
@@ -401,21 +413,20 @@ export class OutsideRenderer {
   private flowers: Flower[] = [];
   private roof: Blade[] = [];
 
-  /** Les brins d'herbe, les touffes hautes près du vide, les fleurs (en massifs) : placés une fois pour toutes. */
+  /** Les brins d'herbe (hauts et secs au bord du vide), les fleurs en massifs, les herbes du toit : placés une fois. */
   private makeGrass() {
     const r = rng(11);
     const blocked = (x: number, y: number) => OUTSIDE_FURNITURE.some((f) => f.w > 0 && x >= f.tx * T - 2 && x < (f.tx + f.w) * T + 2 && y >= f.ty * T && y < (f.ty + f.h) * T + 2);
-    const ok = (x: number, y: number) => !inBuilding(x, y) && y < edgeAt(x) - 3 && toPath(x, y) > 8 && !blocked(x, y);
-    for (let i = 0; i < 900 && this.blades.length < 560; i++) {
-      const x = 2 + Math.floor(r() * (W - 4)), y = 6 + Math.floor(r() * 200);
+    const ok = (x: number, y: number) => !inBuilding(x, y) && y > edgeAt(x) + 3 && toPath(x, y) > 8 && !blocked(x, y);
+    for (let i = 0; i < 1100 && this.blades.length < 600; i++) {
+      const x = 2 + Math.floor(r() * (W - 4)), y = 44 + Math.floor(r() * (H - 46));
       if (!ok(x, y)) continue;
-      // près du vide et sur les bords : des herbes hautes et sèches, qui plient plus fort
-      const tall = edgeAt(x) - y < 22 || x < 22 || x > W - 22;
+      const tall = y - edgeAt(x) < 14 || x < 16 || y > H - 18;
       this.blades.push({ x, y, h: tall ? 5 + Math.floor(r() * 3) : 3 + Math.floor(r() * 3), c: Math.floor(r() * 3), tall });
     }
     const cols = ['#ff6fa8', '#ffd166', '#ffffff', '#a98bff', '#ff8a3d', '#6fc3ff'];
-    for (let k = 0; k < 14; k++) {
-      const cx = 20 + Math.floor(r() * (W - 40)), cy = 110 + Math.floor(r() * 80);
+    for (let k = 0; k < 16; k++) {
+      const cx = 14 + Math.floor(r() * (W - 28)), cy = 130 + Math.floor(r() * 110);
       if (!ok(cx, cy)) continue;
       const col = cols[Math.floor(r() * cols.length)];
       for (let i = 0; i < 10; i++) {
@@ -423,7 +434,7 @@ export class OutsideRenderer {
         if (ok(x, y)) this.flowers.push({ x, y, col: r() < 0.2 ? '#ffffff' : col });
       }
     }
-    for (let i = 0; i < 26; i++) this.roof.push({ x: 94 + Math.floor(r() * 164), y: 16 + Math.floor(r() * 10), h: 3, c: Math.floor(r() * 3), tall: false });
+    for (let i = 0; i < 12; i++) this.roof.push({ x: 236 + Math.floor(r() * 84), y: 34 + Math.floor(r() * 5), h: 3, c: Math.floor(r() * 3), tall: false });
   }
 
   draw(g: G, o: Outside, tod: TimeOfDay) {
@@ -434,8 +445,9 @@ export class OutsideRenderer {
     g.globalCompositeOperation = 'source-over';
     g.globalAlpha = 1;
     g.drawImage(this.bg, 0, 0);
+    this.sky(g, t, tod);
     this.sea(g, t, tod);
-    this.clouds(g, t);
+    this.shadows(g, t);
     this.ropes(g, t, gust);
     this.grass(g, t, gust);
     this.fishingLine(g, t, gust);
@@ -467,12 +479,10 @@ export class OutsideRenderer {
     for (const w of o.walkers) items.push({ y: w.y, draw: () => this.walker(g, w, w === o.rore && o.driving, t) });
     items.sort((a, b) => a.y - b.y);
     for (const it of items) it.draw();
-    this.gulls(g, t);
     if (tod !== 'night') this.butterflies(g, t);
     this.leaves(g, o);
     o.fx.draw(g);
     if (tod !== 'day') this.lighting(g, o, tod, t);
-    // la nuit, des lucioles (dessinées après la lumière : elles brillent)
     if (tod === 'night') this.fireflies(g, t);
   }
 
@@ -490,6 +500,88 @@ export class OutsideRenderer {
       g.fillRect(x - 2, by, 5, 1);
       g.fillRect(x - 1, by + 1, 3, 1);
       g.fillRect(x, by + 2, 1, 1);
+    }
+  }
+
+  /** Le ciel : des nuages qui dérivent lentement, des mouettes, le phare qui clignote au loin. */
+  private sky(g: G, t: number, tod: TimeOfDay) {
+    if (tod !== 'night') {
+      // les nuages passent derrière le pavillon
+      g.save();
+      g.beginPath();
+      g.rect(0, 0, 230, HORIZON);
+      g.rect(230, 0, 96, 30);
+      g.rect(326, 0, W - 326, HORIZON - 4);
+      g.clip();
+      const col = tod === 'day' ? ['#ffffff', '#e4f1fa'] : ['#ffc9a8', '#d98a8a'];
+      for (const [k, y, w] of [[0, 10, 34], [1, 24, 24], [2, 6, 18], [3, 30, 40]] as [number, number, number][]) {
+        const x = ((t * (1.2 + k * 0.5) + k * 97) % (W + 60)) - 50;
+        rect(g, x + 4, y, w - 8, 3, col[0]);
+        rect(g, x, y + 2, w, 4, col[0]);
+        rect(g, x + 2, y + 5, w - 4, 2, col[1]);
+        rect(g, x + w * 0.3, y - 2, w * 0.35, 3, col[0]);
+      }
+      g.restore();
+    }
+    // la lanterne du phare : un éclat toutes les quatre secondes
+    if ((t % 4) < 0.5) { rect(g, 27, HORIZON - 22, 3, 1, '#fff7c0'); px(g, 26, HORIZON - 22, '#fff7c0'); px(g, 30, HORIZON - 22, '#fff7c0'); }
+    // des mouettes qui planent au-dessus de la mer
+    for (let i = 0; i < 3; i++) {
+      const k = (t * (0.9 + i * 0.2) + i * 17) % 60;
+      const x = -10 + k * 7, y = 52 + i * 14 + Math.sin(t * 0.7 + i * 2) * 5;
+      if (x > W + 10) continue;
+      const up = Math.floor(t * 4 + i) % 2;
+      const rx = Math.round(x), ry = Math.round(y);
+      const c = tod === 'night' ? '#c9d0e8' : '#f6f6fa';
+      g.fillStyle = c;
+      g.fillRect(rx, ry, 2, 1);
+      g.fillRect(rx - 2, ry - up, 2, 1);
+      g.fillRect(rx + 2, ry - up, 2, 1);
+    }
+  }
+
+  /** La mer, en perspective : la houle qui avance vers nous (petite au loin, plus grande près de la falaise), le reflet de l'astre, des voiliers. */
+  private sea(g: G, t: number, tod: TimeOfDay) {
+    const [far, near] = SEA[tod];
+    for (let i = 0; i < 46; i++) {
+      const p = ((i * 0.137 + t * 0.018) % 1) ** 1.3;
+      const y = Math.round(HORIZON + 2 + p * (SEA_BOTTOM - HORIZON - 2));
+      const x = Math.round(((i * 83 + t * (2 + p * 5)) % (W + 20)) - 10);
+      if (y >= edgeAt(x) - 1) continue;
+      const len = 1 + Math.round(p * 7);
+      const fade = Math.sin(((i * 0.137 + t * 0.018) % 1) * Math.PI);
+      g.fillStyle = rgba(mix(mix(far, near, p), '#ffffff', 0.55), 0.25 + 0.45 * fade);
+      g.fillRect(x, y, len, 1);
+    }
+    // le reflet du soleil (ou de la lune) : une colonne qui scintille, plus large près de nous
+    for (let i = 0; i < 40; i++) {
+      if (Math.sin(t * 3.1 + i * 2.3) < 0.2) continue;
+      const p = (i * 0.071) % 1;
+      const y = Math.round(HORIZON + 1 + p * (SEA_BOTTOM - HORIZON));
+      const spread = 2 + p * 16;
+      const x = Math.round(SUN_X + Math.sin(i * 12.9) * spread);
+      if (y >= edgeAt(x) - 1) continue;
+      g.fillStyle = GLINT[tod];
+      g.fillRect(x, y, 1 + Math.round(p * 2), 1);
+    }
+    // deux voiliers : un tout petit à l'horizon, un plus près
+    for (const [k, y, sc, sp] of [[0, HORIZON + 4, 1, 0.04], [1, HORIZON + 26, 2, 0.08]] as [number, number, number, number][]) {
+      const x = Math.round(40 + ((t * sp * 20 + k * 120) % 200));
+      if (y >= edgeAt(x) - 6) continue;
+      rect(g, x, y, 3 * sc, sc === 1 ? 1 : 1, '#e8e5f1');
+      rect(g, x + sc, y - 3 * sc, 1, 3 * sc, '#cfd2e0');
+      rect(g, x + sc + 1, y - 3 * sc + 1, sc, 2 * sc - 1, '#ffffff');
+    }
+  }
+
+  /** Des ombres de nuages qui glissent sur la prairie. */
+  private shadows(g: G, t: number) {
+    g.fillStyle = 'rgba(12,32,20,0.10)';
+    for (const [k, y, rw, rh] of [[0, 170, 46, 10], [1, 224, 36, 8]] as [number, number, number, number][]) {
+      const x = ((t * (7 + k * 3) + k * 150) % (W + 120)) - 60;
+      g.beginPath();
+      g.ellipse(x, y, rw, rh, 0, 0, Math.PI * 2);
+      g.fill();
     }
   }
 
@@ -521,70 +613,21 @@ export class OutsideRenderer {
     }
   }
 
-  /** La mer : les vagues qui viennent mourir au pied de la falaise, l'écume qui respire, les reflets, un voilier. */
-  private sea(g: G, t: number, tod: TimeOfDay) {
-    const sea = SEA[tod];
-    // des crêtes qui montent lentement vers la côte et s'effacent
-    for (let i = 0; i < 18; i++) {
-      const x0 = (i * 61 + t * 3) % (W + 20) - 10;
-      const life = (t * 0.25 + i * 0.37) % 1;
-      const y = Math.round(H - 4 - life * (H - 4 - SEA_TOP[Math.max(0, Math.min(W - 1, Math.round(x0)))] - 4));
-      if (y <= SEA_TOP[Math.max(0, Math.min(W - 1, Math.round(x0)))] + 2) continue;
-      const len = 6 + (i % 3) * 3;
-      g.fillStyle = rgba(GLINT[tod], 0.18 + 0.3 * Math.sin(life * Math.PI));
-      g.fillRect(Math.round(x0), y, len, 1);
-      g.fillStyle = sea[Math.min(sea.length - 1, 2 + (i % 2))];
-      g.fillRect(Math.round(x0) + 1, y + 1, len - 2, 1);
-    }
-    // l'écume au pied des rochers, qui respire avec la houle
-    const swell = 0.45 + 0.3 * Math.sin(t * 1.1);
-    for (let x = 0; x < W; x += 2) {
-      const k = Math.sin(t * 1.1 + x * 0.09);
-      g.fillStyle = rgba('#ffffff', Math.max(0, swell * (0.6 + 0.4 * k)));
-      g.fillRect(x, SEA_TOP[x] + (k > 0.4 ? 1 : 0), 2, 1);
-    }
-    // les reflets qui scintillent
-    for (let i = 0; i < 16; i++) {
-      if (Math.sin(t * 3 + i * 1.9) <= 0.55) continue;
-      const x = 120 + ((i * 41) % 220), y = SEA_TOP[x] + 10 + ((i * 13) % 24);
-      if (y < H) px(g, x, y, GLINT[tod]);
-    }
-    // un voilier, très loin
-    const bx = Math.round(150 + Math.sin(t * 0.06) * 30), by = 246;
-    rect(g, bx, by, 7, 1, '#e8e5f1');
-    rect(g, bx + 1, by + 1, 5, 1, '#5a5a82');
-    rect(g, bx + 3, by - 5, 1, 5, '#cfd2e0');
-    px(g, bx + 4, by - 4, '#ffffff'); rect(g, bx + 4, by - 3, 2, 1, '#ffffff'); rect(g, bx + 4, by - 2, 2, 1, '#ffffff');
-    // la lanterne du phare clignote doucement
-    if (Math.sin(t * 2.4) > 0) rect(g, 37, 209, 3, 2, '#fff7d0');
-  }
-
-  /** Des ombres de nuages qui glissent sur la prairie et sur la mer. */
-  private clouds(g: G, t: number) {
-    g.fillStyle = 'rgba(12,32,20,0.10)';
-    for (const [k, y, rw, rh] of [[0, 126, 46, 10], [1, 176, 36, 8], [2, 232, 50, 7]] as [number, number, number, number][]) {
-      const x = ((t * (7 + k * 3) + k * 150) % (W + 120)) - 60;
-      g.beginPath();
-      g.ellipse(x, y, rw, rh, 0, 0, Math.PI * 2);
-      g.fill();
-    }
-  }
-
-  /** Une corde entre des piquets, au bord du cap et de l'anse : elle ondule dans le vent. */
+  /** Une corde entre des piquets, au bord de la falaise : elle ondule dans le vent. */
   private ropes(g: G, t: number, gust: number) {
-    const runs: number[][] = [[218, 236, 254, 272, 290, 306], [24, 40, 56], [86, 102]];
+    const runs: number[][] = [[6, 22], [60, 78], [154, 170, 186]];
     for (const xs of runs) {
       for (let i = 0; i < xs.length; i++) {
-        const x = xs[i], y = edgeAt(x) - 3;
-        rect(g, x, y - 6, 2, 7, P.woodFront);
-        vline(g, x, y - 6, 7, P.woodLight);
+        const x = xs[i], y = edgeAt(x) + 6;
+        rect(g, x, y - 7, 2, 8, P.woodFront);
+        vline(g, x, y - 7, 8, P.woodLight);
         if (i === xs.length - 1) continue;
-        const x2 = xs[i + 1], y2 = edgeAt(x2) - 3;
+        const x2 = xs[i + 1], y2 = edgeAt(x2) + 6;
         for (let k = 0; k <= x2 - x; k++) {
           const u = k / (x2 - x);
           const sag = (2.5 + Math.abs(gust)) * Math.sin(u * Math.PI);
           const flap = Math.sin(t * 3 + x * 0.3) * Math.sin(u * Math.PI) * 0.8;
-          px(g, x + 1 + k, y - 5 + (y2 - y) * u + sag + flap, '#e8dcc0');
+          px(g, x + 1 + k, y - 6 + (y2 - y) * u + sag + flap, '#e8dcc0');
         }
       }
     }
@@ -594,68 +637,44 @@ export class OutsideRenderer {
   private windsock(g: G, x: number, y: number, t: number, gust: number) {
     const strength = 0.5 + 0.5 * gust;
     const droop = (1 - strength) * 1.15;
-    let cx = x + 1, cy = y;
-    for (let i = 0; i < 6; i++) {
-      const a = droop * (0.4 + i * 0.18) + Math.sin(t * 9 + i * 0.9) * 0.12 * strength;
-      cx += Math.cos(a) * 3;
-      cy += Math.sin(a) * 3;
-      const th = i < 2 ? 4 : i < 4 ? 3 : 2;
-      g.fillStyle = P.ink;
-      g.fillRect(Math.round(cx) - 1, Math.round(cy - th / 2) - 1, 5, th + 2);
-    }
-    cx = x + 1; cy = y;
-    for (let i = 0; i < 6; i++) {
-      const a = droop * (0.4 + i * 0.18) + Math.sin(t * 9 + i * 0.9) * 0.12 * strength;
-      cx += Math.cos(a) * 3;
-      cy += Math.sin(a) * 3;
-      const th = i < 2 ? 4 : i < 4 ? 3 : 2;
-      g.fillStyle = i % 2 ? '#ffffff' : '#e5484d';
-      g.fillRect(Math.round(cx), Math.round(cy - th / 2), 3, th);
+    for (const pass of [0, 1]) {
+      let cx = x + 1, cy = y;
+      for (let i = 0; i < 6; i++) {
+        const a = droop * (0.4 + i * 0.18) + Math.sin(t * 9 + i * 0.9) * 0.12 * strength;
+        cx += Math.cos(a) * 3;
+        cy += Math.sin(a) * 3;
+        const th = i < 2 ? 4 : i < 4 ? 3 : 2;
+        if (pass === 0) { g.fillStyle = P.ink; g.fillRect(Math.round(cx) - 1, Math.round(cy - th / 2) - 1, 5, th + 2); }
+        else { g.fillStyle = i % 2 ? '#ffffff' : '#e5484d'; g.fillRect(Math.round(cx), Math.round(cy - th / 2), 3, th); }
+      }
     }
   }
 
-  /** La ligne de pêche, qui descend vers l'anse et se balance dans le vent. */
+  /** La canne, penchée au-dessus du vide, et la ligne qui descend jusqu'à la mer, tout en bas. */
   private fishingLine(g: G, t: number, gust: number) {
-    const bx0 = 4 * T + 7, by0 = 10 * T + 4;
-    const tipX = bx0 + 20, tipY = by0 + 14;
-    const n = 22;
-    for (let i = 0; i <= n; i++) px(g, bx0 + ((tipX - bx0) * i) / n, by0 + ((tipY - by0) * i) / n - Math.sin((i / n) * Math.PI) * 3, i < 5 ? '#563821' : '#8a5530');
-    const sway = gust * 4 + Math.sin(t * 1.3) * 1.2;
-    const endY = SEA_TOP[Math.round(tipX)] + 9, endX = tipX + sway;
-    for (let y = tipY; y < endY; y++) {
-      const k = (y - tipY) / (endY - tipY);
-      px(g, tipX + sway * k * k + Math.sin(t * 2 + y * 0.2) * 0.4, y, 'rgba(235,240,250,0.75)');
+    const bx0 = 2 * T + 12, by0 = 9 * T - 6;
+    const tipX = bx0 + 12, tipY = edgeAt(bx0 + 12) - 8;
+    const n = 20;
+    for (let i = 0; i <= n; i++) px(g, bx0 + ((tipX - bx0) * i) / n - Math.sin((i / n) * Math.PI) * 2, by0 + ((tipY - by0) * i) / n, i < 5 ? '#563821' : '#8a5530');
+    const sway = gust * 3 + Math.sin(t * 1.3) * 1;
+    const endY = tipY - 12, endX = tipX + 3 + sway;
+    for (let k = 0; k <= 12; k++) {
+      const u = k / 12;
+      px(g, tipX + (endX - tipX) * u * u + Math.sin(t * 2 + k * 0.4) * 0.4, tipY - k, 'rgba(235,240,250,0.45)');
     }
-    const bob = Math.round(Math.sin(t * 2.2));
-    rect(g, endX - 1, endY + bob - 1, 3, 2, '#e5484d');
-    px(g, endX, endY + bob - 2, '#ffffff');
+    const bob = Math.round(Math.sin(t * 2.2) * 0.6);
+    px(g, endX, endY + bob, '#e5484d');
+    px(g, endX + 1, endY + bob, '#ffffff');
     const ring = (t * 1.2) % 1;
     g.fillStyle = rgba('#ffffff', 0.4 * (1 - ring));
-    g.fillRect(Math.round(endX - 3 - ring * 3), endY + 2, Math.round(7 + ring * 6), 1);
+    g.fillRect(Math.round(endX - 1 - ring * 2), endY + 1, Math.round(4 + ring * 4), 1);
   }
 
-  /** Deux mouettes qui planent au-dessus de la mer. */
-  private gulls(g: G, t: number) {
-    for (let i = 0; i < 2; i++) {
-      const k = (t + i * 23) % 40;
-      if (k > 26) continue;
-      const x = 370 - k * 15, y = 214 + i * 12 + Math.sin(t * 0.8 + i) * 4;
-      const up = Math.floor(t * 5 + i) % 2;
-      const rx = Math.round(x), ry = Math.round(y);
-      g.fillStyle = '#f4f4f8';
-      g.fillRect(rx, ry, 2, 1);
-      g.fillRect(rx - 2, ry - up, 2, 1);
-      g.fillRect(rx + 2, ry - up, 2, 1);
-      if (up) { px(g, rx - 3, ry - 1, '#f4f4f8'); px(g, rx + 4, ry - 1, '#f4f4f8'); }
-    }
-  }
-
-  /** Des papillons qui butinent au-dessus des fleurs. */
   private butterflies(g: G, t: number) {
     const cols = ['#ffd166', '#ff6fa8', '#ffffff', '#a98bff', '#ff8a3d'];
     for (let i = 0; i < 5; i++) {
-      const x = 40 + i * 62 + Math.sin(t * (0.35 + i * 0.07) + i * 2) * 40 + Math.sin(t * 1.3 + i) * 4;
-      const y = 122 + (i % 3) * 20 + Math.sin(t * (0.5 + i * 0.05) + i) * 14 + Math.sin(t * 6 + i) * 1.5;
+      const x = 30 + i * 62 + Math.sin(t * (0.35 + i * 0.07) + i * 2) * 40 + Math.sin(t * 1.3 + i) * 4;
+      const y = 172 + (i % 3) * 22 + Math.sin(t * (0.5 + i * 0.05) + i) * 14 + Math.sin(t * 6 + i) * 1.5;
       const up = Math.floor(t * 9 + i) % 2;
       g.fillStyle = cols[i];
       g.fillRect(Math.round(x) - 2, Math.round(y) - (up ? 2 : 0), 2, up ? 2 : 1);
@@ -677,7 +696,7 @@ export class OutsideRenderer {
   private fireflies(g: G, t: number) {
     for (let i = 0; i < 16; i++) {
       const x = 20 + ((i * 97) % 312) + Math.sin(t * 0.6 + i * 1.7) * 12;
-      const y = 112 + ((i * 53) % 70) + Math.sin(t * 0.8 + i * 2.1) * 8;
+      const y = 150 + ((i * 53) % 90) + Math.sin(t * 0.8 + i * 2.1) * 8;
       const a = Math.max(0, Math.sin(t * 1.8 + i * 1.3));
       if (a < 0.2) continue;
       g.fillStyle = rgba('#ffe97a', 0.4 + a * 0.6);
@@ -687,12 +706,17 @@ export class OutsideRenderer {
     }
   }
 
-  /** Le soir et la nuit : la baie, la porte, les bornes et le phare éclairent ; la lune (ou le couchant) sur la mer. */
+  /** Le soir et la nuit : le sol s'assombrit (le ciel et la mer gardent leurs couleurs) ; la baie, la porte, les bornes éclairent. */
   private lighting(g: G, o: Outside, tod: TimeOfDay, t: number) {
     const l = this.lg;
     l.globalCompositeOperation = 'source-over';
-    l.fillStyle = AMBIENT[tod];
+    l.fillStyle = '#ffffff';
     l.fillRect(0, 0, W, H);
+    l.fillStyle = mix(AMBIENT[tod], '#ffffff', 0.25);
+    l.fillRect(0, 0, W, H);
+    l.fillStyle = AMBIENT[tod];
+    for (let x = 0; x < W; x++) l.fillRect(x, EDGE[x] - 2, 1, H - EDGE[x] + 2);
+    l.fillRect(230, 28, 96, 72);
     l.globalCompositeOperation = 'lighter';
     const add = (x: number, y: number, r: number, color: string, a: number) => {
       const grd = l.createRadialGradient(x, y, 0, x, y, r);
@@ -703,18 +727,14 @@ export class OutsideRenderer {
       l.fillRect(x - r, y - r, r * 2, r * 2);
     };
     const night = tod === 'night';
-    add(228, 70, 54, '#ffcf8a', night ? 0.9 : 0.65);
-    add(124, 64, 30, '#ffcf8a', night ? 0.7 : 0.5);
-    add(176, 86, 40, '#ffd9a0', 0.9);
-    add(176, 112, 30, '#ffd9a0', 0.45);
+    add(306, 70, 36, '#ffcf8a', night ? 0.9 : 0.65);
+    add(244, 68, 20, '#ffcf8a', night ? 0.7 : 0.5);
+    add(272, 88, 36, '#ffd9a0', 0.9);
+    add(272, 112, 30, '#ffd9a0', 0.45);
     for (const f of OUTSIDE_FURNITURE) if (f.kind === 'bollard') add(f.tx * T + 8, (f.ty + 1) * T - 10, 24, '#ffd9a0', 0.8);
     for (const w of o.walkers) add(w.x, w.y - 13 - w.hop, 8, P.orange, 0.45);
-    // le phare : sa lanterne, et son faisceau qui tourne
-    add(38, 210, 14, '#fff2c0', 0.9);
-    const a = t * 0.9;
-    const dx = Math.cos(a), dy = Math.sin(a) * 0.35;
-    if (dx > -0.2) for (let k = 1; k <= 6; k++) add(38 + dx * k * 22, 210 + dy * k * 22, 8 + k * 3, '#fff2c0', 0.5 - k * 0.06);
-    add(290, 238, 44, night ? '#8aa8e0' : '#ff9a6a', night ? 0.35 : 0.5);
+    // le phare, au loin : un petit halo à chaque éclat
+    if ((t % 4) < 0.6) add(28, HORIZON - 22, 10, '#fff2c0', 0.9);
     g.globalCompositeOperation = 'multiply';
     g.drawImage(this.light, 0, 0);
     g.globalCompositeOperation = 'source-over';

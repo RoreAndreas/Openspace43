@@ -1,5 +1,6 @@
-// Dehors : le pavillon 43, une prairie au vent et le cap. La côte est découpée : une petite anse à gauche (le coin de
-// pêche), un promontoire à droite (le banc, face à la mer). La mer est tout en bas, au pied de la falaise.
+// Dehors : le pavillon 43 (à droite), une prairie au vent qui s'arrête au bord de la falaise, et au-delà, la mer jusqu'à
+// l'horizon, avec le phare au loin à gauche. Le sol (où l'on marche) est vu de dessus en 3/4, comme le bureau ; le fond
+// (le ciel, la mer, l'horizon) est un panorama en perspective. Un petit promontoire avance vers le large : le banc y regarde la mer.
 // On y arrive par la porte d'entrée du bureau. Pendant les heures de travail, seul Roré sort (quand tu le diriges) ;
 // en dehors, quelques collègues viennent prendre l'air. Même taille que le bureau (352 × 256), vue de dessus en 3/4.
 import { CHARACTERS, idleEffect, type CharacterInfo } from './characters.ts';
@@ -13,15 +14,23 @@ type Pt = { x: number; y: number };
 // ── Le plan ──
 
 /** La porte du pavillon : deux cases, dans la façade (rangée 5). Roré y entre en marchant vers le haut. */
-export const OUT_DOOR = { col: 10, row: 5, x: 10 * T, y: 4 * T + 1, w: 2 * T, h: 2 * T - 1 };
-/** La première rangée d'herbe, devant la façade. */
-export const GRASS_ROW = 6;
+export const OUT_DOOR = { col: 16, row: 5, x: 16 * T, y: 4 * T + 8, w: 2 * T, h: 2 * T - 8 };
+/** Le pavillon, à droite (en pixels) : on ne marche pas dessus. */
+export const HOUSE = { x0: 232, x1: 324, y1: 6 * T };
+/** La ligne d'horizon (en pixels). */
+export const HORIZON = 46;
+/** La première rangée où l'on peut marcher. */
+export const GRASS_ROW = 5;
 
 const bump = (u: number) => (Math.abs(u) >= 1 ? 0 : Math.pow(1 - u * u, 1.5));
 
-/** Le bord de la falaise : jusqu'où va l'herbe (en pixels), pour chaque x. Le promontoire avance à droite, l'anse recule à gauche. */
+/** Le bord de la falaise : là où commence l'herbe (en pixels), pour chaque x ; au-dessus, c'est le vide et la mer, au loin.
+ *  Un promontoire avance vers le large (le banc) ; à droite, le terrain remonte derrière le pavillon. */
 export function coastY(x: number): number {
-  return 198 + 28 * bump((x - 262) / 46) - 15 * bump((x - 62) / 40) + 1.6 * Math.sin(x * 0.23) + 1.2 * Math.sin(x * 0.071 + 1);
+  const base = 118 - 6 * Math.sin(x * 0.02) - 15 * bump((x - 112) / 36) + 1.6 * Math.sin(x * 0.23) + 1.2 * Math.sin(x * 0.071 + 1);
+  const k = Math.max(0, Math.min(1, (x - 188) / 52));
+  const s = k * k * (3 - 2 * k);
+  return base + (HORIZON - 2 - base) * s;
 }
 
 export type OutKind = 'bench' | 'log' | 'fishing' | 'pine' | 'tree' | 'windsock' | 'bollard';
@@ -32,41 +41,44 @@ const TREE = 'Un arbre : le vent y passe';
 
 export const OUTSIDE_FURNITURE: OutFurn[] = [
   // derrière et autour du pavillon
-  { id: 'pine-1', kind: 'pine', tx: 1, ty: 2, w: 1, h: 1, label: PINE },
-  { id: 'tree-1', kind: 'tree', tx: 3, ty: 4, w: 1, h: 1, label: TREE },
-  { id: 'tree-2', kind: 'tree', tx: 0, ty: 5, w: 1, h: 1, label: TREE },
-  { id: 'pine-2', kind: 'pine', tx: 19, ty: 1, w: 1, h: 1, label: PINE },
-  { id: 'tree-3', kind: 'tree', tx: 18, ty: 4, w: 1, h: 1, label: TREE },
-  { id: 'tree-4', kind: 'tree', tx: 21, ty: 3, w: 1, h: 1, label: TREE },
-  // dans la prairie
-  { id: 'pine-3', kind: 'pine', tx: 1, ty: 8, w: 1, h: 1, label: PINE },
-  { id: 'tree-5', kind: 'tree', tx: 16, ty: 8, w: 1, h: 1, label: TREE },
-  { id: 'pine-4', kind: 'pine', tx: 20, ty: 8, w: 1, h: 1, label: PINE },
-  { id: 'tree-6', kind: 'tree', tx: 7, ty: 11, w: 1, h: 1, label: TREE },
+  { id: 'pine-1', kind: 'pine', tx: 21, ty: 2, w: 1, h: 1, label: PINE },
+  { id: 'tree-1', kind: 'tree', tx: 21, ty: 6, w: 1, h: 1, label: TREE },
+  { id: 'tree-2', kind: 'tree', tx: 13, ty: 5, w: 1, h: 1, label: TREE },
+  // dans la prairie, au premier plan
+  { id: 'pine-2', kind: 'pine', tx: 1, ty: 10, w: 1, h: 1, label: PINE },
+  { id: 'tree-3', kind: 'tree', tx: 19, ty: 11, w: 1, h: 1, label: TREE },
+  { id: 'pine-3', kind: 'pine', tx: 12, ty: 13, w: 1, h: 1, label: PINE },
+  { id: 'tree-4', kind: 'tree', tx: 6, ty: 15, w: 1, h: 1, label: TREE },
+  { id: 'tree-5', kind: 'tree', tx: 20, ty: 15, w: 1, h: 1, label: TREE },
   // où s'asseoir, où pêcher
-  { id: 'log', kind: 'log', tx: 3, ty: 8, w: 2, h: 1, label: 'Un vieux tronc, à l’ombre : on s’y assoit' },
-  { id: 'bench', kind: 'bench', tx: 15, ty: 12, w: 3, h: 1, label: 'Le banc du cap, face à la mer' },
-  { id: 'fishing', kind: 'fishing', tx: 4, ty: 10, w: 1, h: 1, label: 'Le coin de pêche, au bord de l’anse : bientôt un jeu' },
-  { id: 'windsock', kind: 'windsock', tx: 19, ty: 11, w: 1, h: 1, label: 'La manche à air : elle dit d’où vient le vent' },
+  { id: 'bench', kind: 'bench', tx: 6, ty: 7, w: 3, h: 1, label: 'Le banc du promontoire, face au large' },
+  { id: 'log', kind: 'log', tx: 3, ty: 13, w: 2, h: 1, label: 'Un vieux tronc, à l’ombre des pins : on s’y assoit' },
+  { id: 'fishing', kind: 'fishing', tx: 2, ty: 8, w: 1, h: 1, label: 'Le coin de pêche, au bord de la falaise : bientôt un jeu' },
+  { id: 'windsock', kind: 'windsock', tx: 11, ty: 8, w: 1, h: 1, label: 'La manche à air : elle dit d’où vient le vent' },
   // les bornes lumineuses le long du chemin (on passe à côté)
-  { id: 'bollard-1', kind: 'bollard', tx: 9, ty: 6, w: 0, h: 0, label: 'Une borne lumineuse' },
-  { id: 'bollard-2', kind: 'bollard', tx: 12, ty: 6, w: 0, h: 0, label: 'Une borne lumineuse' },
-  { id: 'bollard-3', kind: 'bollard', tx: 12, ty: 10, w: 0, h: 0, label: 'Une borne lumineuse' },
-  { id: 'bollard-4', kind: 'bollard', tx: 6, ty: 10, w: 0, h: 0, label: 'Une borne lumineuse' },
+  { id: 'bollard-1', kind: 'bollard', tx: 15, ty: 6, w: 0, h: 0, label: 'Une borne lumineuse' },
+  { id: 'bollard-2', kind: 'bollard', tx: 18, ty: 6, w: 0, h: 0, label: 'Une borne lumineuse' },
+  { id: 'bollard-3', kind: 'bollard', tx: 14, ty: 10, w: 0, h: 0, label: 'Une borne lumineuse' },
+  { id: 'bollard-4', kind: 'bollard', tx: 7, ty: 10, w: 0, h: 0, label: 'Une borne lumineuse' },
 ];
 
-/** Les places assises : les pieds une fois assis, et la case d'où l'on s'assoit (et où l'on se relève). */
-export const SEATS = [
-  { id: 'bench-1', x: 15 * T + 12, y: 13 * T - 4, tile: [15, 11] as Tile, verb: 'S’asseoir sur le banc' },
-  { id: 'bench-2', x: 17 * T + 4, y: 13 * T - 4, tile: [17, 11] as Tile, verb: 'S’asseoir sur le banc' },
-  { id: 'log-1', x: 3 * T + 7, y: 9 * T - 3, tile: [3, 7] as Tile, verb: 'S’asseoir sur le tronc' },
-  { id: 'log-2', x: 4 * T + 9, y: 9 * T - 3, tile: [4, 7] as Tile, verb: 'S’asseoir sur le tronc' },
+/** Le coin de pêche : là où l'on se tient pour lancer la ligne. */
+export const FISH_SPOT = { x: 2 * T + 8, y: 9 * T + 4 };
+
+/** Les places assises : les pieds une fois assis, la case d'où l'on s'assoit (et où l'on se relève), et le regard.
+ *  Sur le banc, on tourne le dos : on regarde la mer. */
+export const SEATS: { id: string; x: number; y: number; tile: Tile; face: Dir; verb: string }[] = [
+  { id: 'bench-1', x: 6 * T + 12, y: 8 * T - 6, tile: [6, 8], face: 'up', verb: 'S’asseoir sur le banc (face à la mer)' },
+  { id: 'bench-2', x: 8 * T + 4, y: 8 * T - 6, tile: [8, 8], face: 'up', verb: 'S’asseoir sur le banc (face à la mer)' },
+  { id: 'log-1', x: 3 * T + 7, y: 14 * T - 3, tile: [3, 12], face: 'down', verb: 'S’asseoir sur le tronc' },
+  { id: 'log-2', x: 4 * T + 9, y: 14 * T - 3, tile: [4, 12], face: 'down', verb: 'S’asseoir sur le tronc' },
 ];
 
 /** Le chemin de gravier : de la porte au banc du cap, avec une branche vers le tronc et le coin de pêche. */
 export const PATHS: Pt[][] = [
-  [{ x: 176, y: 97 }, { x: 176, y: 124 }, { x: 196, y: 148 }, { x: 228, y: 168 }, { x: 258, y: 186 }],
-  [{ x: 176, y: 124 }, { x: 146, y: 138 }, { x: 110, y: 146 }, { x: 84, y: 156 }, { x: 70, y: 168 }],
+  [{ x: 272, y: 97 }, { x: 272, y: 124 }, { x: 240, y: 146 }, { x: 186, y: 158 }, { x: 140, y: 154 }, { x: 120, y: 146 }],
+  [{ x: 186, y: 158 }, { x: 150, y: 176 }, { x: 104, y: 190 }, { x: 70, y: 206 }],
+  [{ x: 104, y: 190 }, { x: 64, y: 168 }, { x: 40, y: 150 }],
 ];
 
 /** Les cases où l'on marche : l'herbe, jusqu'au bord de la falaise (avec une marge). */
@@ -75,9 +87,10 @@ function outsideGrid(): boolean[][] {
   for (let y = 0; y < ROWS; y++) {
     g.push([]);
     for (let x = 0; x < COLS; x++) {
-      let edge = Infinity;
-      for (let k = 0; k <= T; k += 4) edge = Math.min(edge, coastY(x * T + k));
-      g[y].push(x >= 1 && x <= 20 && y >= GRASS_ROW && (y + 1) * T <= edge - 4);
+      let edge = -Infinity;
+      for (let k = 0; k <= T; k += 4) edge = Math.max(edge, coastY(x * T + k));
+      const house = (x + 1) * T > HOUSE.x0 && x * T < HOUSE.x1 && y * T < HOUSE.y1;
+      g[y].push(x >= 1 && x <= 20 && y >= GRASS_ROW && y * T >= edge + 4 && !house);
     }
   }
   g[OUT_DOOR.row][OUT_DOOR.col] = true;
@@ -131,7 +144,7 @@ export class Walker {
   get tile(): Tile { return [Math.max(0, Math.min(COLS - 1, Math.floor(this.x / T))), Math.max(0, Math.min(ROWS - 1, Math.floor((this.y - 2) / T)))]; }
 }
 
-const DOOR_FEET = { x: 11 * T, y: GRASS_ROW * T + 4 };
+const DOOR_FEET = { x: 17 * T, y: 6 * T + 4 };
 
 export class Outside {
   fx = new Fx();
@@ -166,7 +179,7 @@ export class Outside {
 
   private newLeaf(x = -6): Leaf {
     const cols = ['#a8d86a', '#d9b04a', '#7fc062', '#e08a3d'];
-    return { x, y: 100 + Math.random() * 90, vx: 14 + Math.random() * 16, ph: Math.random() * 6, color: cols[Math.floor(Math.random() * cols.length)] };
+    return { x, y: 130 + Math.random() * 110, vx: 14 + Math.random() * 16, ph: Math.random() * 6, color: cols[Math.floor(Math.random() * cols.length)] };
   }
 
   // ── Les collègues qui sortent (ou rentrent) ──
@@ -176,7 +189,7 @@ export class Outside {
     for (const g of this.guests) {
       if (!infos.some((i) => i.id === g.id) && g.intent !== 'leave') {
         this.stand(g);
-        this.go(g, 'leave', [OUT_DOOR.col, GRASS_ROW]);
+        this.go(g, 'leave', [OUT_DOOR.col, 6]);
       }
     }
     infos.forEach((info, i) => {
@@ -222,16 +235,16 @@ export class Outside {
       if (free.length) { this.go(w, 'sit', free[Math.floor(Math.random() * free.length)].tile); return; }
     }
     if (r < 0.65) {
-      // le bord de la falaise : on regarde la mer
+      // le bord de la falaise : on regarde le large
       for (let i = 0; i < 20; i++) {
-        const tx = 2 + Math.floor(Math.random() * 18);
-        let ty = ROWS - 1;
-        while (ty >= GRASS_ROW && !this.grid[ty][tx]) ty--;
-        if (ty >= GRASS_ROW + 2) { this.go(w, 'look', [tx, ty]); return; }
+        const tx = 1 + Math.floor(Math.random() * 13);
+        let ty = GRASS_ROW;
+        while (ty < ROWS && !this.grid[ty][tx]) ty++;
+        if (ty < ROWS - 2 && this.grid[ty][tx]) { this.go(w, 'look', [tx, ty]); return; }
       }
     }
     for (let i = 0; i < 20; i++) {
-      const tx = 1 + Math.floor(Math.random() * 20), ty = GRASS_ROW + Math.floor(Math.random() * 7);
+      const tx = 1 + Math.floor(Math.random() * 20), ty = 7 + Math.floor(Math.random() * 9);
       if (this.grid[ty]?.[tx]) { this.go(w, 'wander', [tx, ty]); return; }
     }
     w.until = t + 1;
@@ -266,7 +279,7 @@ export class Outside {
       const seat = SEATS.find((s) => s.tile[0] === w.tile[0] && s.tile[1] === w.tile[1] && !this.taken.has(s.id));
       if (seat) { this.sit(w, seat.id); w.until = t + 10 + Math.random() * 10; return; }
     }
-    if (w.intent === 'look') { w.dir = 'down'; w.until = t + 5 + Math.random() * 5; return; }
+    if (w.intent === 'look') { w.dir = 'up'; w.until = t + 5 + Math.random() * 5; return; }
     w.until = t + 1 + Math.random() * 3;
   }
 
@@ -279,7 +292,7 @@ export class Outside {
     w.seatId = id;
     w.x = s.x;
     w.y = s.y;
-    w.dir = 'down';
+    w.dir = s.face;
     w.moving = false;
     w.path = [];
     w.happyUntil = this.time + 0.8;
@@ -315,8 +328,8 @@ export class Outside {
 
   /** E au coin de pêche : le jeu de pêche s'ouvrira ici. */
   fish() {
-    this.fx.floatIcon(4 * T + 8, 10 * T - 6, 'idea');
-    this.fx.sparkle(4 * T + 8, 10 * T + 2, 8, '#9fe0ff');
+    this.fx.floatIcon(FISH_SPOT.x, FISH_SPOT.y - 24, 'idea');
+    this.fx.sparkle(FISH_SPOT.x, FISH_SPOT.y - 14, 8, '#9fe0ff');
     this.onFish?.();
   }
 
@@ -358,13 +371,13 @@ export class Outside {
     const step = 67 * dt;
     // ses pieds restent sur l'herbe, à bonne distance du vide
     const free = (x: number, y: number) => !!this.grid[Math.floor((y - 2) / T)]?.[Math.floor(x / T)];
-    const ok = (x: number, y: number) => free(x - 4, y) && free(x + 4, y) && free(x - 4, y - 5) && free(x + 4, y - 5) && y <= coastY(x) - 6;
+    const ok = (x: number, y: number) => free(x - 4, y) && free(x + 4, y) && free(x - 4, y - 5) && free(x + 4, y - 5) && y >= coastY(x) + 9;
     const nx = me.x + dx * step, ny = me.y + dy * step;
     if (ok(nx, ny) || !ok(me.x, me.y)) { me.x = nx; me.y = ny; }
     else if (dx && ok(nx, me.y)) me.x = nx;
     else if (dy && ok(me.x, ny)) me.y = ny;
     me.x = Math.max(T + 4, Math.min(21 * T - 4, me.x));
-    me.y = Math.max(OUT_DOOR.row * T + 8, me.y);
+    me.y = Math.max(OUT_DOOR.row * T + 8, Math.min(16 * T - 2, me.y));
     me.moving = true;
     me.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up';
     // il pousse la porte : retour au bureau

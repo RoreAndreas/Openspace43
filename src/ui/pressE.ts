@@ -3,7 +3,7 @@
 import { ANNEX_BACK_DOOR, ANNEX_FURNITURE } from '../engine/annex.ts';
 import { furnitureLabel } from '../engine/hits.ts';
 import { annex, outside, world } from '../engine/instance.ts';
-import { OUT_DOOR } from '../engine/outside.ts';
+import { FISH_SPOT, OUT_DOOR } from '../engine/outside.ts';
 import { ANNEX_DOOR, BOARD, FURNITURE, T, W, WINDOWS } from '../engine/layout.ts';
 import { useOffice } from '../state/store.ts';
 import { interact } from './interact.ts';
@@ -35,7 +35,7 @@ export function nearRore(): Near | null {
     const seat = outside.seatNear();
     if (seat) offer(0, 1, { verb: seat.verb, act: () => outside.sitRore(seat.id) });
     // la canne à pêche (dans la brèche de la clôture)
-    offer(Math.hypot(px - (4 * T + 8), py - (10 * T + 4)), 22, { verb: 'Pêcher', act: () => interactOutside({ kind: 'object', id: 'fishing', label: '' }) });
+    offer(Math.hypot(px - FISH_SPOT.x, py - FISH_SPOT.y), 20, { verb: 'Pêcher', act: () => interactOutside({ kind: 'object', id: 'fishing', label: '' }) });
     if (me.y < 7 * T && me.x >= OUT_DOOR.x && me.x <= OUT_DOOR.x + OUT_DOOR.w) offer(0, 1, { verb: 'Rentrer au bureau', act: () => interactOutside({ kind: 'door', label: '' }) });
     return best;
   }

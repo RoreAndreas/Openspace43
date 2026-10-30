@@ -59,9 +59,10 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
   pilotage de Roré), `engine/annexDraw.ts` (pièce, meubles, rendu, lumière). Elle vit aussi quand on n'y est pas. Côté
   interface : `ui/place.ts` (`goRoom`, les portes), `ui/AnnexLayer.tsx` (prénoms et bulles). Les goûts (`hobbies`) et
   les répliques (`lines`) de chacun sont dans le catalogue des personnages. Le jukebox y joue aussi (`annex.musicOn`, `jukeboxLights`).
-- **Dehors** (`room: 'outside'`, derrière la porte d'entrée en bas du bureau ; 🌿, touche O) : `engine/outside.ts` (la côte `coastY`,
-  la grille, `Walker` pour Roré et les collègues, places assises `SEATS`, chemins `PATHS`, vent `gust`), `engine/outsideDraw.ts`
-  (pavillon avec l'enseigne 43, prairie animée, pins, falaise, mer, phare, manche à air, lumière), `audio/outside.ts` (vent, mer et
+- **Dehors** (`room: 'outside'`, derrière la porte d'entrée en bas du bureau ; 🌿, touche O) : `engine/outside.ts` (le bord de la
+  falaise `coastY`, `HORIZON`, la grille, `Walker` pour Roré et les collègues, places assises `SEATS` avec leur regard, chemins `PATHS`,
+  vent `gust`), `engine/outsideDraw.ts` (deux plans : le sol en 3/4 comme le bureau, et un fond en perspective, ciel, mer jusqu'à
+  l'horizon, phare au loin ; pavillon avec l'enseigne 43, prairie animée, pins, manche à air, lumière), `audio/outside.ts` (vent, mer et
   musique lofi en Web Audio, sans fichier ; coupé avec le son). `goRoom` (`ui/place.ts`) repasse toujours par le bureau. Le jeu de
   pêche se branche sur `outside.onFish`.
 - **Les heures de travail** (`workHours` dans le store, préférence `bureau:workHours`, `isWorkTime` ; champ dans les Réglages) :
