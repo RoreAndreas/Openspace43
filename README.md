@@ -1,11 +1,12 @@
 # L'open space
 
-**Tu dis ce que tu veux. Roré, le chef de projet, confie le travail à son analyste, et tu le regardes faire.**
+**Tu dis ce que tu veux. Roré, le chef de projet, confie le travail à son équipe, et tu la regardes faire.**
 
 Un bureau en pixel art où une petite équipe d'agents IA travaille pour une responsable marketing et communication :
 
 - **Roré**, le chef de projet, lit ta demande, écrit le plan, confie le travail et vérifie le rendu ;
-- **un analyste**, qui cherche sur internet, analyse et rédige les rapports ;
+- **Rook**, le chercheur, qui fait ta veille avec Tavily : actualités de la semaine, sites précis, sources datées ;
+- **un analyste** (Margaux), qui cherche sur internet, analyse et rédige les rapports ;
 - **Hares**, le financier, qui interroge ta base 43 WACC (le site WACC43) : échantillons de sociétés cotées comparables, médianes et quartiles, valeurs aberrantes, multiples et CMPC.
 
 Chaque bulle montre ce que l'agent fait vraiment, à cet instant : une recherche, une page lue, un fichier écrit.
@@ -44,6 +45,9 @@ ton compte : c'est prévu et autorisé.
 - **Les rendus** : chaque rapport se lit dans le bureau ou se télécharge, avec l'historique de ses versions. Une mission entière se télécharge en `.zip`.
 - **Les missions précédentes** (touche `H`) : on peut les rejouer.
 - **La note « Comment ça marche »** : le post-it jaune, à côté du bureau de Roré.
+- **Les habitués** : tous les personnages ont leur bureau dans leur coin (Nyx, Merlain et Boulon au code, Zaza au design, Rook à la recherche, Margaux et Hares à l'analyse) et vivent leur journée à l'heure de ton ordinateur. Ils arrivent le matin, déjeunent dans la Pause (pizza le vendredi), prennent un café, passent voir un collègue, et rentrent le soir chacun à son heure : Nyx tard, Boulon jamais (la nuit, il se met en veille). Clique sur l'un d'eux : il te répond.
+- **Le bureau suit tes missions** : l'agent appelé passe chez Roré prendre son dossier (ou le rapport du collègue d'avant), puis s'installe. Après la mission, il retourne à sa place. Une mission réussie, c'est une fête, et une coupe de plus sur l'étagère des archives.
+- **Il se passe des choses** : l'imprimante se bloque (quelqu'un vient la réparer), Pixel fait tomber une tasse, un anniversaire avec un gâteau sur la table basse.
 - **La Pause**, à droite du bureau (la porte « PAUSE », le bouton ☕ ou la touche `D`) : une cuisine et une salle de loisirs où tous les personnages se retrouvent. Chacun y fait ce qu'il aime (café, frigo, repas, console, arcade, bibliothèque, danse, sieste), ils discutent entre eux et jouent à deux au ping-pong ou au baby-foot. Clique sur l'un d'eux : il te parle. Quand le jukebox joue, il s'anime là-bas aussi, et on y danse plus volontiers.
 - **Les mini-jeux de la Pause** : clique sur la table de ping-pong pour affronter un collègue (chacun son niveau, premier à 5 points, flèches ou souris), ou sur une borne d'arcade pour **Spartan Run** (Hares saute par-dessus les bugs, les cafés renversés et les dossiers urgents ; Espace ou ↑). Tes victoires et ton record sont gardés dans le navigateur, et les personnages réagissent dans la Pause.
 
@@ -78,7 +82,7 @@ Hares travaille sur la base du site WACC43 (8 000 sociétés cotées S&P Capital
    - *Type* : **Secret**
    - *Name* : `ACCESS_CODE`
    - *Value* : le code de ton choix, long et difficile à deviner.
-4. **Facultatif : une recherche web plus fiable.** Ajoute un deuxième secret `TAVILY_KEY`, avec une clé gratuite créée sur [tavily.com](https://tavily.com) (1 000 recherches par mois). Sans cette clé, la recherche passe par DuckDuckGo.
+4. **Facultatif, mais conseillé : Tavily, l'outil de Rook.** Ajoute un deuxième secret `TAVILY_KEY` (ou `CLE_TAVILY`), avec une clé gratuite créée sur [tavily.com](https://tavily.com) (1 000 crédits par mois ; une recherche « advanced » en coûte deux). Rook y gagne l'actualité par période, la recherche sur des sites précis, une réponse résumée et la lecture de cinq pages d'un coup ; la recherche web de l'analyste devient aussi plus fiable. Sans cette clé, tout passe par DuckDuckGo.
 5. **Ouvrir le bureau** à l'adresse du Worker (`https://openspace.<ton-compte>.workers.dev`). Clique sur ⚙️ et entre le code d'accès : le bureau est prêt.
 
 Ensuite, chaque modification poussée sur la branche `main` du dépôt est remise en ligne automatiquement.
@@ -129,7 +133,7 @@ Pour tester sans compte et sans payer. Ollama s'installe **sans droits d'adminis
 3. Lance le bureau (`npm start` ou `Lancer l'open space.bat`), puis clique sur **le levier**, à côté du serveur : il passe au vert.
 
 Le modèle se choisit dans les réglages (⚙️). La recherche web passe par le serveur local (DuckDuckGo, ou Tavily avec une
-variable d'environnement `TAVILY_KEY`). Si Ollama tourne ailleurs, indique son adresse avec `OLLAMA_HOST`.
+variable d'environnement `TAVILY_KEY` ou `CLE_TAVILY`). Avec Claude Code, Rook cherche avec la recherche web de Claude. Si Ollama tourne ailleurs, indique son adresse avec `OLLAMA_HOST`.
 
 ## Sous le capot
 

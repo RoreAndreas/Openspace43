@@ -85,7 +85,7 @@ export function TopBar() {
         <Logo />
         <div>
           <b>L’open space</b>
-          <span>{connection === 'demo' ? 'Rediffusion' : 'Roré et son analyste'}</span>
+          <span>{connection === 'demo' ? 'Rediffusion' : 'Roré et son équipe'}</span>
         </div>
       </div>
 

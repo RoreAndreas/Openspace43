@@ -6,6 +6,7 @@ import { Outside } from './outside.ts';
 import { OutsideRenderer } from './outsideDraw.ts';
 import type { Tod } from '../state/store.ts';
 import { Camera, Director } from './camera.ts';
+import { Day } from './day.ts';
 import { Renderer } from './render.ts';
 import type { TimeOfDay } from './room.ts';
 import { World } from './world.ts';
@@ -14,12 +15,14 @@ export const world = new World();
 /** la Pause, à côté : elle vit aussi quand tu n'y es pas */
 export const annex = new Annex();
 export const annexRenderer = new AnnexRenderer();
-/** Dehors, devant la porte d'entrée : l'herbe, la falaise, la mer. Seul Roré y va. */
+/** Dehors, devant la porte d'entrée : l'herbe, la falaise, la mer. Roré, et ceux qui prennent l'air après le travail. */
 export const outside = new Outside();
 export const outsideRenderer = new OutsideRenderer();
 export const renderer = new Renderer();
 export const camera = new Camera();
 export const director = new Director(camera, world);
+/** la journée : les habitués, leurs horaires, et ce qui arrive au bureau */
+export const day = new Day(world, annex, outside);
 
 bus.on((ev, live) => { world.apply(ev, live); director.event(ev, live); });
 bus.onReset(() => { world.resetAll(); camera.wide(); });

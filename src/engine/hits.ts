@@ -51,7 +51,10 @@ export function hitAt(world: World, x: number, y: number): Hit | null {
   for (const a of actors) {
     const ay = a.seated && a.seat ? a.seat.y : a.y;
     if (a.alpha > 0.3 && x >= a.x - 7 && x <= a.x + 7 && y >= ay - 21 && y <= ay + 1) {
-      return { kind: 'actor', id: a.id, label: a.id === 'chef' ? (world.driving ? 'Roré : tu le diriges (Échap pour le laisser)' : 'Roré, le chef de projet · double-clic : prends les commandes') : `${a.name} · ${ROLES[a.role].label}` };
+      const label = a.id === 'chef' ? (world.driving ? 'Roré : tu le diriges (Échap pour le laisser)' : 'Roré, le chef de projet · double-clic : prends les commandes')
+        : a.resident ? `${a.name} · ${ROLES[a.role].label} · ${a.asleep ? 'en veille' : a.outing ? 'en pause' : 'à son bureau'} (clique pour discuter)`
+          : `${a.name} · ${ROLES[a.role].label}`;
+      return { kind: 'actor', id: a.id, label };
     }
   }
   if (world.cat.hit(x, y)) return { kind: 'cat', label: 'Pixel, le chat du bureau' };
@@ -59,7 +62,8 @@ export function hitAt(world: World, x: number, y: number): Hit | null {
   for (const p of placed) {
     if (!inRect(x, y, { x: p.x + 1, y: p.y + 1, w: p.w - 2, h: p.h - 2 })) continue;
     // un pixel transparent du dessin ne compte pas : on regarde le meuble suivant
-    return { kind: 'object', id: p.f.id, label: furnitureLabel(p.f.id, p.f.kind, p.f.role), role: p.f.role };
+    const label = p.f.kind === 'shelf' && world.trophies ? `Les archives : les missions passées · ${world.trophies} coupe${world.trophies > 1 ? 's' : ''}` : furnitureLabel(p.f.id, p.f.kind, p.f.role);
+    return { kind: 'object', id: p.f.id, label, role: p.f.role };
   }
   // le mur du fond et le sol
   if (inRect(x, y, { x: BOARD.x - 2, y: BOARD.y - 2, w: BOARD.w + 4, h: BOARD.h + 6 })) return { kind: 'object', id: 'board', label: 'Le tableau : le plan de Roré' };

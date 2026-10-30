@@ -310,7 +310,7 @@ function WorkHoursField() {
           <label key={d} className="radio"><input type="checkbox" checked={hours.days.includes(d)} onChange={() => toggleDay(d)} /> {l}</label>
         ))}
       </div>
-      <small className="muted">En dehors de ces heures, les collègues sortent prendre l’air (🌿 Dehors). Pendant, seul Roré sort. En ce moment : {now ? 'on travaille' : 'temps libre'}.</small>
+      <small className="muted">En dehors de ces heures, Rook, Merlain et Hares sortent prendre l’air (🌿 Dehors) avant de rentrer. Les jours non travaillés, le bureau est vide, sauf Boulon en veille. Pendant, seul Roré sort. En ce moment : {now ? 'on travaille' : 'temps libre'}.</small>
     </div>
   );
 }

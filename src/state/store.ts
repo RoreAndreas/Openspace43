@@ -8,6 +8,7 @@ import type {
 import { sfx } from '../audio/sfx.ts';
 import { say } from '../audio/voice.ts';
 import { bus } from './bus.ts';
+import { DEFAULT_HOURS, type WorkHours } from './hours.ts';
 
 export interface ActView { id: string; kind: ActKind; label: string; detail: string; at: number; ok?: boolean }
 
@@ -42,24 +43,7 @@ export interface AskView { requestId: string; who: string; tool: string; label: 
 
 export interface FeedLine { id: number; at: number; who: string; text: string; kind: 'user' | 'chef' | 'hire' | 'act' | 'report' | 'file' | 'ask' | 'end' | 'error' }
 
-/** Les heures de travail de l'équipe (réglables) : en dehors, les collègues peuvent sortir prendre l'air. */
-export interface WorkHours {
-  /** heure de début et de fin (0 à 24) ; une fin avant le début = on travaille la nuit */
-  start: number;
-  end: number;
-  /** les jours travaillés (0 = dimanche, 1 = lundi…) */
-  days: number[];
-}
-
-export const DEFAULT_HOURS: WorkHours = { start: 9, end: 18, days: [1, 2, 3, 4, 5] };
-
-/** Est-ce l'heure du travail ? */
-export function isWorkTime(h: WorkHours, d = new Date()): boolean {
-  if (!h.days.includes(d.getDay())) return false;
-  const x = d.getHours() + d.getMinutes() / 60;
-  if (h.start === h.end) return true;
-  return h.start < h.end ? x >= h.start && x < h.end : x >= h.start || x < h.end;
-}
+export { DEFAULT_HOURS, isWorkTime, type WorkHours } from './hours.ts';
 
 export interface Toast { id: number; kind: 'info' | 'error'; text: string }
 

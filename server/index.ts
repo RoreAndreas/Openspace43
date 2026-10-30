@@ -13,7 +13,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer, type WebSocket } from 'ws';
 import type { ClientMsg, ServerMsg } from '../shared/protocol.ts';
-import { readPage, searchWeb, WebError } from '../shared/web.ts';
+import { readPage, searchWeb, tavilyExtract, tavilySearch, WebError } from '../shared/web.ts';
 import { Bureau } from './bureau.ts';
 import { findClaude } from './claude.ts';
 import { wacc43Html } from './wacc43.ts';
@@ -151,13 +151,16 @@ function ollama(method: 'GET' | 'POST', p: string, body: string | null, res: htt
   r.end();
 }
 
+/** La clé Tavily (la recherche de Rook) : la variable TAVILY_KEY, ou CLE_TAVILY. */
+const tavilyKey = () => process.env.TAVILY_KEY || process.env.CLE_TAVILY || undefined;
+
 async function localApi(req: http.IncomingMessage, url: URL, res: http.ServerResponse) {
   const host = (req.headers.host ?? '').toLowerCase();
   const okHost = [`localhost:${PORT}`, `127.0.0.1:${PORT}`, ...(DEV ? [`localhost:${DEV_PORT}`, `127.0.0.1:${DEV_PORT}`] : [])].includes(host);
   const origin = req.headers.origin;
   if (!okHost || (origin && !allowedOrigins.has(origin)) || req.headers['x-code'] === undefined) { sendJson(res, 403, { error: 'Refusé.' }); return; }
   try {
-    if (url.pathname === '/api/ping') { sendJson(res, 200, { ok: true, models: [], search: process.env.TAVILY_KEY ? 'tavily' : 'duckduckgo' }); return; }
+    if (url.pathname === '/api/ping') { sendJson(res, 200, { ok: true, models: [], search: tavilyKey() ? 'tavily' : 'duckduckgo' }); return; }
     if (url.pathname === '/api/ollama/tags') { ollama('GET', '/api/tags', null, res); return; }
     if (url.pathname === '/api/wacc43') { await wacc43Page(res); return; }
     if (req.method !== 'POST') { sendJson(res, 405, { error: 'Méthode non autorisée.' }); return; }
@@ -171,8 +174,10 @@ async function localApi(req: http.IncomingMessage, url: URL, res: http.ServerRes
       return;
     }
     const body = JSON.parse(raw || '{}') as Record<string, unknown>;
-    if (url.pathname === '/api/search') { sendJson(res, 200, await searchWeb(String(body.q ?? ''), process.env.TAVILY_KEY)); return; }
+    if (url.pathname === '/api/search') { sendJson(res, 200, await searchWeb(String(body.q ?? ''), tavilyKey())); return; }
     if (url.pathname === '/api/fetch') { sendJson(res, 200, await readPage(String(body.url ?? ''))); return; }
+    if (url.pathname === '/api/tavily') { sendJson(res, 200, await tavilySearch(tavilyKey(), body)); return; }
+    if (url.pathname === '/api/tavily/extract') { sendJson(res, 200, await tavilyExtract(tavilyKey(), body.urls)); return; }
     sendJson(res, 404, { error: 'Inconnu.' });
   } catch (e) {
     if (e instanceof WebError) sendJson(res, e.status, { error: e.message });

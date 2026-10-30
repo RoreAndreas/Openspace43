@@ -9,7 +9,7 @@ const STEPS: { line: Line; text: string; shot: [number, number, number] }[] = [
   { line: 'visite-6', text: 'Ici, l’analyse. Mon analyste cherche sur internet, analyse et rédige tes rapports marketing et communication.', shot: [258, 188, 1.95] },
   { line: 'visite-5', text: 'Et à côté de lui, son tiroir : tes couleurs, tes types de texte, et tout ce qu’il faut retenir pour la suite.', shot: [306, 196, 2.2] },
   { line: 'visite-7', text: 'Sur ce tableau, j’écris le plan de chaque mission. Et chaque rapport finit sur mon bureau.', shot: [176, 46, 2.05] },
-  { line: 'visite-3', text: 'Les autres coins attendent de nouveaux collègues. Pour l’instant, on est deux, et on est efficaces.', shot: [176, 110, 1.1] },
+  { line: 'visite-3', text: 'Les autres bureaux, ce sont mes habitués : chacun ses horaires, ses pauses, ses manies. Pour tes missions, j’appelle mon analyste ou Hares.', shot: [176, 110, 1.1] },
   { line: 'visite-8', text: 'Toi, tu me dis ce que tu veux. Je confie le travail. Et tu regardes.', shot: [176, 128, 1] },
 ];
 

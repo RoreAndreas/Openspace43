@@ -6,8 +6,7 @@ import { annex, camera, outside, world } from '../engine/instance.ts';
 import type { Outside, OutHit } from '../engine/outside.ts';
 import { jukebox } from '../audio/music.ts';
 import { outsideAudio } from '../audio/outside.ts';
-import { CHARACTERS } from '../engine/characters.ts';
-import { isWorkTime, useOffice } from '../state/store.ts';
+import { useOffice } from '../state/store.ts';
 
 export type Room = 'office' | 'annex' | 'outside';
 
@@ -100,26 +99,4 @@ export function installDoors() {
   outside.onDoor = () => goRoom('office');
   // la canne à pêche : Roré part en barque (le mini-jeu de la pêche)
   outside.onFish = () => { sfx('open'); useOffice.setState({ modal: { kind: 'game', game: 'fishing' } }); };
-}
-
-/** Ceux qui aiment prendre l'air sortent en premier (la fenêtre, les plantes, la promenade). */
-const GUESTS = CHARACTERS
-  .filter((c) => !c.roles.includes('chef'))
-  .map((c) => ({ c, k: ['window', 'plant', 'wander'].filter((h) => c.hobbies.includes(h)).length }))
-  .sort((a, b) => b.k - a.k)
-  .slice(0, 3)
-  .map((x) => x.c);
-
-let lastSync = -1e9;
-let lastFree: boolean | null = null;
-
-/** En dehors des heures de travail, trois collègues quittent la Pause pour aller dehors ; ils rentrent quand le travail reprend. */
-export function syncOutside(now: number) {
-  if (now - lastSync < 1000) return;
-  lastSync = now;
-  const free = !isWorkTime(useOffice.getState().workHours);
-  if (free === lastFree) return;
-  lastFree = free;
-  outside.setGuests(free ? GUESTS : []);
-  annex.setAway(free ? GUESTS.map((c) => c.id) : []);
 }

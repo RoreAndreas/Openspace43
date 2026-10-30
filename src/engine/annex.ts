@@ -138,7 +138,11 @@ export class Pal {
   path: Pt[] = [];
   moving = false;
   seated = false;
-  state: 'idle' | 'going' | 'waiting' | 'doing' | 'talking' = 'idle';
+  state: 'idle' | 'going' | 'waiting' | 'doing' | 'talking' | 'exiting' = 'idle';
+  /** il n'est pas dans la Pause (à son bureau, Dehors, ou chez lui : day.ts) */
+  away = false;
+  /** il repart vers le bureau : appelé quand il passe la porte */
+  onOut?: () => void;
   act: Act = 'wander';
   spot: Spot | null = null;
   partner: Pal | null = null;
@@ -153,8 +157,6 @@ export class Pal {
   /** pendant une discussion : celui qui parle (chacun son tour ; `first` parle le premier) */
   speaking = false;
   first = false;
-  /** il est sorti prendre l'air (Dehors, en dehors des heures de travail) : on ne le voit plus dans la Pause */
-  away = false;
   /** sa réplique quand tu viens lui parler */
   line = '';
   lineUntil = 0;
@@ -182,10 +184,13 @@ export class Pal {
 }
 
 export class Annex {
-  /** tout le monde, même ceux qui sont sortis */
+  /** tout le monde, même ceux qui ne sont pas là */
   everyone: Pal[] = [];
   /** ceux qui sont dans la Pause en ce moment */
   get pals() { return this.everyone.filter((p) => !p.away); }
+  /** l'heure du déjeuner (on mange plus volontiers), et le vendredi, les pizzas sur la grande table (day.ts) */
+  lunch = false;
+  pizza = false;
   fx = new Fx();
   grid = annexGrid();
   time = 0;
@@ -217,30 +222,6 @@ export class Annex {
   }
 
   get rore() { return this.everyone.find((p) => p.info.roles.includes('chef')) ?? this.everyone[0]; }
-
-  /** Ceux qui sortent prendre l'air (ou qui rentrent : ils reviennent par la porte du bureau). Roré n'en fait jamais partie. */
-  setAway(ids: string[]) {
-    let changed = false;
-    for (const p of this.everyone) {
-      const away = p !== this.rore && ids.includes(p.id);
-      if (away === p.away) continue;
-      changed = true;
-      if (p.spot) this.taken.delete(p.spot.id);
-      if (p.partner?.partner === p) { p.partner.partner = null; p.partner.until = this.time; }
-      p.partner = null;
-      p.spot = null;
-      p.seated = false;
-      p.path = [];
-      p.moving = false;
-      p.line = '';
-      p.lineUntil = 0;
-      p.state = 'idle';
-      p.until = this.time + 1 + Math.random() * 2;
-      p.away = away;
-      if (!away) { const f = tileFeet([1, ANNEX_BACK_DOOR.row]); p.x = f.x; p.y = f.y; }
-    }
-    if (changed) this.changed();
-  }
   onChange(fn: () => void) { this.listeners.add(fn); return () => { this.listeners.delete(fn); }; }
   private changed() { this.version++; for (const fn of this.listeners) fn(); }
 
@@ -255,7 +236,8 @@ export class Annex {
       this.noteAt = t + 0.7 + Math.random() * 0.5;
       this.fx.floatIcon(19 * T + 10 + Math.random() * 12, 13 * T + 2, Math.random() < 0.5 ? 'note' : 'note2');
     }
-    for (const p of this.pals) {
+    for (const p of this.everyone) {
+      if (p.away) continue;
       if (p.lineUntil && t > p.lineUntil) { p.line = ''; p.lineUntil = 0; this.changed(); }
       if (p === this.rore && this.driving) { this.driveStep(p, dt); this.animate(p, dt); continue; }
       switch (p.state) {
@@ -276,6 +258,10 @@ export class Annex {
         case 'talking':
           if (t > p.until) { p.state = 'idle'; p.until = t + 0.6; if (p.seated && p.spot) { p.state = 'doing'; p.until = t + 4; } }
           break;
+        case 'exiting':
+          // il passe la porte du bureau : il quitte la Pause
+          if (this.walk(p, dt)) { p.away = true; p.moving = false; p.state = 'idle'; const fn = p.onOut; p.onOut = undefined; this.changed(); fn?.(); }
+          break;
       }
       this.animate(p, dt);
     }
@@ -295,7 +281,8 @@ export class Annex {
     }
     // une activité seule : ses préférées comptent triple
     const pool: Act[] = [];
-    for (const a of SOLO) for (let k = 0; k < (p.info.hobbies.includes(a) ? 3 : 1) + (a === 'dance' && this.musicOn ? 3 : 0); k++) pool.push(a);
+    const meal = (a: Act) => (this.lunch && (a === 'eat' || a === 'cook' || a === 'fridge') ? 3 : 0) + (this.pizza && a === 'eat' ? 4 : 0);
+    for (const a of SOLO) for (let k = 0; k < (p.info.hobbies.includes(a) ? 3 : 1) + (a === 'dance' && this.musicOn ? 3 : 0) + meal(a); k++) pool.push(a);
     for (let tries = 0; tries < 6; tries++) {
       const act = pool[Math.floor(Math.random() * pool.length)];
       if (act === 'wander') { this.wander(p); return; }
@@ -546,6 +533,68 @@ export class Annex {
     else if (id.startsWith('arcade')) { this.fx.sparkle(cx, cy - 8, 10, '#3fd8ff'); this.fx.floatIcon(cx, cy - 12, 'check'); }
     else if (id === 'jukebox') this.fx.floatIcon(cx, cy - 10, 'note');
     else this.fx.sparkle(cx, cy, 6, '#ffd2a8');
+  }
+
+  // ── Les allées et venues (l'heure du déjeuner, une pause, la fin de journée : day.ts) ──
+  /** Il arrive dans la Pause : par la porte du bureau, ou (au chargement) déjà quelque part dans la pièce. */
+  show(id: string, byDoor: boolean) {
+    const p = this.everyone.find((x) => x.id === id);
+    if (!p || (!p.away && p.state !== 'exiting')) return;
+    this.drop(p);
+    p.away = false;
+    p.onOut = undefined;
+    p.state = 'idle';
+    if (byDoor) {
+      const f = tileFeet([0, ANNEX_BACK_DOOR.row + (Math.random() < 0.5 ? 0 : 1)]);
+      p.x = 4; p.y = f.y; p.dir = 'right';
+      p.until = this.time + 0.2;
+    } else {
+      for (let i = 0; i < 30; i++) {
+        const tx = 2 + Math.floor(Math.random() * 18), ty = 5 + Math.floor(Math.random() * 9);
+        if (this.grid[ty]?.[tx]) { const f = tileFeet([tx, ty]); p.x = f.x; p.y = f.y; break; }
+      }
+      p.until = this.time + Math.random() * 2;
+    }
+    this.changed();
+  }
+
+  /** Il disparaît tout de suite (appelé en mission, par exemple). */
+  hide(id: string) {
+    const p = this.everyone.find((x) => x.id === id);
+    if (!p || p.away) return;
+    this.drop(p);
+    p.away = true;
+    p.state = 'idle';
+    p.onOut = undefined;
+    this.changed();
+  }
+
+  /** Il repart vers le bureau : il marche jusqu'à la porte, puis `out` (il réapparaît de l'autre côté). */
+  sendOff(id: string, out: () => void, line?: string) {
+    const p = this.everyone.find((x) => x.id === id);
+    if (!p || p.away || p.state === 'exiting') return false;
+    this.drop(p);
+    const row = ANNEX_BACK_DOOR.row + (Math.random() < 0.5 ? 0 : 1);
+    const path = findPath(this.grid, p.tile, [1, row]);
+    p.path = [...(path ?? [[1, row] as Tile]).map(tileFeet), { x: 2, y: tileFeet([1, row]).y }];
+    p.state = 'exiting';
+    p.act = 'wander';
+    p.onOut = out;
+    if (line) { p.line = line; p.lineUntil = this.time + 3; }
+    this.changed();
+    return true;
+  }
+
+  /** Il lâche ce qu'il faisait : sa place, son partenaire, sa chaise. */
+  private drop(p: Pal) {
+    if (p.spot) this.taken.delete(p.spot.id);
+    if (p.partner) { if (p.partner.partner === p) { p.partner.partner = null; p.partner.until = this.time; } p.partner = null; }
+    if (p.seated && p.spot) { const f = tileFeet(p.spot.tile); p.x = f.x; p.y = f.y; }
+    p.seated = false;
+    p.spot = null;
+    p.speaking = false;
+    p.path = [];
+    p.moving = false;
   }
 
   // ── Tu diriges Roré ──

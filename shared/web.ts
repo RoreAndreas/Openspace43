@@ -63,6 +63,70 @@ async function search(q: string, tavilyKey?: string): Promise<{ hits: Hit[]; eng
   return { hits, engine: 'duckduckgo' };
 }
 
+// ── Tavily, l'outil de Rook (le chercheur) : une recherche réglable (actualités, période, sites) et la lecture
+// de plusieurs pages d'un coup. Il faut une clé (TAVILY_KEY ou CLE_TAVILY) ; sans elle, le bureau se rabat sur searchWeb.
+
+export interface TavilyHit extends Hit { date: string; score: number }
+
+const pickOne = <T extends string>(v: unknown, ok: readonly T[], def: T): T => (ok.includes(v as T) ? (v as T) : def);
+const domains = (v: unknown) => (Array.isArray(v) ? v : []).map((d) => String(d).trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, ''))
+  .filter((d) => /^[a-z0-9.-]{3,120}$/.test(d)).slice(0, 10);
+
+const noKey = () => new WebError(501, 'Tavily n’est pas configuré : ajoute le secret TAVILY_KEY (ou CLE_TAVILY) sur Cloudflare, ou la variable en local.');
+
+async function tavily<T>(path: 'search' | 'extract', key: string, body: Record<string, unknown>): Promise<T> {
+  let r: Response;
+  try {
+    r = await fetch(`https://api.tavily.com/${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+      body: JSON.stringify(body),
+    });
+  } catch { throw new WebError(502, 'Tavily ne répond pas.'); }
+  if (r.status === 401 || r.status === 403) throw new WebError(502, 'La clé Tavily est refusée (TAVILY_KEY ou CLE_TAVILY).');
+  if (r.status === 429 || r.status === 432) throw new WebError(429, 'Le quota Tavily est épuisé pour ce mois.');
+  if (!r.ok) throw new WebError(502, `Tavily a répondu une erreur (${r.status}).`);
+  return (await r.json()) as T;
+}
+
+/** Une recherche Tavily : la réponse résumée, et les résultats datés. Les options viennent de l'agent : on les vérifie. */
+export async function tavilySearch(key: string | undefined, o: Record<string, unknown>): Promise<{ answer: string; hits: TavilyHit[]; engine: 'tavily' }> {
+  if (!key) throw noKey();
+  const query = String(o.query ?? '').trim().slice(0, 400);
+  if (!query) throw new WebError(400, 'Recherche vide.');
+  const body: Record<string, unknown> = {
+    query,
+    search_depth: pickOne(o.depth, ['basic', 'advanced'] as const, 'basic'),
+    topic: pickOne(o.topic, ['general', 'news', 'finance'] as const, 'general'),
+    max_results: Math.max(1, Math.min(10, Number(o.max_results) || 6)),
+    include_answer: 'basic',
+  };
+  const range = pickOne(o.time_range, ['none', 'day', 'week', 'month', 'year'] as const, 'none');
+  if (range !== 'none') body.time_range = range;
+  const inc = domains(o.include_domains), exc = domains(o.exclude_domains);
+  if (inc.length) body.include_domains = inc;
+  if (exc.length) body.exclude_domains = exc;
+  if (typeof o.country === 'string' && /^[a-z ]{3,30}$/i.test(o.country) && body.topic === 'general') body.country = o.country.toLowerCase();
+  const d = await tavily<{ answer?: string; results?: { title?: string; url?: string; content?: string; score?: number; published_date?: string }[] }>('search', key, body);
+  return {
+    answer: (d.answer ?? '').slice(0, 1200),
+    hits: (d.results ?? []).map((x) => ({ title: x.title ?? '', url: x.url ?? '', snippet: (x.content ?? '').slice(0, 400), date: x.published_date ?? '', score: Math.round((x.score ?? 0) * 100) / 100 })),
+    engine: 'tavily',
+  };
+}
+
+/** Le texte de 1 à 5 pages, lu par Tavily (plus fiable sur les sites qui bloquent les robots). */
+export async function tavilyExtract(key: string | undefined, raw: unknown): Promise<{ pages: { url: string; text: string; truncated: boolean }[]; failed: string[] }> {
+  if (!key) throw noKey();
+  const urls = (Array.isArray(raw) ? raw : [raw]).map(String).filter((u) => { try { return allowed(new URL(u)); } catch { return false; } }).slice(0, 5);
+  if (!urls.length) throw new WebError(400, 'Aucune adresse valide.');
+  const d = await tavily<{ results?: { url?: string; raw_content?: string }[]; failed_results?: { url?: string }[] }>('extract', key, { urls, extract_depth: 'basic' });
+  return {
+    pages: (d.results ?? []).map((x) => ({ url: x.url ?? '', text: (x.raw_content ?? '').slice(0, PAGE_CHARS), truncated: (x.raw_content ?? '').length > PAGE_CHARS })),
+    failed: (d.failed_results ?? []).map((x) => x.url ?? '').filter(Boolean),
+  };
+}
+
 /** Pas d'adresse locale ni privée : on ne lit que des pages publiques. */
 function allowed(u: URL) {
   if (u.protocol !== 'https:' && u.protocol !== 'http:') return false;

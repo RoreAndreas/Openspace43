@@ -78,8 +78,10 @@ export function lookFor(role: Role, name: string, taken: Iterable<string | null>
   const mine = CHARACTERS.filter((c) => c.roles.includes(role));
   const pool = mine.length || role === 'chef' ? mine : CHARACTERS.filter((c) => !c.roles.includes('chef'));
   if (!pool.length) return null;
+  // un agent qui porte le prénom d'un personnage (Margaux, Nyx…) est ce personnage
+  const own = pool.findIndex((c) => c.name === name);
   const at = NAMES[role].indexOf(name);
-  const start = at >= 0 ? at : hash(name);
+  const start = own >= 0 ? own : at >= 0 ? at : hash(name);
   const busy = new Set(taken);
   for (let i = 0; i < pool.length; i++) {
     const c = pool[(start + i) % pool.length];
