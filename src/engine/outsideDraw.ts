@@ -1,7 +1,7 @@
 // Le dessin de Dehors. Deux plans :
 // - le fond, en perspective : le ciel, la mer qui s'étend jusqu'à l'horizon (brumeuse au loin, plus franche près de
 //   la falaise), le soleil ou la lune et leur reflet, un cap lointain avec son phare, à gauche ;
-// - le sol, vu de dessus en 3/4 comme le bureau : le pavillon 43 à droite (toit de zinc à une pente, bardage bois, grande baie),
+// - le sol, vu de dessus en 3/4 comme le bureau : le pavillon 43 à droite (toit plat, bardage bois, grande baie),
 //   la prairie que le vent parcourt en vagues, les pins, le chemin de gravier, et le bord de la falaise, face au large.
 // Le décor fixe est dessiné une fois par heure du jour ; le reste bouge à chaque image.
 import { coastY, HORIZON, OUT_DOOR, OUTSIDE_FURNITURE, PATHS, type Outside, type OutFurn, type Walker } from './outside.ts';
@@ -346,13 +346,11 @@ function drawBackground(tod: TimeOfDay): HTMLCanvasElement {
     if (toPath(x, y) < 6) px(g, x, y, r() < 0.5 ? '#c4b089' : '#efe2c2');
   }
 
-  // le pavillon, à droite (petit) : un toit de zinc à une seule pente, plus haut à gauche, à joints debout
-  for (let x = 228; x < 328; x++) {
-    const top = Math.round(20 + ((x - 228) / 100) * 12);
-    rect(g, x, top, 1, 41 - top, (x - 228) % 7 === 0 ? '#5f6876' : (x - 228) % 7 === 1 ? '#a9b2bf' : '#7d8796');
-    px(g, x, top, '#c4ccd6');
-  }
-  rect(g, 228, 39, 100, 2, '#5f6876');
+  // le pavillon, à droite (petit) : un toit plat, couvert de gravier gris, bordé d'une fine rive de métal
+  rect(g, 232, 30, 92, 11, '#3a3a48');
+  rect(g, 234, 31, 88, 8, '#8a8a92');
+  for (let i = 0; i < 160; i++) px(g, 234 + Math.floor(r() * 88), 31 + Math.floor(r() * 8), ['#9c9ca4', '#76767e', '#a8a8b0', '#6a6a72'][Math.floor(r() * 4)]);
+  hline(g, 232, 30, 92, '#a9b2bf');
   rect(g, 230, 40, 96, 3, '#2e2e3c');
   hline(g, 230, 40, 96, '#4a4a5c');
   // l'aile gauche : un bardage de bois, une fenêtre étroite
@@ -516,7 +514,7 @@ export class OutsideRenderer {
       g.save();
       g.beginPath();
       g.rect(0, 0, 230, HORIZON);
-      g.rect(230, 0, 96, 20);
+      g.rect(230, 0, 96, 30);
       g.rect(326, 0, W - 326, HORIZON - 4);
       g.clip();
       const col = tod === 'day' ? ['#ffffff', '#e4f1fa'] : ['#ffc9a8', '#d98a8a'];
