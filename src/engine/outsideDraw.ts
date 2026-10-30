@@ -217,31 +217,24 @@ export function outsidePlacement(f: OutFurn): { x: number; y: number; w: number;
 
 // ── Le décor fixe ──
 
-/** Le logo 43 (le triangle fin et le « 43. » en gras), en petit, peint directement sur la façade, sans fond.
- *  (x, y) : le coin en haut à gauche ; il fait 24 × 20 pixels. */
+/** Le logo 43, d'après l'original : un grand triangle au trait fin, deux fois plus haut que les chiffres ; le « 43. » en
+ *  gras est posé en bas à gauche, sur la même ligne que la base du triangle. Le côté gauche s'arrête juste au-dessus du 4,
+ *  la base ne réapparaît qu'après le point, le côté droit descend jusqu'au bout. Peint sur la façade, sans fond.
+ *  (x, y) : le coin en haut à gauche ; il fait 25 × 20 pixels. */
+const DIGIT_4 = ['....##.', '...###.', '..####.', '.##.##.', '##..##.', '##..##.', '#######', '#######', '....##.', '....##.'];
+const DIGIT_3 = ['.#####.', '##...##', '.....##', '.....##', '..####.', '..####.', '.....##', '.....##', '##...##', '.#####.'];
+
 function sign43(g: G, x: number, y: number) {
-  const ink = '#15121d';
-  const line = (x0: number, y0: number, x1: number, y1: number) => {
-    const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
-    for (let i = 0; i <= n; i++) px(g, x0 + ((x1 - x0) * i) / n, y0 + ((y1 - y0) * i) / n, ink);
-  };
-  // le triangle (le sommet est entre le 4 et le 3)
-  line(x + 11, y, x + 4, y + 14);
-  line(x + 11, y, x + 21, y + 14);
-  hline(g, x + 4, y + 14, 18, ink);
-  // le « 4 »
-  rect(g, x + 6, y + 7, 2, 12, ink);
-  rect(g, x, y + 15, 9, 2, ink);
-  for (let i = 0; i < 9; i++) rect(g, x + 5 - Math.floor(i * 0.6), y + 7 + i, 2, 1, ink);
-  // le « 3 »
-  const tx = x + 11;
-  rect(g, tx, y + 7, 7, 2, ink);
-  rect(g, tx + 6, y + 8, 2, 5, ink);
-  rect(g, tx + 2, y + 12, 5, 2, ink);
-  rect(g, tx + 6, y + 13, 2, 5, ink);
-  rect(g, tx, y + 17, 7, 2, ink);
-  // le point
-  rect(g, tx + 10, y + 17, 2, 2, ink);
+  const ink = '#15121d', thin = '#56506a';
+  const bitmap = (rows: string[], ox: number, oy: number) => rows.forEach((row, j) => { for (let i = 0; i < row.length; i++) if (row[i] === '#') px(g, ox + i, oy + j, ink); });
+  // le triangle : le sommet au-dessus de la jonction du 4 et du 3
+  for (let k = 0; k <= 19; k++) px(g, x + 12 + Math.round((12 * k) / 19), y + k, thin);
+  for (let k = 0; k <= 8; k++) px(g, x + 12 - Math.round((12 * k) / 19), y + k, thin);
+  hline(g, x + 22, y + 19, 3, thin);
+  // « 43. » en gras, en bas à gauche
+  bitmap(DIGIT_4, x + 3, y + 10);
+  bitmap(DIGIT_3, x + 11, y + 10);
+  rect(g, x + 18, y + 17, 3, 3, ink);
 }
 
 /** Une vitre : le reflet du ciel le jour, la lumière de l'intérieur le soir. */
@@ -375,7 +368,7 @@ function drawBackground(tod: TimeOfDay): HTMLCanvasElement {
   rect(g, 232, 43, 4, 53, '#7a5236');
   rect(g, 320, 43, 4, 53, '#232330');
 
-  sign43(g, OUT_DOOR.x + 5, 47);
+  sign43(g, OUT_DOOR.x + 4, 47);
 
   // la porte d'entrée : un auvent, deux battants vitrés, une lumière chaude
   const dx = OUT_DOOR.x;
