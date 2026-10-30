@@ -3,9 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { ROLES } from '../../shared/activity.ts';
 import type { ActKind } from '../../shared/protocol.ts';
-import { annex, annexRenderer, camera, day, director, outside, outsideRenderer, renderer, sea, timeOfDay, world } from '../engine/instance.ts';
-import type { SeaView } from '../engine/seaView.ts';
-import { pixelText, textWidth } from '../engine/font.ts';
+import { annex, annexRenderer, camera, day, director, outside, outsideRenderer, renderer, sea, seaRenderer, timeOfDay, world } from '../engine/instance.ts';
 import { hitAt, type Hit } from '../engine/hits.ts';
 import { annexHitAt, type AnnexHit } from '../engine/annex.ts';
 import { annexPlacement } from '../engine/annexDraw.ts';
@@ -26,10 +24,6 @@ import { isWorkTime, useOffice, type AskView } from '../state/store.ts';
 const ICON: Record<ActKind, string> = {
   search: '🔎', web: '🌐', read: '📖', write: '✍️', edit: '✏️', bash: '💻', plan: '📋', skill: '🎓', mcp: '🔌', other: '⚙️',
 };
-
-/** La mer en 3D : three.js ne se charge qu'à la première sortie en barque. */
-let seaView: SeaView | null = null;
-let seaLoading = false;
 
 /** Combien coûte le dessin (pour vérifier que le bureau ne fait pas chauffer l'ordinateur). */
 export const perf = { frames: 0, ms: 0 };
@@ -134,7 +128,7 @@ export function Office() {
       const inAnnex = st.room === 'annex';
       const inOutside = st.room === 'outside';
       const inSea = st.room === 'sea';
-      // tu diriges Roré : la caméra le suit de près (dans la pièce où il est ; en mer, c'est la caméra 3D qui suit la barque)
+      // tu diriges Roré : la caméra le suit de près (dans la pièce où il est ; en mer, la vue suit déjà la barque)
       if (st.driving && !inSea) { const me = roreHere(); camera.shot(me.x, me.y - 12, 1.7, 0.5); }
       const camMoving = camera.update(dt);
       // pour filmer le bureau image par image (scripts de capture) : chaque image est dessinée, et le rythme
@@ -160,19 +154,8 @@ export function Office() {
       outside.update(acc);
       if (inSea) { sea.update(acc); if (tip.current) tip.current.style.opacity = '0'; }
       acc = 0;
-      if (inSea) {
-        if (seaView) seaView.draw(lg, sea, timeOfDay(todRef.current), outside.rore.info.id);
-        else {
-          // le temps de charger la 3D : la mer, et un petit mot
-          lg.fillStyle = '#1d63a0'; lg.fillRect(0, 0, W, H);
-          const msg = 'RORÉ PREND LA BARQUE';
-          pixelText(lg, msg, Math.round(W / 2 - textWidth(msg) / 2), H / 2 - 3, '#ffffff');
-          if (!seaLoading) {
-            seaLoading = true;
-            void import('../engine/seaView.ts').then((m) => { seaView = new m.SeaView(); }).catch(() => { seaLoading = false; });
-          }
-        }
-      } else if (inOutside) outsideRenderer.draw(lg, outside, timeOfDay(todRef.current));
+      if (inSea) seaRenderer.draw(lg, sea, timeOfDay(todRef.current), outside.rore.info.id);
+      else if (inOutside) outsideRenderer.draw(lg, outside, timeOfDay(todRef.current));
       else if (inAnnex) annexRenderer.draw(lg, annex, timeOfDay(todRef.current));
       else renderer.draw(lg, world, timeOfDay(todRef.current), new Date());
       present();
@@ -284,8 +267,8 @@ function RoomBadge() {
   if (room === 'office') return null;
   if (room === 'sea') {
     return (
-      <button className="room-badge sea" onClick={(e) => { e.stopPropagation(); goRoom('outside'); }} title="Accoster au ponton (touche L)">
-        ⛵ En mer <span>← Accoster</span>
+      <button className="room-badge sea" onClick={(e) => { e.stopPropagation(); goRoom('outside'); }} title="Revenir Dehors (touche X)">
+        ⛵ En mer <span>← Revenir (X)</span>
       </button>
     );
   }
@@ -304,7 +287,7 @@ function DriveBadge() {
   return (
     <div className="drive-badge" role="status">
       {room === 'sea'
-        ? <>⛵ Roré rame · <kbd>↑</kbd> avancer · <kbd>↓</kbd> reculer · <kbd>←</kbd><kbd>→</kbd> tourner · <kbd>E</kbd> pêcher (là où tournent les oiseaux) ou accoster</>
+        ? <>⛵ <kbd>←</kbd><kbd>→</kbd> ramer autour de l’île · <kbd>E</kbd> pêcher (là où tournent les oiseaux) · <kbd>X</kbd> revenir</>
         : <>🎮 Tu diriges Roré · <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> pour marcher · <kbd>E</kbd> pour interagir · <kbd>Échap</kbd> pour le laisser</>}
       <button onClick={(e) => { e.stopPropagation(); setDriving(false); }} aria-label="Rendre la main à Roré">×</button>
     </div>

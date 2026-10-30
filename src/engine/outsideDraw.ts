@@ -99,20 +99,20 @@ function logSprite(): Sprite {
   return { c, ox: 0, oy: 0, sort: 8 };
 }
 
-/** Le coin du pêcheur : une boîte d'hameçons, un seau. */
+/** Le panneau du chemin de la barque : un poteau de bois, une planche avec une petite barque peinte. */
 function fishingSprite(): Sprite {
-  const c = makeCanvas(18, 12);
+  const c = makeCanvas(14, 18);
   const g = g2d(c);
-  rect(g, 1, 5, 7, 5, '#c0563a');
-  hline(g, 1, 5, 7, '#e07a5a');
-  rect(g, 3, 7, 3, 1, '#2b2836');
-  rect(g, 10, 3, 6, 8, '#3a7fc4');
-  hline(g, 10, 3, 6, '#9fd0ff');
-  hline(g, 10, 10, 6, '#285d94');
-  px(g, 11, 2, '#cfd2e0'); px(g, 15, 2, '#cfd2e0'); hline(g, 12, 1, 3, '#cfd2e0');
-  px(g, 12, 4, '#e8eef7'); px(g, 13, 4, '#e8eef7'); px(g, 14, 5, '#e8eef7');
+  rect(g, 6, 6, 2, 12, P.woodDark);
+  rect(g, 1, 1, 12, 7, P.wood);
+  hline(g, 1, 1, 12, P.woodLight);
+  // la barque peinte, sur l'eau
+  rect(g, 3, 4, 8, 2, '#8a5530');
+  hline(g, 3, 4, 8, '#d24a40');
+  hline(g, 2, 6, 10, '#4f9fe8');
+  vline(g, 7, 2, 2, '#563821');
   outline(c, P.ink);
-  return { c, ox: 0, oy: 0, sort: 10 };
+  return { c, ox: 0, oy: 0, sort: 16 };
 }
 
 function bollardSprite(): Sprite {
@@ -448,7 +448,6 @@ export class OutsideRenderer {
     this.ropes(g, t, gust);
     this.grass(g, t, gust);
     this.moored(g, t);
-    this.fishingLine(g, t, gust);
 
     const items: { y: number; draw: () => void }[] = [];
     for (const p of this.placed) {
@@ -643,7 +642,7 @@ export class OutsideRenderer {
 
   /** Une corde entre des piquets, au bord de la falaise : elle ondule dans le vent. */
   private ropes(g: G, t: number, gust: number) {
-    const runs: number[][] = [[6, 22], [60, 78], [154, 170, 186]];
+    const runs: number[][] = [[6, 22], [62, 78], [154, 170, 186]];
     for (const xs of runs) {
       for (let i = 0; i < xs.length; i++) {
         const x = xs[i], y = edgeAt(x) + 6;
@@ -678,37 +677,19 @@ export class OutsideRenderer {
     }
   }
 
-  /** La barque, amarrée tout en bas au pied du ponton : elle danse sur la houle (on la prend au coin de pêche). */
+  /** Le chemin de la barque : au bord de la falaise, deux poteaux de bois reliés par des cordes, pour dire « on descend
+   *  ici » (la barque attend en bas, on la retrouve en mer). */
   private moored(g: G, t: number) {
-    const x = 58, y = Math.round(edgeAt(58) - 12 + Math.sin(t * 1.6) * 0.6);
-    rect(g, x, y, 11, 2, '#8a5530');
-    rect(g, x + 1, y + 2, 9, 1, '#6b4528');
-    hline(g, x, y, 11, '#b07c4c');
-    px(g, x + 3, y + 1, '#d24a40'); px(g, x + 7, y + 1, '#d24a40');
-    g.fillStyle = 'rgba(255,255,255,0.45)';
-    g.fillRect(x - 2 + Math.round(Math.sin(t * 1.3) * 1), y + 3, 15, 1);
-    // l'amarre, jusqu'au bord
-    for (let k = 0; k < 8; k++) px(g, x + 10 + k * 0.6, y - k * 1.2, 'rgba(232,220,192,0.8)');
-  }
-
-  /** La canne, penchée au-dessus du vide, et la ligne qui descend jusqu'à la mer, tout en bas. */
-  private fishingLine(g: G, t: number, gust: number) {
-    const bx0 = 2 * T + 12, by0 = 9 * T - 6;
-    const tipX = bx0 + 12, tipY = edgeAt(bx0 + 12) - 8;
-    const n = 20;
-    for (let i = 0; i <= n; i++) px(g, bx0 + ((tipX - bx0) * i) / n - Math.sin((i / n) * Math.PI) * 2, by0 + ((tipY - by0) * i) / n, i < 5 ? '#563821' : '#8a5530');
-    const sway = gust * 3 + Math.sin(t * 1.3) * 1;
-    const endY = tipY - 12, endX = tipX + 3 + sway;
-    for (let k = 0; k <= 12; k++) {
-      const u = k / 12;
-      px(g, tipX + (endX - tipX) * u * u + Math.sin(t * 2 + k * 0.4) * 0.4, tipY - k, 'rgba(235,240,250,0.45)');
+    const top = edgeAt(42), cx = 42;
+    for (const x of [cx - 8, cx + 7]) {
+      rect(g, x, top - 7, 2, 11, P.woodFront);
+      vline(g, x, top - 7, 11, P.woodLight);
+      hline(g, x - 1, top - 8, 4, P.woodDark);
+      g.fillStyle = 'rgba(8,6,16,0.3)'; g.fillRect(x + 2, top + 3, 2, 1);
     }
-    const bob = Math.round(Math.sin(t * 2.2) * 0.6);
-    px(g, endX, endY + bob, '#e5484d');
-    px(g, endX + 1, endY + bob, '#ffffff');
-    const ring = (t * 1.2) % 1;
-    g.fillStyle = rgba('#ffffff', 0.4 * (1 - ring));
-    g.fillRect(Math.round(endX - 1 - ring * 2), endY + 1, Math.round(4 + ring * 4), 1);
+    // les cordes : une en haut, qui ploie et bouge un peu au vent, et une qui retombe de chaque poteau
+    for (let k = 0; k <= 15; k++) px(g, cx - 7 + k, top - 6 + Math.sin((k / 15) * Math.PI) * (2.5 + Math.sin(t * 2) * 0.4), '#e8dcc0');
+    for (const [x, d] of [[cx - 8, -1], [cx + 8, 1]] as [number, number][]) for (let k = 0; k < 6; k++) px(g, x + d * Math.round(k * 0.4), top - 5 + k, '#d8ccb0');
   }
 
   private butterflies(g: G, t: number) {

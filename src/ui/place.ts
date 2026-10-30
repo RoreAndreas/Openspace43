@@ -126,11 +126,10 @@ export function installDoors() {
   outside.onFish = () => goRoom('sea');
 }
 
-/** En mer : E au ponton pour accoster, E sur un coin de pêche (là où les oiseaux tournent) pour pêcher. */
+/** En mer : E sur un coin de pêche (là où les oiseaux tournent) pour pêcher. Pour revenir : X. */
 export function interactSea() {
   const n = sea.near();
   if (!n) return;
-  if (n.kind === 'dock') { goRoom('outside'); return; }
   sfx('open');
   sea.rest(n.spot);
   useOffice.setState({ modal: { kind: 'game', game: 'fishing', lucky: n.spot.lucky } });

@@ -53,7 +53,7 @@ export const OUTSIDE_FURNITURE: OutFurn[] = [
   // où s'asseoir, où pêcher
   { id: 'bench', kind: 'bench', tx: 6, ty: 7, w: 3, h: 1, label: 'Le banc du promontoire, face au large' },
   { id: 'log', kind: 'log', tx: 3, ty: 13, w: 2, h: 1, label: 'Un vieux tronc, à l’ombre des pins : on s’y assoit' },
-  { id: 'fishing', kind: 'fishing', tx: 2, ty: 8, w: 1, h: 1, label: 'Le ponton, en bas de la falaise : prends la barque et fais le tour de l’île' },
+  { id: 'fishing', kind: 'fishing', tx: 1, ty: 8, w: 1, h: 1, label: 'Le chemin de la barque : il descend jusqu’au ponton' },
   { id: 'windsock', kind: 'windsock', tx: 11, ty: 8, w: 1, h: 1, label: 'La manche à air : elle dit d’où vient le vent' },
   // les bornes lumineuses le long du chemin (on passe à côté)
   { id: 'bollard-1', kind: 'bollard', tx: 15, ty: 6, w: 0, h: 0, label: 'Une borne lumineuse' },
@@ -74,11 +74,11 @@ export const SEATS: { id: string; x: number; y: number; tile: Tile; face: Dir; v
   { id: 'log-2', x: 4 * T + 9, y: 14 * T - 3, tile: [4, 12], face: 'down', verb: 'S’asseoir sur le tronc' },
 ];
 
-/** Le chemin de gravier : de la porte au banc du cap, avec une branche vers le tronc et le coin de pêche. */
+/** Le chemin de gravier : de la porte au banc du cap, avec une branche vers le tronc et le chemin de la barque. */
 export const PATHS: Pt[][] = [
   [{ x: 272, y: 97 }, { x: 272, y: 124 }, { x: 240, y: 146 }, { x: 186, y: 158 }, { x: 140, y: 154 }, { x: 120, y: 146 }],
   [{ x: 186, y: 158 }, { x: 150, y: 176 }, { x: 104, y: 190 }, { x: 70, y: 206 }],
-  [{ x: 104, y: 190 }, { x: 64, y: 168 }, { x: 40, y: 150 }],
+  [{ x: 104, y: 190 }, { x: 64, y: 168 }, { x: 42, y: 146 }, { x: 40, y: 128 }],
 ];
 
 /** Les cases où l'on marche : l'herbe, jusqu'au bord de la falaise (avec une marge). */

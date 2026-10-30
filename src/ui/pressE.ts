@@ -18,10 +18,10 @@ const toRect = (px: number, py: number, x0: number, y0: number, x1: number, y1: 
 /** Ce que Roré peut atteindre, le plus proche d'abord. */
 export function nearRore(): Near | null {
   const room = useOffice.getState().room;
-  // en mer : le ponton (accoster), ou un coin de pêche (là où les oiseaux tournent)
+  // en mer : un coin de pêche (là où les oiseaux tournent)
   if (room === 'sea') {
     const n = sea.near();
-    return n ? { verb: n.kind === 'dock' ? 'Accoster (retour Dehors)' : `Pêcher ici : ${n.spot.name.toLowerCase()}`, act: interactSea } : null;
+    return n ? { verb: `Pêcher ici : ${n.spot.name.toLowerCase()}`, act: interactSea } : null;
   }
   const inAnnex = room === 'annex';
   const me = roreHere();
@@ -40,7 +40,7 @@ export function nearRore(): Near | null {
     const seat = outside.seatNear();
     if (seat) offer(0, 1, { verb: seat.verb, act: () => outside.sitRore(seat.id) });
     // la canne à pêche (dans la brèche de la clôture)
-    offer(Math.hypot(px - FISH_SPOT.x, py - FISH_SPOT.y), 20, { verb: 'Prendre la barque (faire le tour de l’île)', act: () => interactOutside({ kind: 'object', id: 'fishing', label: '' }) });
+    offer(Math.hypot(px - FISH_SPOT.x, py - FISH_SPOT.y), 20, { verb: 'Descendre à la barque', act: () => interactOutside({ kind: 'object', id: 'fishing', label: '' }) });
     if (me.y < 7 * T && me.x >= OUT_DOOR.x && me.x <= OUT_DOOR.x + OUT_DOOR.w) offer(0, 1, { verb: 'Rentrer au bureau', act: () => interactOutside({ kind: 'door', label: '' }) });
     return best;
   }
