@@ -40,6 +40,10 @@ const PINE = 'Un pin parasol, couché par le vent du large';
 const TREE = 'Un arbre : le vent y passe';
 
 export const OUTSIDE_FURNITURE: OutFurn[] = [
+  // derrière et autour du pavillon
+  { id: 'pine-1', kind: 'pine', tx: 21, ty: 2, w: 1, h: 1, label: PINE },
+  { id: 'tree-1', kind: 'tree', tx: 21, ty: 6, w: 1, h: 1, label: TREE },
+  { id: 'tree-2', kind: 'tree', tx: 13, ty: 5, w: 1, h: 1, label: TREE },
   // dans la prairie, au premier plan
   { id: 'pine-2', kind: 'pine', tx: 1, ty: 10, w: 1, h: 1, label: PINE },
   { id: 'tree-3', kind: 'tree', tx: 19, ty: 11, w: 1, h: 1, label: TREE },
