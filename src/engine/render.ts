@@ -54,7 +54,7 @@ export class Renderer {
     if (Math.sin(t * 0.9) <= 0.985) neon(g, tube, core);
     // les écriteaux : le nom du coin, et combien d'agents y travaillent en ce moment
     const busy = new Map<string, number>();
-    for (const a of world.actors.values()) if (a.seated && a.role !== 'chef') busy.set(a.role, (busy.get(a.role) ?? 0) + 1);
+    for (const a of world.actors.values()) if (a.seated && a.role !== 'chef' && !a.resident) busy.set(a.role, (busy.get(a.role) ?? 0) + 1);
     signs(g, (role) => busy.get(role) ?? 0);
 
     // qui est assis à quel bureau
@@ -159,6 +159,30 @@ export class Renderer {
       if (h > 3) g.fillRect(p.x + 5, p.y + 10, 5, 1);
       g.fillStyle = Math.floor(t * 8) % 2 ? '#3ddc97' : '#1f6b45';
       g.fillRect(p.x + 13, p.y + 9, 1, 1);
+    }
+    if (f.kind === 'printer' && t < world.jamUntil) {
+      // bloquée : le voyant rouge clignote, une feuille froissée dépasse
+      g.fillStyle = Math.floor(t * 6) % 2 ? '#ff4d4d' : '#6b1f1f';
+      g.fillRect(p.x + 13, p.y + 9, 1, 1);
+      g.fillStyle = P.paper;
+      g.fillRect(p.x + 5, p.y + 7, 6, 2);
+      g.fillStyle = P.paperShade;
+      g.fillRect(p.x + 6, p.y + 8, 2, 1);
+      g.fillRect(p.x + 9, p.y + 7, 1, 1);
+    }
+    // une coupe par mission réussie, sur l'étagère des archives (cinq au plus : le compte est dans l'infobulle)
+    if (f.kind === 'shelf') for (let i = 0; i < Math.min(5, world.trophies); i++) trophy(g, p.x + 2 + i * 6, p.y - 7, i === Math.min(5, world.trophies) - 1 && t - world.trophyAt < 2 && Math.floor(t * 8) % 2 === 0);
+    // l'anniversaire : le gâteau sur la table basse, ses bougies qui vacillent
+    if (f.kind === 'tableLow' && t < world.cakeUntil) {
+      const x = p.x + 9, y = p.y - 1;
+      g.fillStyle = '#e6e2ee'; g.fillRect(x - 1, y + 3, 10, 1);
+      g.fillStyle = '#ff9fc6'; g.fillRect(x, y, 8, 3);
+      g.fillStyle = '#ffffff'; g.fillRect(x, y, 8, 1);
+      g.fillStyle = '#e5484d'; g.fillRect(x + 1, y + 2, 1, 1); g.fillRect(x + 5, y + 2, 1, 1);
+      for (const cx of [x + 2, x + 5]) {
+        g.fillStyle = '#ffffff'; g.fillRect(cx, y - 2, 1, 2);
+        g.fillStyle = Math.floor(t * 7 + cx) % 2 ? '#ffd166' : P.orange; g.fillRect(cx, y - 3, 1, 1);
+      }
     }
     if (f.kind === 'rack') {
       for (let i = 0; i < 6; i++) {
@@ -421,6 +445,23 @@ export class Renderer {
 }
 
 /** Les néons de l'arche du jukebox : éteints au repos, ils défilent et pulsent sur la musique. */
+/** Une petite coupe dorée (5 × 7), qui brille quand elle vient d'arriver. */
+function trophy(g: G, x: number, y: number, shine: boolean) {
+  const gold = shine ? '#fff1b8' : '#ffd166';
+  g.fillStyle = P.ink;
+  g.fillRect(x - 1, y - 1, 7, 5);
+  g.fillRect(x, y + 4, 5, 3);
+  g.fillStyle = gold;
+  g.fillRect(x, y, 5, 3);
+  g.fillRect(x + 2, y + 3, 1, 2);
+  g.fillStyle = '#b9832b';
+  g.fillRect(x + 3, y + 1, 2, 2);
+  g.fillStyle = '#ffffff';
+  g.fillRect(x + 1, y, 1, 1);
+  g.fillStyle = '#5e4130';
+  g.fillRect(x + 1, y + 5, 3, 1);
+}
+
 export function jukeboxLights(g: G, x: number, y: number, on: boolean, level: number, t: number) {
   const p = { x, y };
   const arcs: [number, string, string][] = [[11, '#ff5fa2', '#5a2a3e'], [9, P.orange, '#5a3a24'], [7, '#3fd8ff', '#1f3e4a']];

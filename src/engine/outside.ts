@@ -131,6 +131,8 @@ export class Walker {
   nextBlink = 2;
   blinkUntil = 0;
   speed: number;
+  /** il rentre : ce qui se passe une fois la porte du pavillon franchie */
+  onIn?: () => void;
 
   constructor(info: CharacterInfo, x: number, y: number) {
     this.info = info;
@@ -151,7 +153,7 @@ export class Outside {
   grid = outsideGrid();
   time = 0;
   rore = new Walker(CHARACTERS.find((c) => c.roles.includes('chef')) ?? CHARACTERS[0], DOOR_FEET.x, DOOR_FEET.y + 2);
-  /** les collègues sortis prendre l'air (en dehors des heures de travail) */
+  /** les collègues sortis prendre l'air (en dehors des heures de travail, voir day.ts) */
   guests: Walker[] = [];
   driving = false;
   /** Roré franchit la porte du pavillon en marchant (pour changer de pièce avec lui) */
@@ -182,24 +184,45 @@ export class Outside {
     return { x, y: 130 + Math.random() * 110, vx: 14 + Math.random() * 16, ph: Math.random() * 6, color: cols[Math.floor(Math.random() * cols.length)] };
   }
 
-  // ── Les collègues qui sortent (ou rentrent) ──
-  /** Ceux qui sont dehors : les nouveaux sortent par la porte, ceux qui ne sont plus dans la liste y retournent. */
-  setGuests(infos: CharacterInfo[]) {
-    let changed = false;
-    for (const g of this.guests) {
-      if (!infos.some((i) => i.id === g.id) && g.intent !== 'leave') {
-        this.stand(g);
-        this.go(g, 'leave', [OUT_DOOR.col, 6]);
+  // ── Les collègues qui sortent (ou rentrent) : la journée (day.ts) décide ──
+  /** Il sort prendre l'air : par la porte du pavillon, ou (au chargement) déjà quelque part dehors. */
+  show(info: CharacterInfo, byDoor: boolean) {
+    if (this.guests.some((g) => g.id === info.id && g.intent !== 'leave')) return;
+    this.drop(info.id);
+    const g = new Walker(info, DOOR_FEET.x - 8 + Math.random() * 16, DOOR_FEET.y);
+    g.until = this.time + 0.4;
+    if (!byDoor) {
+      for (let i = 0; i < 30; i++) {
+        const tx = 1 + Math.floor(Math.random() * 20), ty = 7 + Math.floor(Math.random() * 9);
+        if (this.grid[ty]?.[tx]) { const f = tileFeet([tx, ty]); g.x = f.x; g.y = f.y; break; }
       }
     }
-    infos.forEach((info, i) => {
-      if (this.guests.some((g) => g.id === info.id)) return;
-      const g = new Walker(info, DOOR_FEET.x - 8 + i * 8, DOOR_FEET.y);
-      g.until = this.time + 0.4 + i * 1.6;
-      this.guests.push(g);
-      changed = true;
-    });
-    if (changed) this.changed();
+    this.guests.push(g);
+    this.changed();
+  }
+
+  /** Il rentre : il marche jusqu'à la porte du pavillon, puis `then` (le bureau le reprend). Faux s'il n'est pas dehors. */
+  sendIn(id: string, then?: () => void) {
+    const g = this.guests.find((x) => x.id === id);
+    if (!g || g.intent === 'leave') return false;
+    this.stand(g);
+    g.onIn = then;
+    // pas de chemin : il rentre tout de suite
+    if (!this.go(g, 'leave', [OUT_DOOR.col, 6])) { this.drop(id); this.changed(); then?.(); }
+    return true;
+  }
+
+  /** Il disparaît tout de suite (appelé en mission, par exemple). */
+  hide(id: string) {
+    if (this.drop(id)) this.changed();
+  }
+
+  private drop(id: string) {
+    const g = this.guests.find((x) => x.id === id);
+    if (!g) return false;
+    this.stand(g);
+    this.guests = this.guests.filter((x) => x !== g);
+    return true;
   }
 
   // ── Une image ──
@@ -221,9 +244,12 @@ export class Outside {
       this.animate(w, dt);
     }
     // ceux qui sont rentrés disparaissent
-    const before = this.guests.length;
-    this.guests = this.guests.filter((g) => !(g.intent === 'leave' && !g.path.length));
-    if (this.guests.length !== before) this.changed();
+    const back = this.guests.filter((g) => g.intent === 'leave' && !g.path.length);
+    if (back.length) {
+      this.guests = this.guests.filter((g) => !back.includes(g));
+      this.changed();
+      for (const g of back) g.onIn?.();
+    }
   }
 
   // ── Quand personne ne les dirige : ils prennent l'air ──
@@ -252,9 +278,10 @@ export class Outside {
 
   private go(w: Walker, intent: Intent, to: Tile) {
     const path = findPath(this.grid, w.tile, to);
-    if (!path) { w.until = this.time + 1; return; }
+    if (!path) { w.until = this.time + 1; return false; }
     w.path = path.map(tileFeet);
     w.intent = intent;
+    return true;
   }
 
   private walk(w: Walker, dt: number): boolean {

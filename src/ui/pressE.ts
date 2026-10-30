@@ -67,7 +67,7 @@ export function nearRore(): Near | null {
   for (const a of world.actors.values()) {
     if (a === me || a.alpha < 0.3) continue;
     const ay = a.seated && a.seat ? a.seat.y : a.y;
-    offer(Math.hypot(a.x - me.x, ay - me.y), 26, { verb: `Voir la fiche de ${a.name}`, act: () => interact({ kind: 'actor', id: a.id, label: a.name }) });
+    offer(Math.hypot(a.x - me.x, ay - me.y), 26, { verb: a.resident ? `Parler à ${a.name}` : `Voir la fiche de ${a.name}`, act: () => interact({ kind: 'actor', id: a.id, label: a.name }) });
   }
   offer(Math.hypot(world.cat.x - me.x, world.cat.y - me.y), 20, { verb: 'Caresser le chat', act: () => interact({ kind: 'cat', label: '' }) });
   for (const f of FURNITURE) {

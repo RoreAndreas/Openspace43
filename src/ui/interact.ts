@@ -37,6 +37,9 @@ export function interact(hit: Hit) {
       if (!world.driving) useOffice.setState({ draft: ' ' });
       return;
     }
+    // un habitué, entre deux missions : il te répond
+    const a = world.actors.get(hit.id);
+    if (a?.resident) { sfx('click'); world.talkTo(a); return; }
     sfx('open');
     useOffice.setState({ modal: { kind: 'agent', id: hit.id } });
     return;
@@ -51,6 +54,7 @@ export function interact(hit: Hit) {
     // le bureau d'un agent : sa fiche s'il y est assis, sinon le coin et ses outils
     const deskId = id.startsWith('chair-') ? id.slice(6) : id;
     const who = [...world.actors.values()].find((a) => a.seated && a.seat?.deskId === deskId);
+    if (who?.resident) { sfx('click'); world.talkTo(who); return; }
     sfx('open');
     useOffice.setState({ modal: who ? { kind: 'agent', id: who.id } : { kind: 'team', role: hit.role } });
     return;

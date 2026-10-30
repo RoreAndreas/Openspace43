@@ -1,13 +1,13 @@
 # L'open space : notes pour Claude Code
 
-Un bureau en pixel art où l'on regarde une équipe d'agents IA travailler : Roré (le chef, rôle `chef`) et un
-seul analyste (rôle `analyse`), pour une responsable marketing et communication. Hébergé sur Cloudflare.
+Un bureau en pixel art où l'on regarde une équipe d'agents IA travailler : Roré (le chef, rôle `chef`), l'analyste
+(rôle `analyse`), Rook (rôle `recherche`, la veille avec Tavily) et Hares (rôle `hares`, la finance), pour une responsable marketing et communication. Hébergé sur Cloudflare.
 D'après « Le Bureau des agents » (VibesMoney, MIT).
 
 ## Quatre moteurs (et le levier)
 
 - **Version locale** (`npm start`, `server/`) : le pont Node lance Claude Code avec le compte Claude de l'utilisateur
-  (`claude -p`, stream-json, `--agents` : un seul `analyste`). Le navigateur le détecte (WebSocket `/ws` sur localhost)
+  (`claude -p`, stream-json, `--agents` : `analyste`, `rook`, `hares`). Le navigateur le détecte (WebSocket `/ws` sur localhost)
   et envoie `team` (règlement + tiroir + skills) avec chaque `start`/`say` ; les skills sont copiés dans `.skills/` de la
   mission ; les lignes de `a-retenir.md` rejoignent le tiroir (`src/net/link.ts`).
 - **En ligne, IA gratuite** : Worker Cloudflare + Workers AI (`worker/index.ts`), équipe dans le navigateur (`src/local/`).
@@ -31,7 +31,7 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
 ## Comment c'est fait
 
 - **`worker/index.ts`** : le seul code serveur. Il ne stocke rien. `/api/chat` (Workers AI, modèles autorisés dans
-  `MODELS`), `/api/search` (Tavily si `TAVILY_KEY`, sinon DuckDuckGo), `/api/fetch` (texte d'une page, adresses
+  `MODELS`), `/api/search` (Tavily si `TAVILY_KEY` ou `CLE_TAVILY`, sinon DuckDuckGo), `/api/tavily` et `/api/tavily/extract` (Rook), `/api/fetch` (texte d'une page, adresses
   privées refusées), `/api/ping`. Tout passe par le secret `ACCESS_CODE` (en-tête `x-code`) et refuse les autres origines.
 - **`src/local/`** : le bureau tourne dans le navigateur.
   - `agent.ts` : les boucles de Roré (`runChef`) et de l'analyste (`runAnalyst`). L'IA répond par un objet JSON
@@ -65,13 +65,27 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
   l'horizon, phare au loin ; pavillon au toit plat avec le petit logo 43, prairie animée, pins, manche à air, lumière), `audio/outside.ts` (vent, mer et
   musique lofi en Web Audio, sans fichier ; coupé avec le son). `goRoom` (`ui/place.ts`) repasse toujours par le bureau. Le jeu de
   pêche se branche sur `outside.onFish`.
-- **Les heures de travail** (`workHours` dans le store, préférence `bureau:workHours`, `isWorkTime` ; champ dans les Réglages) :
-  pendant, seul Roré sort ; en dehors, `syncOutside` (`ui/place.ts`) envoie trois collègues dehors (`outside.setGuests`) et les
-  retire de la Pause (`annex.setAway`, `Pal.away` ; `annex.pals` ne liste que ceux qui sont là, `annex.everyone` tout le monde).
+- **Les heures de travail** (`state/hours.ts` : `WorkHours`, `isWorkTime` ; `workHours` dans le store, préférence `bureau:workHours` ; champ dans les Réglages) :
+  la boucle d'`Office.tsx` les passe à `day.hours`. Pendant, seul Roré sort ; en dehors, les trois habitués qui aiment le grand air
+  (`AIRY` dans `day.ts`, d'après leurs `hobbies`) vont Dehors (`place: 'outside'` ; `world.goOut`, `outside.show/sendIn/hide`) ;
+  les jours non travaillés, personne au bureau. `annex.pals` ne liste que ceux qui sont dans la Pause, `annex.everyone` tout le monde.
+  Dehors est mis à jour même quand on n'y est pas (pour que les allées et venues se terminent).
 - **S'asseoir** : E sur un pouf, un tabouret, le canapé (`annex.seatNear/sitRore/standRore`), le canapé ou son fauteuil au bureau
   (`world.seatNear/sitChef/standChef`, `SOFA_SEATS`), le banc et le tronc (`outside.seatNear/sitRore/standRore`). Une flèche ou « E · Se lever » le relève.
+- **Les habitués et la journée** (`engine/day.ts`) : chaque personnage du catalogue (sauf Roré) est un `Actor` « habitué »
+  (`regular`, identifiant `res:<personnage>`, bureau réservé) ; `HOURS` donne ses horaires, `Day` (dans `instance.ts`,
+  appelé par la boucle d'`Office.tsx`) décide où il doit être (`office`, `annex`, `home`) et le fait passer par les portes
+  (`world.comeIn`, `goHome`, `goOut`, `toPause`, `fromPause` ; `annex.show`, `hide`, `sendOff` ; `outside.show`, `sendIn`, `hide` : un personnage n'est que dans une pièce
+  à la fois). Pauses (`drinkBreak`, `visit`) et événements (`printerJam`, `catMug`, `cake`) ; `day.setClock(h)` et
+  `day.trigger(e)` pour essayer. Une mission `hire` sur un métier qui a un habitué le « recrute » (`enlist` : il prend
+  l'identifiant de l'agent ; les prénoms des habitués sont en tête de `NAMES`, l'analyste s'appelle donc Margaux), puis `release` le rend à son bureau. Tout agent passe au briefing (`brief`).
+  Les coupes de l'étagère = missions `done` du store (`world.trophies`).
 - **Les mini-jeux** (fenêtre `game`) : `ui/games/` (`PingPong.tsx`, `SpartanRun.tsx`, boucle à pas fixe et scores
   localStorage `bureau:jeux` dans `common.ts`). Ouverts par un clic sur la table de ping-pong ou une borne (`interactAnnex`).
+- **Rook** (rôle `recherche`, sous-agent `rook`) : le chercheur et la veille. En ligne et avec Ollama, `runRook` (`src/local/agent.ts`)
+  utilise Tavily : `tavilySearch` / `tavilyExtract` (`shared/web.ts`), routes `/api/tavily` et `/api/tavily/extract` du Worker et du
+  serveur local, clé `TAVILY_KEY` ou `CLE_TAVILY` (le secret du Worker s'appelle `CLE_TAVILY`). Sans clé (501), il se rabat sur
+  `/api/search`. Avec Claude Code, il a `WebSearch`/`WebFetch` (`ROOK_TOOLS`, `server/team.ts`). Roré lui délègue avec `delegate {"to": "rook"}`.
 - **Hares** (rôle `hares`, s'assoit au coin Analyse) : le financier, sur la base 43 WACC. `shared/wacc43.ts` extrait `DATA` de la page
   WACC43 et l'interroge (sociétés, pays, industries, taux, CMPC identique à `moteur/wacc_core.py`). En ligne, `/api/wacc43` du Worker
   relaie la page (pas de parsing côté Worker) et le navigateur l'interroge (`src/local/wacc43.ts`, action `base43` de `runHares`) ;

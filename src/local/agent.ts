@@ -1,6 +1,6 @@
 // L'équipe au travail, dans le navigateur. Roré (le chef) et l'analyste parlent à l'IA (Workers AI, via le
 // Worker) avec un protocole simple : à chaque tour, l'IA répond par un objet JSON { say, action, input }.
-// Le bureau exécute l'action (une recherche, une page lue, un fichier écrit, une tâche confiée à l'analyste…),
+// Le bureau exécute l'action (une recherche, une page lue, un fichier écrit, une tâche confiée à l'analyste, à Hares ou à Rook…),
 // la montre aussitôt dans le bureau, puis renvoie le résultat à l'IA. Jusqu'à l'action « final ».
 import { cut, describeAct } from '../../shared/activity.ts';
 import type { OfficeEvent, PlanItem } from '../../shared/protocol.ts';
@@ -261,6 +261,116 @@ async function runAnalyst(ctx: TeamCtx, title: string, instructions: string): Pr
   }
 }
 
+// ── Rook, le chercheur (la veille, avec Tavily) ──
+function rookPrompt(ctx: TeamCtx): string {
+  return `Tu es Rook, l'explorateur de l'open space : le chercheur et la veille. Curieux, rigoureux, tu rapportes des sources fraîches et datées. Tu travailles pour une responsable marketing et communication ; Roré, le chef de projet, t'a confié une tâche précise. Tout ce que tu fais s'affiche en direct dans un bureau en pixel art.
+Nous sommes le ${today()}.
+
+${FORMAT}
+
+Actions :
+- tavily {"query": "...", "sujet": "general|news|finance", "periode": "day|week|month|year", "profondeur": "basic|advanced", "sites": ["exemple.com"], "exclure": ["exemple.com"], "pays": "france", "nombre": 6} : chercher avec Tavily. Tu reçois une réponse résumée et des résultats (titre, lien, date, extrait, pertinence). Seul "query" est obligatoire. "news" + "periode" pour l'actualité récente ; "sites" pour fouiller des sites précis ; "advanced" seulement pour une question pointue (elle coûte le double).
+- tavily_extract {"urls": ["https://...", "https://..."]} : lire le texte de 1 à 5 pages d'un coup.
+- web_fetch {"url": "https://..."} : lire une page sans Tavily (si tavily_extract échoue).
+${FILE_ACTIONS}
+- edit_file {"name": "...", "find": "texte exact à remplacer", "replace": "nouveau texte"} : retoucher un fichier.
+- final {"report": "..."} : rendre ton rapport à Roré et terminer. 10 lignes au plus : ce que tu as trouvé, le nom du fichier écrit, les sources principales.
+
+Ta façon de travailler :
+1. 3 à 6 recherches ciblées, puis lis les meilleures pages (tavily_extract) : pas plus de 14 actions en tout.
+2. Pour une veille, cherche d'abord l'actualité ("sujet": "news" et une "periode"), puis les sources officielles.
+3. Écris le livrable dans un fichier Markdown de la mission (write_file) : les faits, puis un tableau des sources (titre, lien, date, fiabilité).
+4. Date chaque information. Écarte les sources sans date ou douteuses, ou signale-les. N'invente rien.
+5. Réponds en français.
+
+${context(ctx)}`;
+}
+
+/** Les réglages de recherche de Rook, en français ou en anglais, traduits pour Tavily. */
+const tavilyOpts = (i: Record<string, unknown>) => ({
+  query: str(i.query ?? i.q ?? i.recherche, 400),
+  topic: i.sujet ?? i.topic,
+  time_range: i.periode ?? i.période ?? i.time_range,
+  depth: i.profondeur ?? i.depth ?? i.search_depth,
+  include_domains: i.sites ?? i.include_domains ?? i.domaines,
+  exclude_domains: i.exclure ?? i.exclude_domains,
+  country: i.pays ?? i.country,
+  max_results: i.nombre ?? i.max_results,
+});
+
+/** Rook fait sa recherche (Tavily, sinon la recherche du bureau) et rend son rapport. */
+async function runRook(ctx: TeamCtx, title: string, instructions: string): Promise<string> {
+  const id = `rook-${Date.now().toString(36)}`;
+  const t0 = Date.now();
+  const usage: Usage = { tokens: 0 };
+  let tools = 0;
+  ctx.emit({ k: 'hire', id, role: 'recherche', type: 'rook', name: 'Rook', task: cut(title || 'Recherche', 48), prompt: cut(instructions, 2000) });
+  const messages: ChatMsg[] = [
+    { role: 'system', content: rookPrompt(ctx) },
+    { role: 'user', content: `Ta tâche, confiée par Roré :\n${instructions}` },
+  ];
+  const leave = (ok: boolean) => ctx.emit({ k: 'leave', who: id, ok, tokens: usage.tokens, tools, ms: Date.now() - t0 });
+  /** sans clé Tavily, la recherche du bureau (DuckDuckGo) prend le relais */
+  let noTavily = false;
+  try {
+    for (let step = 0; step < ANALYST_STEPS; step++) {
+      ctx.emit({ k: 'think', who: id });
+      const { act: a, raw } = await think(ctx, messages, usage);
+      messages.push({ role: 'assistant', content: raw });
+      if (a.say.trim()) ctx.emit({ k: 'say', who: id, text: cut(a.say, 220) });
+      const i = a.input;
+      if (a.action === 'final' || a.action === 'report') {
+        const report = str(i.report ?? i.message ?? a.say, 20_000).trim() || 'Travail terminé.';
+        ctx.emit({ k: 'report', who: id, text: report });
+        leave(true);
+        return report;
+      }
+      tools++;
+      let result: string | null;
+      if (a.action === 'tavily' || a.action === 'tavily_search' || a.action === 'web_search') {
+        const o = tavilyOpts(i);
+        result = await act(ctx, id, noTavily ? 'WebSearch' : 'Tavily', noTavily ? { query: o.query } : o, async () => {
+          if (!noTavily) {
+            try {
+              const r = await api.tavily(o, ctx.signal);
+              const list = r.hits.map((h, n) => `${n + 1}. ${h.title}${h.date ? ` (${h.date})` : ''} · pertinence ${h.score}\n   ${h.url}\n   ${h.snippet}`).join('\n');
+              return r.hits.length ? `${r.answer ? `Réponse résumée : ${r.answer}\n\n` : ''}${list}` : 'Aucun résultat. Élargis la période ou reformule.';
+            } catch (e) {
+              if (!(e instanceof ApiError && e.status === 501)) throw e;
+              noTavily = true;
+            }
+          }
+          const r = await api.search(o.query, ctx.signal);
+          const list = r.hits.map((h, n) => `${n + 1}. ${h.title}\n   ${h.url}\n   ${h.snippet}`).join('\n');
+          return `(Tavily n’est pas configuré : recherche simple, sans date ni période.)\n${list || 'Aucun résultat. Reformule la recherche.'}`;
+        }).catch((e) => `La recherche a échoué : ${e instanceof Error ? e.message : e}`);
+      } else if (a.action === 'tavily_extract' || a.action === 'extract') {
+        const urls = (Array.isArray(i.urls) ? i.urls : [i.url ?? i.urls]).map((u) => str(u, 1000)).filter(Boolean).slice(0, 5);
+        result = await act(ctx, id, 'TavilyExtract', { urls }, async () => {
+          const r = await api.tavilyExtract(urls, ctx.signal);
+          const pages = r.pages.map((p) => `### ${p.url}\nLue le ${today()}\n${clip(p.text, Math.floor(MAX_DOC / Math.max(1, r.pages.length)))}${p.truncated ? '\n[…page coupée]' : ''}`).join('\n\n');
+          return `${pages || 'Aucune page lue.'}${r.failed.length ? `\n\nIllisibles : ${r.failed.join(', ')} (essaie web_fetch).` : ''}`;
+        }).catch((e) => `Lecture impossible : ${e instanceof Error ? e.message : e}. Essaie web_fetch, une page à la fois.`);
+      } else if (a.action === 'web_fetch') {
+        const url = str(i.url, 1000);
+        result = await act(ctx, id, 'WebFetch', { url }, async () => {
+          const p = await api.page(url, ctx.signal);
+          return `Page : ${p.title || p.url}\nAdresse : ${p.url}\nLue le ${today()}\n\n${p.text}${p.truncated ? '\n[…page coupée]' : ''}`;
+        }).catch((e) => `Impossible de lire cette page : ${e instanceof Error ? e.message : e}. Essaie une autre source.`);
+      } else result = await common(ctx, id, a);
+      if (result === null) { tools--; result = 'Action inconnue. Actions possibles : tavily, tavily_extract, web_fetch, read_file, write_file, edit_file, use_skill, final.'; }
+      messages.push({ role: 'user', content: `Résultat de ${a.action} :\n${clip(result, Math.max(MAX_RESULT, 6000))}` });
+    }
+    const report = 'J’ai atteint ma limite d’actions. Le travail fait est dans les fichiers de la mission.';
+    ctx.emit({ k: 'report', who: id, text: report });
+    leave(true);
+    return report;
+  } catch (e) {
+    leave(false);
+    throw e;
+  }
+}
+
 // ── Hares, le financier ──
 function haresPrompt(ctx: TeamCtx): string {
   return `Tu es Hares, le financier de l'open space : un spartiate méthodique. Tu travailles sur la base 43 WACC de ta patronne (le site WACC43) : 8 000 sociétés cotées (exports S&P Capital IQ, montants en millions), les primes de risque pays et les bêtas sectoriels Damodaran, les taux US Treasury. Roré, le chef de projet, t'a confié une tâche précise. Tout ce que tu fais s'affiche en direct dans un bureau en pixel art.
@@ -336,6 +446,7 @@ export function chefPrompt(ctx: TeamCtx): string {
   return `Tu es Roré, le chef de projet de l'open space : une équipe d'agents IA au service d'une responsable marketing et communication (ta patronne). Tout ce que tu fais s'affiche en direct dans un bureau en pixel art.
 Nous sommes le ${today()}.
 Ton équipe :
+- Rook, le chercheur : la recherche et la veille sur internet avec Tavily (actualités récentes, sites précis, sources datées). Confie-lui la collecte d'informations fraîches : veille concurrentielle, actualité d'un secteur, revue de presse, sources à rassembler ;
 - l'analyste : il cherche sur internet, analyse et rédige les rapports marketing et communication ;
 - Hares, le financier : il interroge la base 43 WACC de ta patronne (sociétés cotées comparables, primes de risque pays, bêtas sectoriels, taux sans risque) et calcule médianes, multiples et CMPC. Confie-lui tout ce qui touche à la finance, à la valorisation, au coût du capital ou aux comparables.
 Tu leur confies le travail avec "delegate" et tu reçois leur rapport.
@@ -344,13 +455,13 @@ ${FORMAT}
 
 Actions :
 - plan {"steps": [{"text": "...", "status": "pending|in_progress|completed"}]} : écrire ou mettre à jour le plan (3 à 5 étapes courtes).
-- delegate {"to": "analyste" ou "hares", "title": "2 à 4 mots", "instructions": "consignes précises : quoi chercher, quoi rendre, sous quelle forme, nom du fichier à écrire"} : confier une tâche à l'analyste ou à Hares.
+- delegate {"to": "rook", "analyste" ou "hares", "title": "2 à 4 mots", "instructions": "consignes précises : quoi chercher, quoi rendre, sous quelle forme, nom du fichier à écrire"} : confier une tâche à Rook, à l'analyste ou à Hares. Pour une veille suivie d'une analyse : Rook d'abord (il rassemble les sources), puis l'analyste (il analyse son fichier).
 ${FILE_ACTIONS}
 - final {"message": "..."} : terminer la mission. 5 lignes au plus : ce qui a été fait, le nom du fichier rendu, la prochaine étape que tu conseilles.
 
 Ta façon de travailler :
 1. Pour une simple question ou une salutation, réponds directement avec final.
-2. Sinon : plan, puis delegate (une tâche à la fois). Vérifie le rapport et le fichier (read_file) : cohérence, sources, chiffres, respect du tiroir. Demande une correction à l'analyste si besoin, puis mets le plan à jour et termine avec final.
+2. Sinon : plan, puis delegate (une tâche à la fois). Vérifie le rapport et le fichier (read_file) : cohérence, sources, chiffres, respect du tiroir. Demande une correction si besoin, puis mets le plan à jour et termine avec final.
 3. Ne fais pas les recherches toi-même : tu organises, tu vérifies, tu assembles.
 4. Si une information manque, fais l'hypothèse la plus raisonnable et dis-la.
 5. Réponds en français, n'invente jamais de chiffres, cite les fichiers par leur nom.
@@ -404,14 +515,18 @@ export async function runChef(ctx: TeamCtx, history: ChatMsg[], userText: string
       case 'delegate_to_analyst':
       case 'analyst':
       case 'hares':
-      case 'delegate_to_hares': {
+      case 'delegate_to_hares':
+      case 'rook':
+      case 'delegate_to_rook': {
         const instructions = str(i.instructions ?? i.task ?? i.prompt, 6000).trim();
         if (!instructions) { result = 'Il manque « instructions ».'; break; }
-        const toHares = a.action.includes('hares') || /hares|financ/i.test(str(i.to ?? i.agent ?? i.who, 40));
-        const report = toHares
-          ? await runHares(ctx, str(i.title ?? i.description, 60), instructions)
-          : await runAnalyst(ctx, str(i.title ?? i.description, 60), instructions);
-        result = `Rapport ${toHares ? 'de Hares' : "de l'analyste"} :\n${report}`;
+        const to = `${a.action} ${str(i.to ?? i.agent ?? i.who, 40)}`;
+        const who = /hares|financ/i.test(to) ? 'hares' : /rook|cherch|veille/i.test(to) ? 'rook' : 'analyste';
+        const task = str(i.title ?? i.description, 60);
+        const report = who === 'hares' ? await runHares(ctx, task, instructions)
+          : who === 'rook' ? await runRook(ctx, task, instructions)
+            : await runAnalyst(ctx, task, instructions);
+        result = `Rapport ${who === 'hares' ? 'de Hares' : who === 'rook' ? 'de Rook' : "de l'analyste"} :\n${report}`;
         break;
       }
       default:

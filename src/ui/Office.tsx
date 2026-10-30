@@ -3,14 +3,14 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { ROLES } from '../../shared/activity.ts';
 import type { ActKind } from '../../shared/protocol.ts';
-import { annex, annexRenderer, camera, director, outside, outsideRenderer, renderer, timeOfDay, world } from '../engine/instance.ts';
+import { annex, annexRenderer, camera, day, director, outside, outsideRenderer, renderer, timeOfDay, world } from '../engine/instance.ts';
 import { hitAt, type Hit } from '../engine/hits.ts';
 import { annexHitAt, type AnnexHit } from '../engine/annex.ts';
 import { annexPlacement } from '../engine/annexDraw.ts';
 import { outsideHitAt, type OutHit } from '../engine/outside.ts';
 import { outsidePlacement } from '../engine/outsideDraw.ts';
 import { AnnexBubbles, placeAnnexBubbles } from './AnnexLayer.tsx';
-import { goRoom, installDoors, interactAnnex, interactOutside, roreHere, syncOutside } from './place.ts';
+import { goRoom, installDoors, interactAnnex, interactOutside, roreHere } from './place.ts';
 import { OutsideTag, placeOutsideTag } from './OutsideLayer.tsx';
 import { placePressE, pressERef } from './pressE.ts';
 import { jukebox } from '../audio/music.ts';
@@ -130,8 +130,6 @@ export function Office() {
       // tu diriges Roré : la caméra le suit de près (dans la pièce où il est)
       if (st.driving) { const me = roreHere(); camera.shot(me.x, me.y - 12, 1.7, 0.5); }
       const camMoving = camera.update(dt);
-      // les heures de travail : en dehors, des collègues sortent prendre l'air (vérifié chaque seconde)
-      syncOutside(now);
       // pour filmer le bureau image par image (scripts de capture) : chaque image est dessinée, et le rythme
       // de la musique vient du film, pas du jukebox
       const cap = (window as unknown as { __CAPTURE?: { music?: () => { on: boolean; level: number; beat: boolean } } }).__CAPTURE;
@@ -144,11 +142,15 @@ export function Office() {
       const t0 = performance.now();
       // le bureau et la Pause vivent tous les deux ; on dessine celle où tu es
       active = world.update(acc) || inAnnex || inOutside;
+      day.hours = st.workHours;
+      day.update();
+      // une coupe sur l'étagère des archives par mission réussie
+      world.trophies = st.missions.reduce((n, m) => n + (m.status === 'done' ? 1 : 0), 0);
       annex.musicOn = world.musicOn;
       annex.musicLevel = world.musicLevel;
       annex.update(acc);
-      // Dehors n'existe que quand on y est : le vent, l'herbe et la mer
-      if (inOutside) outside.update(acc);
+      // Dehors vit aussi : ceux qui y prennent l'air se promènent, et rentrent à l'heure
+      outside.update(acc);
       acc = 0;
       if (inOutside) outsideRenderer.draw(lg, outside, timeOfDay(todRef.current));
       else if (inAnnex) annexRenderer.draw(lg, annex, timeOfDay(todRef.current));
@@ -343,6 +345,11 @@ function Bubbles() {
     const a = isChef ? null : agents[id];
     const role = isChef ? 'chef' : a?.role ?? actor?.role ?? 'renfort';
     const base = { name: isChef ? 'Roré' : a?.name ?? actor?.name ?? '', color: ROLES[role].color };
+    // les habitués : ce qu'ils disent, leur prénom quand ils marchent, rien quand ils travaillent
+    if (actor?.resident) {
+      if (actor.line && actor.lineUntil > world.time) return { ...base, mode: 'full', text: actor.line };
+      return { ...base, mode: actor.moving && !filming ? 'tag' : 'none' };
+    }
     // l'équipe de démonstration de la visite guidée : juste les prénoms
     if (!isChef && !a && actor) return { ...base, mode: filming ? 'none' : 'tag' };
     const ask = askOf(id);
@@ -357,6 +364,8 @@ function Bubbles() {
       return { ...base, mode: filming ? 'none' : 'tag' };
     }
     if (!a || !actor) return { ...base, mode: 'none' };
+    // au briefing : ce qu'il répond à Roré
+    if (actor.line && actor.lineUntil > world.time && !actor.seated) return { ...base, mode: 'full', text: actor.line };
     // en marche : juste son nom (avec sa feuille s'il apporte son rapport)
     if (actor.moving || !actor.seated) return { ...base, mode: 'tag', icon: actor.carrying ? '📄' : undefined };
     if (a.act && now - a.act.at < 7000) {

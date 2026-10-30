@@ -222,4 +222,7 @@ export const api = {
   chat: (model: string, messages: ChatMsg[], signal?: AbortSignal, json = false) => call<ChatOut>('chat', { model, messages, json }, signal),
   search: (q: string, signal?: AbortSignal) => call<{ hits: SearchHit[]; engine: string }>('search', { q }, signal),
   page: (url: string, signal?: AbortSignal) => call<Page>('fetch', { url }, signal),
+  /** la recherche de Rook (Tavily) : une réponse résumée et des résultats datés */
+  tavily: (opts: Record<string, unknown>, signal?: AbortSignal) => call<{ answer: string; hits: (SearchHit & { date: string; score: number })[] }>('tavily', opts, signal),
+  tavilyExtract: (urls: string[], signal?: AbortSignal) => call<{ pages: { url: string; text: string; truncated: boolean }[]; failed: string[] }>('tavily/extract', { urls }, signal),
 };

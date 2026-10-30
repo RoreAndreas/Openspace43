@@ -1,6 +1,6 @@
 // Les métiers du bureau, et la traduction en français de ce que fait vraiment chaque agent :
 // chaque outil devient une action (une icône, une animation, une bulle).
-// Pour l'instant, l'open space compte deux personnes : Roré (le chef) et un analyste.
+// En mission : Roré (le chef), l'analyste, Hares (la finance) et Rook (la recherche et la veille, avec Tavily).
 import type { ActKind, MissionStats, OfficeEvent, Role } from './protocol.ts';
 
 export interface RoleInfo {
@@ -14,8 +14,8 @@ export interface RoleInfo {
 }
 
 export const ROLES: Record<Role, RoleInfo> = {
-  chef: { label: 'Chef de projet', icon: '⭐', color: '#FF8A3D', type: '', what: 'Il reçoit ta demande, fait le plan, confie le travail à l’analyste, vérifie et assemble le rendu.' },
-  recherche: { label: 'Recherche', icon: '🔎', color: '#4FB3FF', type: 'chercheur', what: 'Cherche sur internet : concurrents, prix, avis, actualités, sources.' },
+  chef: { label: 'Chef de projet', icon: '⭐', color: '#FF8A3D', type: '', what: 'Il reçoit ta demande, fait le plan, confie le travail à l’analyste, à Hares ou à Rook, vérifie et assemble le rendu.' },
+  recherche: { label: 'Recherche', icon: '🔎', color: '#4FB3FF', type: 'rook', what: 'Rook, l’explorateur : la recherche et la veille sur internet avec Tavily (actualités récentes, sites précis, sources datées).' },
   code: { label: 'Code', icon: '💻', color: '#3DDC97', type: 'developpeur', what: 'Code, sites, scripts, automatisations : ce qui se lance et se teste.' },
   design: { label: 'Design', icon: '🎨', color: '#FF6FA8', type: 'designer', what: 'Pages web soignées, maquettes, visuels, mise en forme.' },
   redaction: { label: 'Rédaction', icon: '✍️', color: '#A98BFF', type: 'redacteur', what: 'Posts, e-mails, articles, scripts vidéo, rapports.' },
@@ -25,12 +25,12 @@ export const ROLES: Record<Role, RoleInfo> = {
 };
 
 /** Les métiers présents dans l'open space (les autres coins restent vides pour l'instant). */
-export const ACTIVE_ROLES: Role[] = ['chef', 'analyse', 'hares'];
+export const ACTIVE_ROLES: Role[] = ['chef', 'recherche', 'analyse', 'hares'];
 
 /** Les outils de chaque métier. */
 export const ROLE_TOOLS: Record<Role, string[]> = {
-  chef: ['Plan', 'Analyste', 'Hares', 'Read', 'Write', 'Skill'],
-  recherche: [],
+  chef: ['Plan', 'Rook', 'Analyste', 'Hares', 'Read', 'Write', 'Skill'],
+  recherche: ['Tavily', 'TavilyExtract', 'WebFetch', 'Read', 'Write', 'Edit', 'Skill'],
   code: [],
   design: [],
   redaction: [],
@@ -46,6 +46,9 @@ export const TOOL_INFO: Record<string, string> = {
   Tiroir: 'range une info à retenir dans son tiroir',
   Base43: 'interroge ta base 43 WACC (sociétés, pays, industries, taux, CMPC)',
   Hares: 'confie une tâche à Hares',
+  Rook: 'confie une recherche ou une veille à Rook',
+  Tavily: 'cherche avec Tavily (actualités, période, sites précis, réponse résumée)',
+  TavilyExtract: 'lit jusqu’à cinq pages d’un coup avec Tavily',
 };
 
 /** Le métier d'un agent, d'après le type d'agent que le chef a appelé. */
@@ -54,14 +57,15 @@ export function roleOfType(type: string): Role {
   return 'renfort';
 }
 
-/** Les prénoms des robots, par métier (jamais deux fois le même dans une mission). */
+/** Les prénoms des robots, par métier (jamais deux fois le même dans une mission). En tête, les habitués du bureau
+ *  (les personnages du catalogue) : l'agent appelé en mission garde le prénom de celui qui fait le travail. */
 export const NAMES: Record<Role, string[]> = {
   chef: ['Roré'],
-  recherche: ['Iris', 'Hugo', 'Léa', 'Malo', 'Zoé', 'Noé', 'Inès', 'Tom', 'Jade', 'Sacha', 'Lou', 'Nils'],
-  code: ['Ada', 'Linus', 'Grace', 'Alan', 'Margaret', 'Dennis'],
-  design: ['Frida', 'Coco', 'Henri', 'Sonia', 'Saul'],
+  recherche: ['Rook', 'Iris', 'Hugo', 'Léa', 'Malo', 'Zoé', 'Noé', 'Inès', 'Tom', 'Jade', 'Sacha', 'Lou', 'Nils'],
+  code: ['Nyx', 'Merlain', 'Boulon', 'Ada', 'Linus', 'Grace', 'Alan', 'Margaret', 'Dennis'],
+  design: ['Zaza', 'Frida', 'Coco', 'Henri', 'Sonia', 'Saul'],
   redaction: ['Colette', 'Victor', 'Simone', 'Jules', 'George'],
-  analyse: ['Marie', 'Blaise', 'Émilie', 'Gaspard', 'Inès'],
+  analyse: ['Margaux', 'Marie', 'Blaise', 'Émilie', 'Gaspard', 'Inès'],
   hares: ['Hares'],
   renfort: ['Bob', 'Lulu', 'Gaston', 'Nina', 'Momo', 'Kiki'],
 };
@@ -94,6 +98,11 @@ export function describeAct(tool: string, input: Record<string, unknown> | undef
   switch (tool) {
     case 'WebSearch': return { kind: 'search', label: `Je cherche « ${cut(i.query, 44)} »`, detail: String(i.query ?? '') };
     case 'WebFetch': return { kind: 'web', label: `Je lis ${host(i.url)}`, detail: String(i.url ?? '') };
+    case 'Tavily': return { kind: 'search', label: `Je cherche avec Tavily « ${cut(i.query, 36)} »`, detail: JSON.stringify(i) };
+    case 'TavilyExtract': {
+      const urls = Array.isArray(i.urls) ? i.urls : [];
+      return { kind: 'web', label: urls.length === 1 ? `Je lis ${host(urls[0])} (Tavily)` : `Je lis ${urls.length} pages (Tavily)`, detail: urls.join(' · ') };
+    }
     case 'Read': return { kind: 'read', label: `Je lis ${cut(base(i.file_path), 36)}`, detail: String(i.file_path ?? '') };
     case 'Glob': return { kind: 'read', label: 'Je fouille le dossier', detail: String(i.pattern ?? '') };
     case 'Grep': return { kind: 'read', label: `Je cherche « ${cut(i.pattern, 30)} »`, detail: `${i.pattern ?? ''}${i.path ? ' dans ' + i.path : ''}` };

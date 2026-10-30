@@ -303,7 +303,7 @@ function TeamRoom({ role }: { role?: Role }) {
   const connection = useOffice((s) => s.connection);
   const [open, setOpen] = useState<string | null>(null);
   useEffect(() => { if (tab === 'history' && connection === 'live') send({ t: 'team_history' }); }, [tab, connection, send]);
-  const working = (r: Role) => [...world.actors.values()].filter((a) => a.role === r && a.seated).length;
+  const working = (r: Role) => [...world.actors.values()].filter((a) => a.role === r && a.seated && !a.resident).length;
   const roles: Role[] = ACTIVE_ROLES;
   const missions = useMemo(() => {
     const m = new Map<string, { title: string; at: number; entries: NonNullable<typeof history> }>();
@@ -314,7 +314,7 @@ function TeamRoom({ role }: { role?: Role }) {
     return [...m.entries()];
   }, [history]);
   return (
-    <Shell title="Toute l’équipe" sub="Roré et son analyste : de vrais agents IA, chacun avec son métier et ses outils" wide>
+    <Shell title="Toute l’équipe" sub="Roré et son équipe : de vrais agents IA, chacun avec son métier et ses outils" wide>
       <div className="seg tabs">
         <button className={tab === 'now' ? 'on' : ''} onClick={() => setTab('now')}>Cette mission</button>
         <button className={tab === 'roles' ? 'on' : ''} onClick={() => setTab('roles')}>Les métiers</button>

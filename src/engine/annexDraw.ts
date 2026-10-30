@@ -60,6 +60,18 @@ function fridgeSprite(): Sprite {
   return { c, ox: 0, oy: -22, sort: 14 };
 }
 
+/** Une pizza dans son carton ouvert (le vendredi midi). */
+function pizza(g: G, x: number, y: number) {
+  rect(g, x, y, 16, 12, P.ink);
+  rect(g, x + 1, y + 1, 14, 10, '#c9a06a');
+  rect(g, x + 2, y + 2, 12, 8, '#e8b25a');
+  rect(g, x + 3, y + 3, 10, 6, '#e5484d');
+  for (const [dx, dy] of [[4, 4], [8, 3], [10, 6], [5, 7], [7, 5]]) px(g, x + dx, y + dy, '#fff1c4');
+  for (const [dx, dy] of [[6, 4], [11, 4], [9, 7], [4, 6]]) px(g, x + dx, y + dy, '#3a7d3a');
+  // une part en moins
+  rect(g, x + 10, y + 7, 3, 2, '#c9a06a');
+}
+
 /** La grande table en bois, avec une corbeille de fruits et des tasses. */
 function tableSprite(): Sprite {
   const c = makeCanvas(64, 36);
@@ -284,6 +296,8 @@ export class AnnexRenderer {
         g.drawImage(p.s.c, p.x, p.y);
         // le jukebox : ses néons s'allument et défilent quand la musique joue
         if (p.f.kind === 'jukebox') jukeboxLights(g, p.x, p.y, annex.musicOn, annex.musicLevel, t);
+        // le vendredi midi : deux pizzas sur la grande table
+        if (p.f.kind === 'table' && annex.pizza) for (const x of [6, 42]) pizza(g, p.x + x, p.y + 4);
         // l'écran des bornes d'arcade, qui s'anime quand quelqu'un joue
         if (p.f.kind === 'arcade') {
           const on = playing(p.f.id);

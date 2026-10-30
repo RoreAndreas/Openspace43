@@ -1,7 +1,7 @@
 // La configuration Cloudflare de l'open space.
 // Secrets à ajouter dans Cloudflare (Workers → openspace → Settings → Variables and Secrets) :
 //   ACCESS_CODE  le code d'accès au bureau (obligatoire)
-//   TAVILY_KEY   facultatif : une clé Tavily pour une recherche web plus fiable
+//   TAVILY_KEY   facultatif : une clé Tavily (la recherche de Rook, et une recherche web plus fiable) ; CLE_TAVILY marche aussi
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "openspace43",

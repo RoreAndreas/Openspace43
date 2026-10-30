@@ -1,6 +1,7 @@
 // L'équipe de la version locale (Claude Code, avec ton compte Claude). Roré, le chef, est l'agent
-// principal de Claude Code ; l'analyste est un vrai sous-agent Claude Code, défini ici et passé au lancement
-// (--agents), avec seulement les outils de son métier.
+// principal de Claude Code ; l'analyste, Hares et Rook sont de vrais sous-agents Claude Code, définis ici et passés au
+// lancement (--agents), avec seulement les outils de leur métier. (Ici, Rook cherche avec la recherche web de Claude :
+// Tavily sert la version en ligne et la version Ollama.)
 import type { Settings } from '../shared/protocol.ts';
 
 const COMMON = `
@@ -15,6 +16,9 @@ Si tu apprends une information durable à retenir pour les prochaines missions (
 /** Les outils Claude Code de l'analyste (rien d'autre n'existe pour lui). */
 export const ANALYST_TOOLS = ['WebSearch', 'WebFetch', 'Read', 'Write', 'Edit', 'Glob', 'Grep'];
 
+/** Les outils Claude Code de Rook, le chercheur : chercher, lire les pages, écrire son livrable. */
+export const ROOK_TOOLS = ['WebSearch', 'WebFetch', 'Read', 'Write', 'Edit', 'Glob', 'Grep'];
+
 /** Les outils Claude Code de Hares : lire et filtrer sa base, écrire son livrable. */
 export const HARES_TOOLS = ['Read', 'Write', 'Edit', 'Glob', 'Grep'];
 
@@ -27,13 +31,23 @@ export const ALWAYS_ALLOWED = ['Agent', 'TodoWrite', 'Read', 'Glob', 'Grep', 'We
 /** Les cerveaux possibles (alias de Claude Code ; '' = le modèle par défaut de Claude Code). */
 export const CLAUDE_MODELS = ['sonnet', 'opus', 'haiku', ''];
 
-/** L'équipe, au format de l'option --agents de Claude Code : un seul analyste. */
+/** L'équipe, au format de l'option --agents de Claude Code : l'analyste, Hares et Rook. */
 export function agentsJson(settings: Settings, context: string): string {
   return JSON.stringify({
     analyste: {
       description: 'Analyste : recherches sur internet, analyse et rédaction des rapports marketing et communication (concurrents, tendances, cibles, plans de communication). Un seul à la fois.',
       prompt: `Tu es l'analyste de l'open space. Tu cherches sur internet (sites officiels d'abord), tu recoupes, tu notes la date et la source de chaque chiffre, puis tu rédiges un rapport clair et actionnable.\n\n${COMMON}${context ? `\n\n${context}` : ''}`,
       tools: ANALYST_TOOLS,
+      model: CLAUDE_MODELS.includes(settings.model) && settings.model ? settings.model : 'sonnet',
+    },
+    rook: {
+      description: 'Rook, le chercheur : recherche et veille sur internet (actualités récentes, sites précis, revue de presse, sources datées). À appeler pour rassembler des informations fraîches avant une analyse.',
+      prompt: `Tu es Rook, l'explorateur de l'open space : le chercheur et la veille. Tu fais 3 à 6 recherches ciblées (l'actualité d'abord pour une veille, puis les sources officielles), tu lis les meilleures pages, tu dates chaque information et tu écartes les sources douteuses. Ton livrable : les faits, puis un tableau des sources (titre, lien, date, fiabilité).
+
+${COMMON}${context ? `
+
+${context}` : ''}`,
+      tools: ROOK_TOOLS,
       model: CLAUDE_MODELS.includes(settings.model) && settings.model ? settings.model : 'sonnet',
     },
     hares: {
@@ -55,6 +69,7 @@ export function chefPrompt(context: string): string {
 Tu es Roré, le chef de projet de l'open space : une petite équipe d'agents IA au service de ta patronne, une responsable marketing et communication. Tout ce que tu fais s'affiche en direct dans un petit jeu en pixel art : sois clair et vivant.
 
 ## Ton équipe (outil Agent, paramètre subagent_type)
+- rook : le chercheur. Recherche et veille sur internet (actualités récentes, sites précis, sources datées). Pour une veille suivie d'une analyse : rook d'abord, puis analyste sur son fichier.
 - analyste : recherches sur internet, analyse, rédaction des rapports. Tu n'as qu'un analyste : confie-lui une tâche à la fois.
 - hares : le financier. Il interroge la base 43 WACC de ta patronne (sociétés cotées comparables, primes de risque pays, bêtas sectoriels, taux sans risque) : échantillons, médianes, multiples, CMPC. Confie-lui tout ce qui touche à la finance, à la valorisation, au coût du capital ou aux comparables.
 

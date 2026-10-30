@@ -105,6 +105,8 @@ export class Cat {
       if (!this.path.length) {
         this.pose = this.toSofa ? 'sleep' : 'sit';
         this.until = time + (this.toSofa ? 25 + Math.random() * 25 : 4 + Math.random() * 6);
+        // arrivé là où il voulait faire une bêtise : il la fait, puis file vite
+        if (this.onArrive) { const fn = this.onArrive; this.onArrive = undefined; fn(); this.until = time + 1.5; }
       }
       return true;
     }
@@ -120,9 +122,23 @@ export class Cat {
     return true;
   }
 
+  private onArrive?: () => void;
+
+  /** Il va quelque part exprès (au pied d'un bureau, pour faire tomber une tasse) ; `then` quand il y est. */
+  visit(grid: boolean[][], target: Tile, time: number, then: () => void) {
+    const tiles = findPath(grid, this.tile, target);
+    if (!tiles) return false;
+    this.path = tiles.map(tileFeet).map((p) => ({ x: p.x, y: p.y - 2 }));
+    this.toSofa = false;
+    this.onArrive = then;
+    this.until = time + 999;
+    return true;
+  }
+
   /** Clic : il s'arrête, regarde, et miaule. */
   pet(time: number) {
     this.path = [];
+    this.onArrive = undefined;
     this.pose = 'sit';
     this.until = time + 3;
     this.heartUntil = time + 1.2;

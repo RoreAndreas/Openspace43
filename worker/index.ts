@@ -3,18 +3,20 @@
 //   POST /api/chat    une réponse de l'IA (Workers AI, gratuit dans la limite du quota quotidien)
 //   POST /api/search  une recherche sur internet (Tavily si une clé est configurée, sinon DuckDuckGo)
 //   POST /api/fetch   le texte d'une page web (nettoyé et raccourci)
+//   POST /api/tavily, /api/tavily/extract  la recherche et la lecture de pages de Rook (Tavily, avec le secret TAVILY_KEY ou CLE_TAVILY)
 //   GET  /api/ping    vérifie le code d'accès
 //   GET  /api/wacc43  la base 43 WACC de Hares (la page publiée de WACC43, relayée telle quelle : le navigateur l'extrait)
 // Les missions, les rapports, le tiroir et les skills restent dans le navigateur de l'utilisatrice.
-import { readPage, searchWeb, WebError } from '../shared/web.ts';
+import { readPage, searchWeb, tavilyExtract, tavilySearch, WebError } from '../shared/web.ts';
 
 interface Env {
   AI: { run: (model: string, input: Record<string, unknown>) => Promise<unknown> };
   ASSETS: { fetch: (req: Request) => Promise<Response> };
   /** le code d'accès (secret Cloudflare : npx wrangler secret put ACCESS_CODE) */
   ACCESS_CODE?: string;
-  /** facultatif : une clé Tavily pour une recherche web plus fiable */
+  /** facultatif : une clé Tavily (la recherche de Rook, et une recherche web plus fiable pour tous), sous l'un ou l'autre nom */
   TAVILY_KEY?: string;
+  CLE_TAVILY?: string;
   /** l'adresse du site WACC43, dont la page embarque la base de Hares (variable du Worker) */
   WACC43_URL?: string;
 }
@@ -30,6 +32,9 @@ const json = (data: unknown, status = 200) =>
   });
 
 const fail = (status: number, message: string) => json({ error: message }, status);
+
+/** La clé Tavily : le secret TAVILY_KEY, ou CLE_TAVILY. */
+const tavilyKey = (env: Env) => env.TAVILY_KEY || env.CLE_TAVILY || undefined;
 
 /** Comparaison à temps constant (le code d'accès ne se devine pas caractère par caractère). */
 function same(a: string, b: string) {
@@ -52,7 +57,7 @@ export default {
     if (origin && origin !== url.origin) return fail(403, 'Origine refusée.');
 
     try {
-      if (url.pathname === '/api/ping') return json({ ok: true, models: MODELS, search: env.TAVILY_KEY ? 'tavily' : 'duckduckgo' });
+      if (url.pathname === '/api/ping') return json({ ok: true, models: MODELS, search: tavilyKey(env) ? 'tavily' : 'duckduckgo' });
       if (url.pathname === '/api/wacc43') return await wacc43(env);
       if (req.method !== 'POST') return fail(405, 'Méthode non autorisée.');
       const raw = await req.text();
@@ -60,8 +65,10 @@ export default {
       const body = JSON.parse(raw || '{}') as Record<string, unknown>;
       switch (url.pathname) {
         case '/api/chat': return await chat(env, body);
-        case '/api/search': return json(await searchWeb(String(body.q ?? ''), env.TAVILY_KEY));
+        case '/api/search': return json(await searchWeb(String(body.q ?? ''), tavilyKey(env)));
         case '/api/fetch': return json(await readPage(String(body.url ?? '')));
+        case '/api/tavily': return json(await tavilySearch(tavilyKey(env), body));
+        case '/api/tavily/extract': return json(await tavilyExtract(tavilyKey(env), body.urls));
       }
       return fail(404, 'Inconnu.');
     } catch (e) {
