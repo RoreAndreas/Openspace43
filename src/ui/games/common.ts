@@ -4,18 +4,12 @@ import { useEffect, useRef } from 'react';
 
 const KEY = 'bureau:jeux';
 
-/** La pêche : la cagnotte, le matériel (niveaux), le compte des prises et la plus belle vente. */
+/** La pêche : le carnet (pour chaque espèce, le nombre de prises et la plus belle, en kg). */
 export interface FishSave {
-  coins: number;
-  line: number;
-  hook: number;
-  hooks: number;
-  knife: number;
-  count: number;
-  best: { name: string; coins: number } | null;
+  journal: Record<string, { n: number; kg: number }>;
 }
 
-export const NEW_FISH: FishSave = { coins: 0, line: 0, hook: 0, hooks: 0, knife: 0, count: 0, best: null };
+export const NEW_FISH: FishSave = { journal: {} };
 
 export interface Scores {
   /** Spartan Run : le meilleur score */
@@ -29,9 +23,9 @@ export interface Scores {
 export function loadScores(): Scores {
   try {
     const s = JSON.parse(localStorage.getItem(KEY) ?? '{}') as Partial<Scores>;
-    return { run: typeof s.run === 'number' ? s.run : 0, pong: s.pong && typeof s.pong === 'object' ? s.pong : {}, fish: { ...NEW_FISH, ...(s.fish && typeof s.fish === 'object' ? s.fish : {}) } };
+    return { run: typeof s.run === 'number' ? s.run : 0, pong: s.pong && typeof s.pong === 'object' ? s.pong : {}, fish: { journal: { ...((s.fish as Partial<FishSave> | undefined)?.journal ?? {}) } } };
   } catch {
-    return { run: 0, pong: {}, fish: { ...NEW_FISH } };
+    return { run: 0, pong: {}, fish: { journal: {} } };
   }
 }
 

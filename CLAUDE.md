@@ -64,8 +64,8 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
   vent `gust`), `engine/outsideDraw.ts` (deux plans : le sol en 3/4 comme le bureau, et un fond en perspective, ciel, mer jusqu'à
   l'horizon, phare au loin ; pavillon au toit plat avec le petit logo 43, prairie animée, pins, manche à air, lumière), `audio/outside.ts` (vent, mer et
   musique lofi en Web Audio, sans fichier ; coupé avec le son). `goRoom` (`ui/place.ts`) repasse toujours par le bureau. Le coin de
-  pêche (`outside.onFish`) ouvre la fenêtre `game` « fishing » (`ui/games/Fishing.tsx`, façon *Scale the Depths* : plongée, prises,
-  écaillage, clients, matériel ; sauvegarde `fish` dans `bureau:jeux`, `FishSave` dans `common.ts`).
+  pêche (`outside.onFish`) ouvre la fenêtre `game` « fishing » (`ui/games/Fishing.tsx`, au timing : lancer, touche, combat ;
+  légendaires en boss avec barre de vie ; carnet `fish.journal` dans `bureau:jeux`, `FishSave` dans `common.ts` ; en dev, `window.__fishing`).
 - **Les heures de travail** (`state/hours.ts` : `WorkHours`, `isWorkTime` ; `workHours` dans le store, préférence `bureau:workHours` ; champ dans les Réglages) :
   la boucle d'`Office.tsx` les passe à `day.hours`. Pendant, seul Roré sort ; en dehors, les trois habitués qui aiment le grand air
   (`AIRY` dans `day.ts`, d'après leurs `hobbies`) vont Dehors (`place: 'outside'` ; `world.goOut`, `outside.show/sendIn/hide`) ;

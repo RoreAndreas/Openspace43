@@ -808,3 +808,16 @@ input[type='color'] { width: 34px; height: 34px; padding: 0; border: 1px solid v
 .press-e { position: absolute; left: 0; top: 0; z-index: 3; display: flex; align-items: center; gap: 5px; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.12s; font: 600 12px var(--font); color: #fff; background: rgba(18, 15, 25, 0.92); border: 1px solid rgba(255, 138, 61, 0.7); border-radius: 7px; padding: 3px 8px 3px 4px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45); }
 .press-e kbd { font: 700 12px var(--pixel); color: #160c06; background: var(--orange); border-radius: 4px; padding: 0 5px; box-shadow: 0 2px 0 #9e4019; animation: press-e 1.2s ease-in-out infinite; }
 @keyframes press-e { 50% { transform: translateY(1px); box-shadow: 0 1px 0 #9e4019; } }
+/* la pêche : la carte de prise, le carnet */
+.fish-card { position: absolute; left: 50%; top: 8%; transform: translateX(-50%); display: grid; gap: 2px; justify-items: center; padding: 8px 16px; border-radius: 10px; background: rgba(18, 15, 25, 0.9); border: 1px solid var(--line2); text-align: center; pointer-events: none; animation: fish-pop 0.35s ease-out; }
+.fish-card b { font: 700 18px var(--pixel); color: #fff; }
+.fish-card span { font-size: 12.5px; color: #e8e5f1; }
+.fish-card.legend { border-color: #ffd166; box-shadow: 0 0 28px rgba(255, 209, 102, 0.55); }
+.fish-card.legend b { color: #ffd166; }
+.fish-card.junk b { color: #cfd2e0; }
+@keyframes fish-pop { from { transform: translateX(-50%) scale(0.6); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
+.fish-journal { display: grid; gap: 6px; }
+.fish-journal-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.fish-chip { font-size: 12px; padding: 4px 9px; border-radius: 999px; background: var(--surface2); border: 1px solid var(--line); }
+.fish-chip.unknown { color: #8a8698; border-style: dashed; }
+.fish-chip.legend { border-color: #ffd166; color: #ffd166; }
