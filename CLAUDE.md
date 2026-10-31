@@ -78,7 +78,7 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
   en mètres, visible de partout où l'on voit le pavillon ; de loin il grandit avec l'île, `grow`), la grotte et le monstre (`creature` : carapace, nageoires-ailes, cou, tête à corne ; un sprite en pixel art,
   `monster` : dessiné à l'échelle 1 dans son canevas, une pose tous les dixièmes de seconde, cerné, posé ×1 ou ×2 ; le jour il
   dort, des bulles ; la nuit ses yeux luisent, il sort (`peek`/`peeking`), respire, étire ses ailes, fredonne (`notes`), nage
-  au large et parfois s'envole (`roam`/`roaming`, `FLAP`)), phare posé sur l'eau à sa distance (`rowAt`), son faisceau `beam`
+  au large, à la même taille (×2), en poussant l'eau : vague d'étrave, sillage en V, ronds ; et parfois s'envole (`roam`/`roaming`, `FLAP`)), phare posé sur l'eau à sa distance (`rowAt`), son faisceau `beam`
   limité au ciel ; soleil, îles, voiliers et paquebot rare au loin ; les rangs de vagues (`crests`), vaguelettes, reflet du
   soleil ; les remous `fx` en mètres (ronds des rames, écume du sillage, gouttes) ; poissons qui sautent ; la barque vue d'un
   peu au-dessus, Roré assis dedans, qui flotte (`float` : ressort amorti sur la houle) ; mini-carte). La falaise est mise en

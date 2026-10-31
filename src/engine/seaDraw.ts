@@ -261,7 +261,7 @@ export class SeaRenderer {
     this.wavelets(g, t, tod, hidden);
     this.water(g, hidden);
     this.fish(g, t, hidden);
-    if (roam) this.roaming(g, roam, t);
+    if (roam) this.roaming(g, roam, t, v.base);
     this.peeking(g, t);
 
     // les coins de pêche : des ronds dans l'eau, des oiseaux qui tournent, leur nom
@@ -746,45 +746,57 @@ export class SeaRenderer {
     const per = 46, on = 26;
     const cyc = Math.floor(t / per), k = t % per;
     if (k > on) return null;
-    return { p: k / on, dir: cyc % 2 ? 1 : -1, y: 158 + Math.round(hash(cyc) * 16), fly: hash(cyc * 7 + 1) > 0.35 };
+    return { p: k / on, dir: cyc % 2 ? 1 : -1, y: 142 + Math.round(hash(cyc) * 12), fly: hash(cyc * 7 + 1) > 0.35 };
   }
 
   /** Le monstre qui nage au large, la nuit : la carapace, le cou dressé, le sillage argenté ; parfois il jaillit, plane
    *  au-dessus de l'eau en battant des ailes, et replonge dans une grande gerbe. */
-  private roaming(g: G, r: { p: number; dir: number; y: number; fly: boolean }, t: number) {
-    const x = Math.round(r.dir > 0 ? -60 + r.p * (W + 120) : W + 60 - r.p * (W + 120));
-    const y = r.y;
+  private roaming(g: G, r: { p: number; dir: number; y: number; fly: boolean }, t: number, base: number) {
+    // il est à la même taille que devant sa grotte (×2), et toujours devant l'île, sur l'eau
+    const SC = 2;
+    const x = Math.round(r.dir > 0 ? -90 + r.p * (W + 180) : W + 90 - r.p * (W + 180));
+    const y = Math.max(r.y, base + 10);
     // il apparaît et disparaît doucement : il plonge en partant
     const show = Math.min(1, r.p * 6, (1 - r.p) * 6);
     const q = r.fly ? (r.p - 0.38) / 0.24 : -1;
-    const alt = q > 0 && q < 1 ? Math.round(Math.sin(q * Math.PI) * 32) : 0;
-    if (!alt) for (let k = 1; k < 14; k++) {
-      g.fillStyle = crgba('#dfe6ff', 0.4 * (1 - k / 14) * show);
-      g.fillRect(Math.round(x - r.dir * (14 + k * 5)), y - Math.round(k * 0.5), 3, 1);
-      g.fillRect(Math.round(x - r.dir * (14 + k * 5)), y + 1 + Math.round(k * 0.7), 3, 1);
+    const alt = q > 0 && q < 1 ? Math.round(Math.sin(q * Math.PI) * 40) : 0;
+    // en nageant, il pousse l'eau : une vague d'étrave devant son cou, la houle qui se soulève autour de sa carapace,
+    // un sillage d'écume qui s'ouvre en V derrière lui et des ronds qui s'élargissent ; il la fend quand il jaillit
+    // et quand il retombe
+    if (!alt && show > 0.3) {
+      if (t - this.lastFly > 0.1) {
+        this.lastFly = t;
+        this.splash(x + r.dir * 10, y, -0.07 * show, 2.2);
+        this.splash(x - r.dir * 14, y, -0.05 * show, 3);
+        for (const side of [-1, 1]) this.spawnAt('foam', x - r.dir * 34, y + 1, { vu: -r.dir * 0.4, vw: side * 0.9, a: 0.75 * show, max: 3.4 });
+      }
+      if (Math.floor(t * 1.2) !== Math.floor((t - this.dt) * 1.2)) this.spawnAt('ring', x - r.dir * 12, y + 1, { r: 1.2, a: 0.45 * show, max: 2.2 });
     }
-    // il pousse l'eau en nageant ; il la fend quand il jaillit et quand il retombe
-    if (!alt && show > 0.5 && t - this.lastFly > 0.25) { this.lastFly = t; this.splash(x, y, -0.03, 1.5); }
-    if ((alt > 0) !== this.wasFlying) { this.splash(x, y, -0.2, 3); this.wasFlying = alt > 0; }
+    if ((alt > 0) !== this.wasFlying) { this.splash(x, y, -0.25, 4); this.spawnAt('ring', x, y + 1, { r: 0.8, a: 0.9, max: 2 }); this.wasFlying = alt > 0; }
+    if (!alt) for (let k = 1; k < 16; k++) {
+      g.fillStyle = crgba('#dfe6ff', 0.45 * (1 - k / 16) * show);
+      g.fillRect(Math.round(x - r.dir * (30 + k * 7)), y - Math.round(k * 0.6), 4, 1);
+      g.fillRect(Math.round(x - r.dir * (30 + k * 7)), y + 1 + Math.round(k * 0.9), 4, 1);
+    }
     // les gerbes, quand il jaillit et quand il retombe
-    for (const [q0, x0] of [[0, x - r.dir * 18], [1, x + r.dir * 6]] as [number, number][]) {
+    for (const [q0, x0] of [[0, x - r.dir * 30], [1, x + r.dir * 10]] as [number, number][]) {
       const k = Math.abs(q - q0) / 0.12;
       if (q < -0.5 || k > 1) continue;
-      for (let i = 0; i < 10; i++) {
-        const ang = (i / 9 - 0.5) * 2.2;
-        const d = k * 16;
-        px(g, x0 + Math.sin(ang) * d * 1.4, y - Math.cos(ang) * d * (1.2 - k) * 1.6 + k * k * 10, crgba('#dfe6ff', 1 - k));
+      for (let i = 0; i < 14; i++) {
+        const ang = (i / 13 - 0.5) * 2.2;
+        const d = k * 26;
+        px(g, x0 + Math.sin(ang) * d * 1.4, y - Math.cos(ang) * d * (1.2 - k) * 1.6 + k * k * 14, crgba('#dfe6ff', 1 - k));
       }
     }
     // son ombre sur l'eau, quand il vole
     if (alt) {
-      const k = clamp(1 - alt / 60, 0.2, 1);
+      const k = clamp(1 - alt / 80, 0.2, 1);
       g.fillStyle = crgba('#000818', 0.3 * k);
-      for (let q2 = -12; q2 <= 12; q2++) g.fillRect(x - r.dir * 6 + q2, y, 1, Math.max(1, Math.round(2 * k * Math.sqrt(1 - (q2 / 13) ** 2))));
+      for (let q2 = -24; q2 <= 24; q2++) g.fillRect(x - r.dir * 12 + q2, y, 1, Math.max(1, Math.round(3 * k * Math.sqrt(1 - (q2 / 25) ** 2))));
     }
-    const eye = this.monster(g, x, y - alt, show, r.dir, 1, t, true, alt > 0, alt ? FLAP[Math.floor(t * 10) % FLAP.length] : undefined);
-    if (!alt) { g.fillStyle = crgba('#ffffff', 0.45); g.fillRect(x - 14, y, 4, 1); g.fillRect(x + 10, y, 4, 1); }
-    else for (let i = 0; i < 3; i++) px(g, x - r.dir * (6 + i * 5), y - alt + 4 + ((t * 30 + i * 7) % 20), crgba('#dfe6ff', 0.6));
+    const eye = this.monster(g, x, y - alt, show, r.dir, SC, t, true, alt > 0, alt ? FLAP[Math.floor(t * 10) % FLAP.length] : undefined);
+    if (!alt) { g.fillStyle = crgba('#ffffff', 0.5); g.fillRect(x - 28, y, 6, 1); g.fillRect(x + 20, y, 6, 1); }
+    else for (let i = 0; i < 4; i++) px(g, x - r.dir * (12 + i * 8), y - alt + 8 + ((t * 30 + i * 7) % 30), crgba('#dfe6ff', 0.6));
     if (eye) { this.eyes = eye; this.eyesFar = true; }
   }
 
