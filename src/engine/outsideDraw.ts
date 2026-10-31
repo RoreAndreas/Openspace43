@@ -611,12 +611,12 @@ export class OutsideRenderer {
       rect(g, x + sc, y - 3 * sc, 1, 3 * sc, '#cfd2e0');
       rect(g, x + sc + 1, y - 3 * sc + 1, sc, 2 * sc - 1, '#ffffff');
     }
-    if (tod === 'night') this.serpent(g, t);
+    if (tod === 'night') this.monster(g, t);
   }
 
-  /** La nuit, le serpent de mer sort de sa grotte et nage au large : on le voit souvent depuis la falaise (ses bosses
-   *  qui ondulent, son cou, ses yeux qui luisent, le sillage argenté sous la lune). */
-  private serpent(g: G, t: number) {
+  /** La nuit, le monstre marin sort de sa grotte et nage au large : on le voit souvent depuis la falaise (sa carapace,
+   *  son long cou, son œil qui accroche la lune, le sillage argenté). */
+  private monster(g: G, t: number) {
     const per = 34, on = 22;
     const cyc = Math.floor(t / per), k = t % per;
     if (k > on) return;
@@ -635,29 +635,32 @@ export class OutsideRenderer {
         dot(x - dir * (22 + i * 4) + w, y + 1 + Math.round(i * 0.6), rgba('#dfe6ff', a));
       }
     }
-    // trois bosses qui ondulent
-    for (let i = 0; i < 3; i++) {
-      const hx = x - dir * (7 + i * 7);
-      const hh = Math.max(0, Math.round((3 + Math.sin(t * 2.4 - i * 1.1) * 1.2) * show));
-      for (let q = -3; q <= 3; q++) {
-        const ah = Math.round(hh * Math.sqrt(Math.max(0, 1 - (q / 3.5) ** 2)));
-        for (let r = 1; r <= ah; r++) dot(hx + q, y - r, '#1d4a34');
-        if (ah > 0) dot(hx + q, y - ah, '#7fb0a0');
-      }
-      dot(hx - 4, y, rgba('#ffffff', 0.5 * show)); dot(hx + 4, y, rgba('#ffffff', 0.5 * show));
+    // la carapace bosselée sur le dos (la lune l'éclaire par-dessus), qui monte et descend avec la houle
+    const bob = Math.round(Math.sin(t * 1.4) * 0.6);
+    const yy = y + bob;
+    const sx = x - dir * 7, sh = Math.round(4 * show);
+    for (let q = -7; q <= 7; q++) {
+      const ah = Math.round(sh * Math.sqrt(Math.max(0, 1 - (q / 7.5) ** 2)));
+      for (let r = 1; r <= ah; r++) dot(sx + q, yy - r, r === ah ? '#8a90b4' : q * dir > 2 ? '#2a3150' : '#3e4668');
     }
-    // le cou et la tête, l'œil qui luit
-    const nh = Math.round(10 * show);
+    if (sh > 2) for (const q of [-4, 0, 4]) dot(sx + q, yy - Math.round(sh * Math.sqrt(1 - (q / 7.5) ** 2)) - 1, '#2a3150');
+    dot(sx - 9, yy, rgba('#ffffff', 0.5 * show)); dot(sx + 9, yy, rgba('#ffffff', 0.5 * show));
+    // le long cou qui se penche en avant, la tête ronde, la corne, l'œil qui accroche la lune
+    const nh = Math.round(11 * show);
+    let hx = x;
     for (let r = 0; r < nh; r++) {
-      const nx = x + Math.round(Math.sin(r * 0.4 + t) * 0.8);
-      dot(nx, y - r, '#1d4a34'); dot(nx + 1, y - r, r % 3 === 0 ? '#123224' : '#1d4a34'); dot(nx - dir, y - r, '#5f8f7a');
+      const u = r / 11;
+      hx = x + Math.round(dir * u * u * 3 + Math.sin(r * 0.4 + t) * 0.6);
+      dot(hx, yy - r, '#2a5a8a'); dot(hx - dir, yy - r, '#1c3e64'); dot(hx + dir, yy - r, r < 8 ? '#9a947e' : '#2a5a8a');
     }
-    if (nh > 3) {
-      for (let q = -1; q < 5; q++) { dot(x + dir * q, y - nh, '#1d4a34'); dot(x + dir * q, y - nh - 1, '#1d4a34'); }
-      dot(x + dir * 5, y - nh, '#1d4a34');
-      dot(x + dir * 2, y - nh - 1, '#e8ff7a');
-      dot(x + dir * 2, y - nh - 2, rgba('#e8ff7a', 0.4));
-      dot(x, y - nh - 2, '#123224'); dot(x - dir, y - nh - 1, '#123224');
+    if (nh > 4) {
+      const top = yy - nh;
+      for (let q = -1; q <= 4; q++) { dot(hx + dir * q, top, '#2a5a8a'); dot(hx + dir * q, top - 1, '#2a5a8a'); }
+      for (let q = 0; q <= 2; q++) dot(hx + dir * q, top - 2, '#2a5a8a');
+      dot(hx + dir * 4, top + 1, '#9a947e'); dot(hx + dir * 3, top + 1, '#9a947e');
+      dot(hx + dir * 2, top - 1, '#e8ff7a');
+      dot(hx, top - 3, '#c8c0a4'); dot(hx - dir, top - 4, '#c8c0a4');
+      dot(hx - dir * 2, top - 1, '#1c3e64');
     }
   }
 

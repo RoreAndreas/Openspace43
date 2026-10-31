@@ -69,16 +69,18 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
 - **La mer** (`room: 'sea'`, le quatrième espace ; ⛵, touche L ; depuis le chemin de la barque, Dehors : deux poteaux et des cordes
   au bord de la falaise, « Descendre à la barque » ; X pour revenir) : même logique que le jardin, l'île est vue depuis la barque.
   `engine/sea.ts` (la barque est un angle `at` autour de l'île et une distance `dist`, 0 contre les rochers, 1 au large ; ← → pour
-  tourner, ↑ ↓ pour s'approcher ou s'éloigner ; on cogne les rochers (`bump`), sauf au ponton (`atDock`) : `near()` renvoie
+  tourner, ↑ ↓ pour s'approcher ou s'éloigner ; la rame pousse par à-coups (`pulse`) et l'eau freine (la barque glisse) ; on cogne les rochers (`bump`), sauf au ponton (`atDock`) : `near()` renvoie
   `dock` (« Accoster au ponton », retour au jardin) ou un coin de pêche `SPOTS` (`restUntil` ; le grand large demande `OFFSHORE`) ;
-  sans rame, la houle `swell` fait dériver ; `LANDMARKS` : pavillon au sud, phare, grotte au nord ; le serpent de mer `serpent` :
-  `lair`, `peek` quand on approche de sa grotte, `dive`),
+  sans rame, la houle `swell` fait dériver ; `LANDMARKS` : pavillon au sud, phare, grotte au nord ; le monstre marin `serpent` (long cou,
+  carapace) : `lair`, `peek` quand on approche de sa grotte, `dive`),
   `engine/seaDraw.ts` (le panorama en pixel art, `viewOf` : l'île grandit avec la distance ; chaque colonne de la falaise montre la
   face tournée vers la barque, `cliffH` ; arbres, pavillon, échelle et ponton qui avance dans l'eau (`jetty`), la grotte et le
-  serpent (`neck`, ses yeux qui luisent ; la nuit il nage au large, `roam`), phare devant ou derrière l'île ; soleil, îles,
-  voiliers et paquebot rare au loin, en parallaxe ; houle, vaguelettes, poissons qui sautent ; la barque vue d'un peu au-dessus,
-  Roré assis dedans, ses rames, sa lanterne ; mini-carte). On voit aussi le serpent la nuit depuis Dehors (`serpent` dans
-  `outsideDraw.ts`). Dehors et la mer sont plus larges que le bureau (`WIDE`, `OX`, `viewWidth` dans `layout.ts` ; la scène de
+  monstre (`creature` : carapace, cou, tête à corne ; ses yeux qui luisent ; il fredonne, `notes` ; la nuit il nage au large, `roam`),
+  phare devant ou derrière l'île, son faisceau `beam` limité au ciel ; soleil, îles, voiliers et paquebot rare au loin, en
+  parallaxe ; la houle en rangs de vagues (`swell`, `bands`) qui soulève et fait pencher la barque (`lift`), les remous `fx`
+  (ronds des rames, sillage, gouttes) qui défilent avec l'eau (`water`), vaguelettes, poissons qui sautent ; la barque vue d'un
+  peu au-dessus, Roré assis dedans, ses rames, sa lanterne ; mini-carte). On voit aussi le monstre la nuit depuis Dehors
+  (`monster` dans `outsideDraw.ts`). Dehors et la mer sont plus larges que le bureau (`WIDE`, `OX`, `viewWidth` dans `layout.ts` ; la scène de
   Dehors est décalée de `OX`, le fond s'étend de `-OX`). `goRoom` suit les voisinages (`NEXT` : bureau ↔ Pause, bureau ↔
   Dehors, Dehors ↔ mer) ; en mer, Roré est toujours dirigé (`outside.roreToSea/roreFromSea`). `interactSea` : la pêche
   (`modal game fishing`, `lucky` au grand large) ou l'accostage.

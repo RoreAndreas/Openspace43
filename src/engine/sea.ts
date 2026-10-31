@@ -2,7 +2,7 @@
 // falaise, le pavillon 43, le phare sur son îlot, la grotte au nord. ← → pour ramer autour de l'île (le panorama
 // tourne), ↑ ↓ pour s'en approcher ou s'en éloigner (l'île grandit). On se cogne aux rochers, sauf au pied de l'échelle :
 // là, on accoste au ponton et on remonte au jardin. Quand Roré ne rame pas, la houle fait dériver la barque. X pour revenir.
-// Dans la grotte vit un serpent de mer : il sort la tête quand on approche, puis replonge. Le dessin : `seaDraw.ts`.
+// Dans la grotte vit un monstre marin (un long cou, une carapace) : il sort la tête quand on approche, puis replonge. Le dessin : `seaDraw.ts`.
 
 export interface Spot {
   id: string;
@@ -23,7 +23,7 @@ export const LANDMARKS = {
   pavilion: 0,
   /** le phare, sur son îlot : au nord-ouest */
   lighthouse: 2.4,
-  /** la grotte du serpent, au pied de la falaise : au nord */
+  /** la grotte du monstre marin, au pied de la falaise : au nord */
   cave: Math.PI,
 };
 
@@ -60,12 +60,14 @@ export class Sea {
   /** le coup de rame (pour l'animation des avirons) */
   stroke = 0;
   rowing = false;
+  /** la force du coup de rame en cours (0 quand les pales sont hors de l'eau) */
+  pulse = 0;
   driving = false;
   /** un léger va-et-vient de la barque à l'écran, avec la houle */
   sway = 0;
   /** la barque vient de cogner les rochers (1, puis ça s'efface) */
   bump = 0;
-  /** le serpent de mer : au fond de sa grotte, la tête dehors, ou qui replonge */
+  /** le monstre marin (long cou, carapace) : au fond de sa grotte, la tête dehors, ou qui replonge */
   serpent: { phase: 'lair' | 'peek' | 'dive'; t: number; calm: number } = { phase: 'lair', t: 0, calm: 0 };
   /** où se trouve la barque à l'écran (posé par le dessin, pour l'étiquette « E · … ») */
   screen = { x: 216, y: 200 };
@@ -91,38 +93,39 @@ export class Sea {
     this.time += dt;
     const px = this.driving ? this.steerX : 0, py = this.driving ? this.steerY : 0;
     this.rowing = px !== 0 || py !== 0;
-    // ← → : Roré rame autour de l'île (on tourne moins vite de près, le tour est plus court) ; sans rame, la houle
-    // fait dériver la barque doucement
-    const target = px ? px * (0.18 + 0.16 * this.dist) : this.swell() * 0.03;
-    this.speed += (target - this.speed) * Math.min(1, dt * (px ? 1.4 : 0.35));
+    if (this.rowing) this.stroke += dt * 0.95;
+    // la poussée vient par à-coups : forte quand les pales sont dans l'eau, nulle quand Roré les ramène ; l'eau freine
+    // la barque (elle glisse encore un peu quand on lâche les rames) ; sans rame, la houle la fait dériver doucement
+    this.pulse = this.rowing ? Math.max(0, Math.cos(this.stroke * Math.PI * 2)) * 1.7 : 0;
+    const drag = 0.75;
+    const turn = px ? px * this.pulse * (0.1 + 0.08 * this.dist) : this.swell() * 0.012;
+    this.speed += (turn - drag * this.speed) * dt;
     this.at = (this.at + this.speed * dt + TAU) % TAU;
-    // ↑ ↓ : vers l'île ou vers le large ; la houle, elle, éloigne un peu la barque
-    const vt = py ? py * 0.24 : this.swell(this.time + 20) * 0.006;
-    this.vdist += (vt - this.vdist) * Math.min(1, dt * (py ? 1.6 : 0.4));
+    const push = py ? py * this.pulse * 0.09 : this.swell(this.time + 20) * 0.003;
+    this.vdist += (push - drag * this.vdist) * dt;
     this.dist += this.vdist * dt;
     const floor = this.atDock() ? DOCK : ROCKS;
     if (this.dist < floor) {
       // les rochers : la barque cogne et repart un peu en arrière (au ponton, elle se pose doucement)
-      if (floor === ROCKS && this.vdist < -0.08) { this.bump = 1; this.vdist = 0.12; } else this.vdist = Math.max(0, this.vdist);
+      if (floor === ROCKS && this.vdist < -0.03) { this.bump = 1; this.vdist = 0.05; } else this.vdist = Math.max(0, this.vdist);
       this.dist = floor;
     }
     if (this.dist > 1) { this.dist = 1; this.vdist = Math.min(0, this.vdist); }
     this.bump = Math.max(0, this.bump - dt * 1.6);
     if (px) this.facing = px;
     this.heading = py && !px ? py : 0;
-    if (this.rowing) this.stroke += dt * 1.5;
-    this.sway += ((this.rowing ? 0 : this.swell() * 14) - this.sway) * Math.min(1, dt * 0.5);
+    this.sway += ((this.rowing ? 0 : this.swell() * 14) - this.sway) * Math.min(1, dt * 0.4);
     this.updateSerpent(dt);
   }
 
-  /** Le serpent sort la tête quand la barque approche de sa grotte, regarde un moment, puis replonge. */
+  /** Le monstre sort la tête quand la barque approche de sa grotte, regarde un moment, puis replonge. */
   private updateSerpent(dt: number) {
     const s = this.serpent;
     s.t += dt;
     const close = Math.abs(angleDiff(this.at, LANDMARKS.cave)) < 0.3 && this.dist < 0.6;
     if (s.phase === 'lair' && close && this.time >= s.calm) { s.phase = 'peek'; s.t = 0; }
-    else if (s.phase === 'peek' && (s.t > 6 || (!close && s.t > 1.5))) { s.phase = 'dive'; s.t = 0; }
-    else if (s.phase === 'dive' && s.t > 1.4) { s.phase = 'lair'; s.t = 0; s.calm = this.time + 22; }
+    else if (s.phase === 'peek' && (s.t > 8 || (!close && s.t > 1.5))) { s.phase = 'dive'; s.t = 0; }
+    else if (s.phase === 'dive' && s.t > 1.8) { s.phase = 'lair'; s.t = 0; s.calm = this.time + 22; }
   }
 
   /** Ce qu'on peut faire ici : accoster au ponton, ou pêcher là où les oiseaux tournent. */

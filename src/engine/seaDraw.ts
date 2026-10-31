@@ -1,9 +1,9 @@
 // Le dessin de la mer, en pixel art, avec la même logique que le jardin : l'île est vue depuis la barque, en perspective.
 // Le panorama tourne quand la barque fait le tour, et grandit quand elle s'approche : chaque colonne de la falaise montre
 // la face de l'île tournée vers nous (son profil, ses strates, ses ravines), avec dessus l'herbe, les pins et, selon
-// l'endroit, le pavillon 43, l'échelle et le ponton (au sud), la grotte du serpent de mer (au nord) ; le phare sur son
+// l'endroit, le pavillon 43, l'échelle et le ponton (au sud), la grotte du monstre marin (au nord) ; le phare sur son
 // îlot passe devant ou derrière. Au loin : le soleil (ou la lune), les îles, les voiliers et, de temps en temps, un
-// paquebot. Sur l'eau : la houle, des vaguelettes, des poissons qui sautent. Devant : la barque, Roré dedans, ses rames.
+// paquebot. Sur l'eau : la houle (la barque monte et penche avec elle), les remous, des vaguelettes, des poissons qui sautent. Devant : la barque, Roré dedans, ses rames.
 import { pixelText, textWidth } from './font.ts';
 import { H, WIDE } from './layout.ts';
 import { g2d, hline, makeCanvas, mix, P, px, rect, rgba, vline, type G } from './pixels.ts';
@@ -31,8 +31,21 @@ const HAZE: Record<TimeOfDay, string> = { day: '#bcdff5', evening: '#e0907a', ni
 const GLINT: Record<TimeOfDay, string> = { day: '#ffffff', evening: '#ffd2a0', night: '#dfe6ff' };
 const AMBIENT: Record<TimeOfDay, string> = { day: '#ffffff', evening: '#c8a2b0', night: '#4a5890' };
 const STRATA = ['#c2b6a0', '#b0a48e', '#9c917f', '#8a806f', '#776e60'];
-/** Le serpent de mer : vert sombre, le ventre plus clair, la crête, l'œil. */
-const SERPENT = { body: '#2f7a4a', dark: '#1f5a36', belly: '#8fcf86', eye: '#e8ff7a' };
+/** Le monstre marin : un grand plésiosaure à carapace, doux et timide (le corps bleu, le ventre crème, la carapace
+ *  grise bosselée, une petite corne enroulée). La nuit, ses couleurs passent au bleu sombre. */
+const CREATURE = { body: '#4a8ed4', bodyDark: '#326aa6', belly: '#f1e5c3', shell: '#9b96ad', shellHi: '#c8c3d8', shellDark: '#6c6784', knob: '#5d5876', horn: '#e8dcc0', eye: '#141a28' };
+type Palette = typeof CREATURE;
+const CREATURE_NIGHT: Palette = Object.fromEntries(Object.entries(CREATURE).map(([k, c]) => [k, k === 'eye' ? c : mix(c, '#0b1230', 0.5)])) as Palette;
+/** Ses yeux, au fond de la grotte, accrochent la moindre lueur. */
+const EYE_GLOW = '#e8ff7a';
+/** Les vagues de la houle : combien de rangs à la fois, entre l'horizon et nous. */
+const BANDS = 11;
+
+/** Une vague de la houle, à un instant : sa ligne de repos, sa hauteur, sa longueur, sa phase, son éclat. */
+interface Band { y0: number; amp: number; freq: number; ph: number; fade: number; p: number }
+/** Les remous : des ronds qui s'élargissent, le sillage, des gouttes qui retombent. Ils restent posés sur l'eau et
+ *  défilent avec elle quand la barque tourne ou avance. */
+interface Fx { kind: 'ring' | 'wake' | 'drop'; x: number; y: number; vx: number; vy: number; life: number; max: number; rx: number; a: number }
 
 const hash = (n: number) => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
@@ -77,8 +90,11 @@ export class SeaRenderer {
   private lg = g2d(this.light);
   /** le haut de la falaise, colonne par colonne (pour n'assombrir que l'île, le soir) */
   private tops = new Int16Array(W);
-  /** où sont, ce soir, les yeux du serpent (pour les faire luire) */
+  /** où sont, ce soir, les yeux du monstre (pour les faire luire) */
   private eyes: { x: number; y: number } | null = null;
+  private bands: Band[] = [];
+  private fx: Fx[] = [];
+  private last = { t: 0, at: 0, dist: 0, dip: false, wake: 0, ring: 0 };
 
   /** Le ciel et la mer, sans rien dessus (une fois par heure du jour). */
   private backdrop(tod: TimeOfDay) {
@@ -133,7 +149,8 @@ export class SeaRenderer {
     const lhFront = lh.front >= 0;
     const lhY = lhFront ? HORIZON + (v.base - HORIZON) * 0.55 : HORIZON;
     const lhZ = lhFront ? 1 + (v.z - 1) * 0.5 : 1;
-    if (!lhFront && Math.abs(lh.x - CX) > v.rs * 0.95) this.lighthouse(g, lh.x, HORIZON, 1, t, tod);
+    // son faisceau part de la lanterne : derrière l'île, il est dessiné avant elle (la falaise le cache)
+    if (!lhFront && Math.abs(lh.x - CX) > v.rs * 0.95) { this.lighthouse(g, lh.x, HORIZON, 1, t, tod); this.beam(g, lh.x, HORIZON, 1, t, tod); }
 
     // l'île : une colonne par pixel ; chaque colonne montre la face tournée vers nous
     const haze = HAZE[tod];
@@ -169,7 +186,7 @@ export class SeaRenderer {
       const k = Math.sin(t * 1.3 + sx * 0.15 + at * 40);
       if (k > 0) { g.fillStyle = `rgba(255,255,255,${0.4 + k * 0.4})`; g.fillRect(sx, v.base - (k > 0.6 ? 1 : 0), 2, Math.max(1, Math.round(v.z * 0.7))); }
     }
-    // ce qu'il y a sur l'île, du fond vers l'avant : les arbres, le pavillon et l'échelle, la grotte et son serpent
+    // ce qu'il y a sur l'île, du fond vers l'avant : les arbres, le pavillon et l'échelle, la grotte et son monstre
     const items = TREES.map((tr) => ({ ...tr, p: project(tr.a, v) })).filter((x) => x.p.front > 0.12 && x.p.x > -10 && x.p.x < W + 10).sort((p, q) => p.p.front - q.p.front);
     const dark = tod === 'night' ? 0.62 : tod === 'evening' ? 0.3 : 0;
     for (const tr of items) this.tree(g, tr.p.x, topOf(tr.p.x, tr.a, v), tr.pine, tr.s * v.z, haze, t, dark);
@@ -180,23 +197,33 @@ export class SeaRenderer {
     this.eyes = null;
     const roam = tod === 'night' && sea.serpent.phase === 'lair' ? this.roam(t) : null;
     if (cave.front > 0.3) this.cave(g, cave.x, cave.front, v, sea, t, !roam);
-    if (lhFront && !(sea.dist < 0.3 && Math.abs(lh.x - CX) < v.rs * 0.6)) this.lighthouse(g, lh.x, lhY, lhZ, t, tod);
+    const lhShown = lhFront && !(sea.dist < 0.3 && Math.abs(lh.x - CX) < v.rs * 0.6);
+    if (lhShown) this.lighthouse(g, lh.x, lhY, lhZ, t, tod);
 
-    // la houle : des crêtes qui avancent vers nous (plus vite quand on rame vers l'île), et qui défilent quand on tourne
+    // la houle : de longues vagues qui avancent vers nous (plus vite quand on rame vers l'île) et défilent quand on
+    // tourne ; leur crête accroche la lumière, leur face est plus sombre ; près de nous, l'écume les coiffe
     const [far, near] = SEA[tod];
     const hidden = (x: number, y: number) => x >= x0 && x <= x1 && y <= v.base + 1;
-    for (let i = 0; i < 86; i++) {
-      const life = (((i * 0.137 + t * 0.06 - sea.dist * 1.6) % 1) + 1) % 1;
-      const p = life ** 1.3;
-      const y = Math.round(HORIZON + 3 + p * (H - HORIZON - 6));
-      const x = ((i * 83 - at * 520 * (0.3 + p) * (0.6 + v.z * 0.4) + t * 3) % (W + 40) + W + 40) % (W + 40) - 20;
-      if (hidden(x, y)) continue;
-      g.fillStyle = rgba(mix(mix(far, near, p), '#ffffff', 0.5), 0.2 + 0.4 * Math.sin(life * Math.PI));
-      g.fillRect(Math.round(x), y, 2 + Math.round(p * 10), 1);
+    this.swell(sea, v, t);
+    const shadeCol = mix(near, '#000018', 0.35);
+    for (const b of this.bands) {
+      const lite = rgba(mix(mix(far, near, b.p), '#ffffff', 0.55), 0.2 + 0.45 * b.fade);
+      const shade = rgba(shadeCol, 0.24 * b.fade);
+      const dh = Math.round(1 + b.p * 3);
+      for (let x = 0; x < W; x++) {
+        const q = Math.sin(x * b.freq + b.ph);
+        if (q < 0.2) continue;
+        const y = Math.round(b.y0 - q * b.amp);
+        if (hidden(x, y)) continue;
+        g.fillStyle = shade; g.fillRect(x, y + 1, 1, dh);
+        if (q > 0.55) { g.fillStyle = lite; g.fillRect(x, y, 1, 1); }
+        if (q > 0.93 && b.p > 0.45 && b.fade > 0.5) { g.fillStyle = rgba('#ffffff', 0.7 * b.fade); g.fillRect(x, y - 1, 1, 1); }
+      }
     }
+    this.water(g, sea, v, t, hidden);
     this.wavelets(g, t, tod, hidden);
     this.fish(g, t, hidden);
-    if (roam) this.serpentRoam(g, roam, t, tod);
+    if (roam) this.roaming(g, roam, t);
 
     // les coins de pêche : des ronds dans l'eau, des oiseaux qui tournent, leur nom
     for (const s of SPOTS) {
@@ -227,7 +254,8 @@ export class SeaRenderer {
     // le ponton qui avance dans l'eau, quand on est devant ; puis la barque, Roré et ses rames, au premier plan
     if (sea.dist < 0.5 && Math.abs(angleDiff(LANDMARKS.pavilion, at)) < 0.5 && pav.front > 0.45) this.jetty(g, pav.x + Math.round(8 * pav.front * v.z), sea, v, t);
     this.boat(g, sea, roreKey, t, tod);
-    if (tod !== 'day') this.lighting(g, sea, tod, t, pav, pavTop, lh, v);
+    if (tod !== 'day') this.lighting(g, sea, tod, pav, pavTop, v);
+    if (lhShown) this.beam(g, lh.x, lhY, lhZ, t, tod);
     this.minimap(g, sea);
   }
 
@@ -349,8 +377,8 @@ export class SeaRenderer {
     if (y1 < H) { rect(g, ex, y1 - 5, 3, 5, '#3e2818'); hline(g, ex, y1 - 5, 3, '#6b4528'); }
   }
 
-  /** La grotte au pied de la falaise : une arche sombre, l'eau qui y entre. Au fond, deux yeux qui luisent : le serpent
-   *  de mer. Quand la barque approche, il sort la tête, regarde, puis replonge. */
+  /** La grotte au pied de la falaise : une arche sombre, l'eau qui y entre. Au fond, deux yeux qui luisent : le monstre
+   *  marin. Quand la barque approche, il sort la tête, regarde, fredonne, puis replonge. */
   private cave(g: G, x: number, front: number, v: View, sea: Sea, t: number, home: boolean) {
     const z = v.z;
     const w = Math.round(20 * front * z), h = Math.round(16 * z);
@@ -376,53 +404,123 @@ export class SeaRenderer {
       // les yeux, au fond : ils clignent de temps en temps
       if ((t % 4.3) < 0.15) return;
       const ey = Math.round(base - h * 0.42), es = Math.max(1, Math.round(z * 0.6));
-      rect(g, cx - 2 * es, ey, es, es, SERPENT.eye); rect(g, cx + es, ey, es, es, SERPENT.eye);
+      rect(g, cx - 2 * es, ey, es, es, EYE_GLOW); rect(g, cx + es, ey, es, es, EYE_GLOW);
       this.eyes = { x: cx, y: ey };
       return;
     }
-    // il sort de l'eau devant sa grotte (vers nous), le cou en S, la tête tournée vers la barque
-    const rise = s.phase === 'peek' ? Math.min(1, s.t / 1.1) : Math.max(0, 1 - s.t / 1.1);
+    // il sort de l'eau devant sa grotte (vers nous) : la carapace, puis le long cou, la tête tournée vers la barque ;
+    // il fredonne un peu, puis replonge
+    const rise = s.phase === 'peek' ? Math.min(1, s.t / 1.4) : Math.max(0, 1 - s.t / 1.4);
     const look = cx < sea.screen.x ? 1 : -1;
-    const wx = cx + Math.round(look * w * 0.15), wy = base + Math.round(5 * z);
-    this.neck(g, wx, wy, 26 * z * rise, look, z, t, false);
+    const wx = cx + Math.round(look * w * 0.1), wy = base + Math.round(6 * z);
     // l'eau qui bouillonne autour
-    const ring = (t * 1.5) % 1;
-    g.fillStyle = rgba('#ffffff', 0.7 * (1 - ring));
-    for (let q = 0; q < Math.PI * 2; q += 0.35) g.fillRect(Math.round(wx + Math.cos(q) * (4 + ring * 8) * z), Math.round(wy + Math.sin(q) * (1 + ring * 2) * z), 1, 1);
-    if (s.phase === 'dive' && s.t > 0.8) for (let i = 0; i < 6; i++) px(g, wx + (i - 3) * 2 * z, wy - (s.t - 0.8) * 30 * (1 - Math.abs(i - 2.5) / 3) + (s.t - 0.8) ** 2 * 60, '#ffffff');
+    const ring = (t * 1.2) % 1;
+    g.fillStyle = rgba('#ffffff', 0.6 * (1 - ring) * Math.min(1, rise * 3));
+    for (let q = 0; q < Math.PI * 2; q += 0.3) g.fillRect(Math.round(wx + Math.cos(q) * (12 + ring * 10) * z), Math.round(wy + Math.sin(q) * (1.5 + ring * 2.5) * z), 1, 1);
+    const head = this.creature(g, wx, wy, rise, look, z, t, false);
+    if (s.phase === 'peek' && s.t > 2 && head) this.notes(g, head.x + look * 6 * z, head.y - 4 * z, s.t, z);
+    if (s.phase === 'dive' && s.t > 1) for (let i = 0; i < 8; i++) px(g, wx + (i - 3.5) * 2.5 * z, wy - (s.t - 1) * 34 * (1 - Math.abs(i - 3.5) / 4.5) + (s.t - 1) ** 2 * 70, '#ffffff');
   }
 
-  /** Le cou et la tête du serpent, sortis de l'eau en (x, y), hauts de `hgt` : un S, la crête, le ventre clair. */
-  private neck(g: G, x: number, y: number, hgt: number, look: number, z: number, t: number, night: boolean) {
-    if (hgt < 1) return;
-    const body = night ? '#1d4a34' : SERPENT.body, dark = night ? '#123224' : SERPENT.dark, belly = night ? '#5f8f7a' : SERPENT.belly;
-    const th = Math.max(2, Math.round(3.4 * z));
-    const n = Math.round(hgt);
-    let hx = x, hy = y;
-    for (let i = 0; i <= n; i++) {
-      const u = i / Math.max(1, n);
-      const sx = x + Math.sin(u * Math.PI * 1.4 + t * 1.2) * 3 * z * (1 - u * 0.4) + look * u * u * 4 * z;
-      const sy = y - i;
-      const tw = Math.max(1, Math.round(th * (1 - u * 0.35)));
-      rect(g, sx - tw / 2, sy, tw, 1, body);
-      px(g, sx + (look > 0 ? tw / 2 - 1 : -tw / 2), sy, belly);
-      if (i % Math.max(3, Math.round(3 * z)) === 0 && u < 0.9) px(g, sx - look * (tw / 2 + 1), sy, dark);
-      hx = sx; hy = sy;
+  /** Le monstre marin sorti de l'eau en (x, wl), sa ligne d'eau : la carapace bosselée sur le dos, le long cou, la tête
+   *  douce tournée vers `look`, la petite corne enroulée, une nageoire qui pagaie. `rise` : combien il est sorti (0 à 1).
+   *  Renvoie où est son œil. */
+  private creature(g: G, x: number, wl: number, rise: number, look: number, z: number, t: number, night: boolean) {
+    if (rise <= 0.02) return null;
+    const c = night ? CREATURE_NIGHT : CREATURE;
+    const S = (n: number) => n * z;
+    // ce qui est sous la ligne d'eau ne se voit pas
+    const fill = (x0: number, y0: number, w: number, hh: number, col: string) => {
+      const ya = Math.round(y0), yb = Math.min(Math.round(y0 + hh), wl);
+      if (yb > ya && w > 0) rect(g, x0, ya, w, yb - ya, col);
+    };
+    const bob = Math.sin(t * 1.3) * S(0.6);
+    const base = wl + bob;
+    // le dos : un dôme bleu, et la carapace dessus (plus claire côté lune, ses bosses, son rebord sombre)
+    const sx = Math.round(x - look * S(6));
+    const a = Math.round(S(11)), B = S(7) * rise;
+    for (let k = -a - S(3); k <= a + S(3); k++) {
+      const u = k / (a + S(3));
+      const hh = S(3.5) * rise * Math.sqrt(Math.max(0, 1 - u * u));
+      fill(sx + k, base - hh, 1, hh, k * look > 0 ? c.body : c.bodyDark);
     }
-    // la tête : allongée vers la barque, l'œil jaune, une narine
-    const hw = Math.round(7 * z), hh = Math.max(2, Math.round(3.4 * z));
-    const x0 = look > 0 ? hx - 1 : hx - hw + 1;
-    rect(g, x0, hy - hh + 1, hw, hh, body);
-    rect(g, x0, hy, hw, 1, belly);
-    rect(g, look > 0 ? x0 + hw - 2 : x0, hy - hh + 2, 2, Math.max(1, hh - 2), body);
-    const ex = look > 0 ? x0 + Math.round(hw * 0.35) : x0 + hw - Math.round(hw * 0.35) - 1;
-    px(g, ex, hy - hh + 1 + Math.round(z * 0.5), SERPENT.eye);
-    px(g, look > 0 ? x0 + hw - 1 : x0, hy - hh + 2, dark);
-    // une petite crête sur la tête
-    for (let k = 0; k < 3; k++) px(g, x0 + (look > 0 ? 1 + k : hw - 2 - k), hy - hh - (k % 2), dark);
+    for (let k = -a; k <= a; k++) {
+      const u = k / a;
+      const hh = Math.round(B * Math.sqrt(Math.max(0, 1 - u * u)));
+      if (hh <= 0) continue;
+      const y0 = base - S(1.5) * rise - hh;
+      fill(sx + k, y0, 1, hh, u < -0.35 ? c.shellHi : u > 0.45 ? c.shellDark : c.shell);
+      fill(sx + k, y0, 1, 1, u < 0.3 ? c.shellHi : c.shell);
+      fill(sx + k, y0 + hh - 1, 1, 1, c.shellDark);
+    }
+    for (const u of [-0.6, -0.2, 0.2, 0.6]) {
+      const kx = Math.round(sx + u * a), top = base - S(1.5) * rise - B * Math.sqrt(1 - u * u);
+      const kh = Math.max(1, Math.round(S(2) * rise));
+      for (let r = 0; r < kh; r++) fill(kx - (kh - 1 - r), top - r - 1, (kh - r) * 2 - 1, 1, c.knob);
+      fill(kx, top - kh, 1, 1, c.shellHi);
+    }
+    // une nageoire qui pagaie, devant
+    const fl = Math.sin(t * 1.8);
+    if (fl > 0.2) {
+      const fx = x + look * S(9), fh = S(2.2) * (fl - 0.2) * rise;
+      for (let k = -S(3); k <= S(3); k++) { const hh = fh * Math.sqrt(Math.max(0, 1 - (k / S(3.2)) ** 2)); fill(fx + k, base - hh, 1, hh, c.bodyDark); }
+      if (fl > 0.8) for (let d = -1; d <= 1; d++) px(g, fx + d * S(3), base - S(2) - Math.abs(d), '#ffffff');
+    }
+    // le cou : épais à la base, il monte en se penchant un peu vers la barque ; le devant crème, le dos plus sombre
+    const nx0 = x + look * S(3), ny0 = base - S(2) * rise;
+    const N = Math.round(S(24) * rise);
+    let hx = nx0, hy = ny0;
+    for (let i = 0; i <= N; i++) {
+      const u = i / Math.max(1, N);
+      const nx = nx0 + look * (Math.sin(u * Math.PI * 0.85) * S(3) + u * u * S(3)) + Math.sin(t * 1.1 + u * 2) * S(0.6);
+      const ny = ny0 - i;
+      const tw = S(5) * (1 - u * 0.4);
+      fill(nx - tw / 2, ny, tw, 1, c.body);
+      fill(look > 0 ? nx + tw * 0.05 : nx - tw * 0.45, ny, tw * 0.4, 1, c.belly);
+      fill(look > 0 ? nx - tw / 2 : nx + tw / 2 - 1, ny, 1, 1, c.bodyDark);
+      hx = nx; hy = ny;
+    }
+    if (N < S(6)) return null;
+    // la tête : ronde, le museau vers la barque, la mâchoire crème, l'œil doux, la corne enroulée, l'oreille pointue
+    const cx = hx + look * S(1.5), cy = hy - S(2);
+    const rx = S(4.5), ry = S(3.2);
+    for (let dy = -Math.round(ry); dy <= Math.round(ry); dy++) {
+      const w = rx * Math.sqrt(Math.max(0, 1 - (dy / ry) ** 2));
+      fill(cx - w, cy + dy, w * 2 + 1, 1, c.body);
+    }
+    const sn = cx + look * S(3.2);
+    for (let dy = -Math.round(S(1.8)); dy <= Math.round(S(1.4)); dy++) {
+      const w = S(2.6) * Math.sqrt(Math.max(0, 1 - (dy / S(2)) ** 2));
+      fill(look > 0 ? sn : sn - w, cy + dy + S(0.6), w, 1, dy > 0 ? c.belly : c.body);
+    }
+    fill(look > 0 ? cx - S(1) : cx - S(3.5), cy + S(1.6), S(4.5), S(1.4), c.belly);
+    fill(look > 0 ? sn + S(1) : sn - S(2.4), cy + S(1.2), S(1.4), 1, c.bodyDark);
+    // l'oreille, derrière, et la corne qui s'enroule vers l'arrière
+    const ex0 = cx - look * S(3.6);
+    for (let r = 0; r < Math.round(S(2.4)); r++) fill(ex0 - look * r, cy - S(1.5) - r, Math.max(1, S(1.6) - r * 0.6), 1, c.bodyDark);
+    const hornX = Math.round(cx + look * S(0.3)), hornY = Math.round(cy - ry);
+    const hl = Math.max(2, Math.round(S(2.6)));
+    for (let r = 1; r <= hl; r++) fill(hornX - look * Math.round(r * 0.3), hornY - r, Math.max(1, Math.round(z * 0.8)), 1, c.horn);
+    fill(hornX - look * Math.round(hl * 0.3) - look * Math.max(1, Math.round(z)), hornY - hl, Math.max(1, Math.round(z)), Math.max(1, Math.round(z)), c.horn);
+    // l'œil : rond, sombre, un reflet ; il cligne
+    const ex = Math.round(cx + look * S(1.4)), ey = Math.round(cy - S(0.8));
+    const es = Math.max(1, Math.round(S(1.2)));
+    if ((t % 4.6) < 0.14) fill(ex - es / 2, ey, es + 1, 1, c.eye);
+    else { fill(ex - es / 2, ey - es / 2, es, es + 1, c.eye); fill(ex - es / 2, ey - es / 2, 1, 1, '#ffffff'); }
+    return { x: ex, y: ey };
   }
 
-  /** La nuit, le serpent quitte sa grotte et nage au large : où il en est (ou null s'il est chez lui). */
+  /** Quand il est sorti, le monstre fredonne : de petites notes s'envolent. */
+  private notes(g: G, x: number, y: number, st: number, z: number) {
+    for (let i = 0; i < 3; i++) {
+      const q = ((st - 2) * 0.45 + i / 3) % 1;
+      const nx = Math.round(x + Math.sin(q * 6 + i) * 3 * z), ny = Math.round(y - q * 18 * z);
+      g.fillStyle = rgba('#ffffff', 0.85 * Math.sin(q * Math.PI));
+      g.fillRect(nx + 2, ny - 4, 1, 4); g.fillRect(nx, ny - 1, 2, 2); g.fillRect(nx + 3, ny - 4, 1, 1); g.fillRect(nx + 3, ny - 3, 1, 1);
+    }
+  }
+
+  /** La nuit, le monstre quitte sa grotte et nage au large : où il en est (ou null s'il est chez lui). */
   private roam(t: number) {
     const per = 46, on = 26;
     const cyc = Math.floor(t / per), k = t % per;
@@ -430,32 +528,20 @@ export class SeaRenderer {
     return { p: k / on, dir: cyc % 2 ? 1 : -1, y: 146 + Math.round(hash(cyc) * 14) };
   }
 
-  /** Le serpent qui nage au large : la tête et le cou, trois bosses qui ondulent, le sillage. */
-  private serpentRoam(g: G, r: { p: number; dir: number; y: number }, t: number, tod: TimeOfDay) {
+  /** Le monstre qui nage au large, la nuit : la carapace, le cou dressé, le sillage argenté sous la lune. */
+  private roaming(g: G, r: { p: number; dir: number; y: number }, t: number) {
     const x = r.dir > 0 ? -60 + r.p * (W + 120) : W + 60 - r.p * (W + 120);
     const y = r.y;
     // il apparaît et disparaît doucement : il plonge en partant
     const show = Math.min(1, r.p * 6, (1 - r.p) * 6);
-    const sink = Math.round((1 - show) * 6);
-    const body = '#1d4a34', moon = tod === 'night' ? '#7fb0a0' : SERPENT.belly;
-    for (let i = 0; i < 3; i++) {
-      const hx = x - r.dir * (12 + i * 11);
-      const bob = Math.sin(t * 2.4 - i * 1.1);
-      const hh = Math.max(0, Math.round(4 + bob * 1.6) - sink);
-      for (let k = -4; k <= 4; k++) {
-        const ah = Math.round(hh * Math.sqrt(Math.max(0, 1 - (k / 4.5) ** 2)));
-        if (ah > 0) { rect(g, hx + k, y - ah, 1, ah, body); px(g, hx + k, y - ah, moon); }
-      }
-      g.fillStyle = 'rgba(255,255,255,0.45)'; g.fillRect(Math.round(hx - 6), y, 3, 1); g.fillRect(Math.round(hx + 4), y, 3, 1);
+    for (let k = 1; k < 14; k++) {
+      g.fillStyle = rgba('#dfe6ff', 0.4 * (1 - k / 14) * show);
+      g.fillRect(Math.round(x - r.dir * (14 + k * 5)), y - Math.round(k * 0.5), 3, 1);
+      g.fillRect(Math.round(x - r.dir * (14 + k * 5)), y + 1 + Math.round(k * 0.7), 3, 1);
     }
-    this.neck(g, Math.round(x), y, Math.max(0, 12 - sink * 2), r.dir, 1, t, true);
-    // le sillage, en V derrière lui
-    for (let k = 1; k < 12; k++) {
-      g.fillStyle = rgba('#dfe6ff', 0.4 * (1 - k / 12));
-      g.fillRect(Math.round(x - r.dir * (40 + k * 5)), y - Math.round(k * 0.5), 3, 1);
-      g.fillRect(Math.round(x - r.dir * (40 + k * 5)), y + 1 + Math.round(k * 0.6), 3, 1);
-    }
-    this.eyes = { x: Math.round(x + r.dir * 4), y: y - Math.max(0, 12 - sink * 2) - 2 };
+    const eye = this.creature(g, Math.round(x), y, show, r.dir, 0.9, t, true);
+    g.fillStyle = rgba('#ffffff', 0.45); g.fillRect(Math.round(x - 14), y, 4, 1); g.fillRect(Math.round(x + 10), y, 4, 1);
+    if (eye) this.eyes = eye;
   }
 
   /** Le phare, sur son îlot : la tour blanche à bandes rouges, la lanterne qui clignote. */
@@ -468,6 +554,99 @@ export class SeaRenderer {
     rect(g, lx - s(1), base - s(31), s(3), s(3), Math.sin(t * 2.4) > 0 || tod !== 'day' ? '#fff2b0' : '#c8b070');
     rect(g, lx - s(2), base - s(33), s(5), s(2), '#d24a40');
     for (let x2 = lx - s(15); x2 < lx + s(15); x2 += 2) if (Math.sin(t * 1.4 + x2) > 0.2) px(g, x2, base, '#ffffff');
+  }
+
+  /** Le faisceau du phare : il part de la lanterne et balaie le ciel ; quand il passe face à nous, la lanterne éblouit. */
+  private beam(g: G, x: number, base: number, z: number, t: number, tod: TimeOfDay) {
+    if (tod === 'day') return;
+    const a = Math.sin(t * 0.8);
+    const lx = Math.round(x), ly = base - Math.round(30 * z);
+    const L = 170 * z * Math.abs(a);
+    const k = tod === 'night' ? 1 : 0.6;
+    // il ne passe que dans le ciel : jamais sur la falaise, quel que soit l'endroit d'où on regarde
+    g.save();
+    g.beginPath();
+    g.moveTo(0, 0); g.lineTo(W, 0);
+    for (let sx = W - 1; sx >= 0; sx--) g.lineTo(sx, this.tops[sx] ? this.tops[sx] - 2 : HORIZON);
+    g.closePath();
+    g.clip();
+    if (L > 6) {
+      const grd = g.createLinearGradient(lx, ly, lx + Math.sign(a) * L, ly);
+      grd.addColorStop(0, rgba('#fff2c0', 0.3 * k));
+      grd.addColorStop(1, rgba('#fff2c0', 0));
+      g.fillStyle = grd;
+      g.beginPath(); g.moveTo(lx, ly - 1); g.lineTo(lx + Math.sign(a) * L, ly - 12 * z); g.lineTo(lx + Math.sign(a) * L, ly + 7 * z); g.lineTo(lx, ly + 1); g.closePath(); g.fill();
+    }
+    const face = 1 - Math.abs(a);
+    if (face > 0.6) {
+      g.globalCompositeOperation = 'lighter';
+      const r = 10 * z * face;
+      const grd = g.createRadialGradient(lx, ly, 0, lx, ly, r);
+      grd.addColorStop(0, rgba('#fff2c0', 0.6 * face * k));
+      grd.addColorStop(1, rgba('#fff2c0', 0));
+      g.fillStyle = grd; g.fillRect(lx - r, ly - r, r * 2, r * 2);
+      g.globalCompositeOperation = 'source-over';
+    }
+    g.restore();
+  }
+
+  /** La houle du moment : chaque rang de vagues naît à l'horizon, avance vers nous et s'efface en arrivant. */
+  private swell(sea: Sea, v: View, t: number) {
+    this.bands = [];
+    for (let k = 0; k < BANDS; k++) {
+      const life = (((k / BANDS + t * 0.028 - sea.dist * 1.6) % 1) + 1) % 1;
+      const p = life ** 1.35;
+      const ox = sea.at * 520 * (0.3 + p) * (0.6 + v.z * 0.4);
+      const freq = 0.085 - p * 0.055;
+      this.bands.push({ y0: HORIZON + 3 + p * (H - HORIZON - 3), amp: 0.4 + p * 3.2, freq, ph: ox * freq + t * (0.55 + k * 0.04) + k * 2.1, fade: Math.sin(life * Math.PI), p });
+    }
+  }
+
+  /** Combien la houle soulève l'eau en (x, y) : presque rien entre deux vagues, beaucoup sur une crête. */
+  private lift(x: number, y: number) {
+    let l = 0;
+    for (const b of this.bands) {
+      const d = (b.y0 - Math.sin(x * b.freq + b.ph) * b.amp - y) / (3 + b.p * 6);
+      l += Math.exp(-d * d) * b.fade;
+    }
+    return l;
+  }
+
+  /** Les remous : ils vivent, s'élargissent, et défilent avec l'eau quand la barque tourne ou avance. */
+  private water(g: G, sea: Sea, v: View, t: number, hidden: (x: number, y: number) => boolean) {
+    const L = this.last;
+    const dt = clamp(t - L.t, 0, 0.1);
+    const dAt = angleDiff(sea.at, L.at), dDist = sea.dist - L.dist;
+    L.t = t; L.at = sea.at; L.dist = sea.dist;
+    const span = H - HORIZON - 3;
+    for (const f of this.fx) {
+      const p = clamp((f.y - HORIZON - 3) / span, 0.02, 1);
+      f.x -= dAt * 520 * (0.3 + p) * (0.6 + v.z * 0.4);
+      f.y -= dDist * 1.6 * 1.35 * Math.pow(p, 0.26) * span;
+      f.life += dt;
+      f.x += f.vx * dt; f.y += f.vy * dt;
+      if (f.kind === 'drop') f.vy += 90 * dt;
+    }
+    this.fx = this.fx.filter((f) => f.life < f.max && f.x > -60 && f.x < W + 60 && f.y < H + 10);
+    for (const f of this.fx) {
+      const k = 1 - f.life / f.max;
+      if (f.kind === 'ring') {
+        const rx = f.rx + f.life * 12, ry = rx * 0.28;
+        g.fillStyle = rgba('#ffffff', f.a * k);
+        for (let q = 0; q < Math.PI * 2; q += Math.min(0.5, 3 / rx)) {
+          const x = Math.round(f.x + Math.cos(q) * rx), y = Math.round(f.y + Math.sin(q) * ry);
+          if (!hidden(x, y)) g.fillRect(x, y, 1, 1);
+        }
+      } else if (!hidden(f.x, f.y)) {
+        g.fillStyle = rgba('#ffffff', f.a * k);
+        g.fillRect(Math.round(f.x), Math.round(f.y), f.kind === 'wake' ? 3 : 1, 1);
+      }
+    }
+  }
+
+  private spawn(kind: Fx['kind'], x: number, y: number, o: Partial<Fx> = {}) {
+    if (this.fx.length > 260) this.fx.shift();
+    this.fx.push({ kind, x, y, vx: 0, vy: 0, life: 0, max: kind === 'ring' ? 1.6 : kind === 'wake' ? 2.6 : 0.6, rx: 2, a: 0.7, ...o });
   }
 
   /** Un voilier au loin : une petite coque, une voile triangulaire ; la nuit, un feu en haut du mât. */
@@ -558,10 +737,12 @@ export class SeaRenderer {
   private boat(g: G, sea: Sea, roreKey: string, t: number, tod: TimeOfDay) {
     const shake = sea.bump > 0 ? Math.round(Math.sin(t * 70) * sea.bump * 2) : 0;
     const bx = Math.round(CX + sea.sway * clamp(sea.dist * 5, 0, 1)) + shake;
-    const by = Math.round(BOAT_Y + Math.sin(t * 1.6) * 1.5);
-    const tilt = Math.sin(t * 1.2) * 1.2;
-    const f = sea.facing;
+    // elle monte quand une crête passe sous elle et penche du côté qui se soulève en premier
     const HL = 34;
+    const lc = this.lift(bx, BOAT_Y), ll = this.lift(bx - 26, BOAT_Y), lr = this.lift(bx + 26, BOAT_Y);
+    const by = Math.round(BOAT_Y - lc * 2.4 + Math.sin(t * 1.6) * 0.6);
+    const tilt = clamp(-(lr - ll) * 2.6 + Math.sin(t * 1.2) * 0.4, -2.5, 2.5);
+    const f = sea.facing;
     const ph = sea.stroke * Math.PI * 2;
     const dip = sea.rowing && Math.cos(ph) > 0;
     const swing = sea.rowing ? Math.sin(ph) : 0.25;
@@ -572,7 +753,7 @@ export class SeaRenderer {
     const ky = (i: number) => by + 4 - Math.round(Math.pow(Math.abs(i / HL), 3) * 7);
     // l'ombre et le reflet dans l'eau
     for (let i = -HL - 2; i <= HL + 2; i++) { g.fillStyle = rgba('#081430', 0.3); g.fillRect(bx + i, by + 4 - Math.round(Math.pow(Math.abs(i / HL), 3) * 3), 1, 4); }
-    for (let k = 0; k < 4; k++) { g.fillStyle = rgba('#8a5530', 0.18 - k * 0.04); g.fillRect(bx - HL + 6 + k * 3, by + 8 + k * 2, (HL - 6 - k * 3) * 2, 1); }
+    for (let k = 0; k < 5; k++) { const wob = Math.round(Math.sin(t * 3 + k * 1.7) * 2); g.fillStyle = rgba('#8a5530', 0.2 - k * 0.04); g.fillRect(bx - HL + 6 + k * 3 + wob, by + 8 + k * 2, (HL - 6 - k * 3) * 2, 1); }
     // la rame du fond : elle part du tolet, passe derrière la barque, et sa pale plonge plus loin dans l'eau
     const lock = bx + 2;
     const farOar = () => {
@@ -635,16 +816,38 @@ export class SeaRenderer {
       if (dip) { g.fillStyle = 'rgba(255,255,255,0.7)'; g.fillRect(Math.round(ex - 6), Math.round(ey + 2), 13, 1); g.fillRect(Math.round(ex - 3), Math.round(ey + 3), 7, 1); }
       else if (sea.rowing) px(g, ex, ey + 3 + Math.round((t * 4) % 3), '#dfeaff');
     }
-    // le sillage : derrière quand on tourne, des rides sur les côtés quand on avance ou recule
-    if (sea.rowing && sea.heading === 0) for (let k = 0; k < 7; k++) { g.fillStyle = `rgba(255,255,255,${0.5 - k * 0.06})`; g.fillRect(bx - f * (HL + 3 + k * 5), by + 4 + (k % 2), 4, 1); }
-    if (sea.rowing && sea.heading !== 0) for (let k = 0; k < 4; k++) { const q = (t * 0.8 + k / 4) % 1; g.fillStyle = rgba('#ffffff', 0.5 * (1 - q)); g.fillRect(bx - HL - 4 - Math.round(q * 10), by + 3 + k, 3, 1); g.fillRect(bx + HL + 2 + Math.round(q * 10), by + 3 + k, 3, 1); }
-    // les rochers : la barque vient de cogner, ça éclabousse
-    if (sea.bump > 0.2) for (let i = 0; i < 10; i++) { const a = i * 0.7 + t * 3; px(g, bx + Math.cos(a) * (10 + i * 2), by - 14 - Math.abs(Math.sin(a)) * 10 * sea.bump, '#ffffff'); }
+    // les remous : un rond à chaque coup de rame, des gouttes quand la pale sort de l'eau, le sillage derrière la
+    // barque, une ride autour de la coque quand elle se pose sur la houle, une gerbe sur les rochers
+    const L = this.last;
+    const nearBlade = { x: lock + f * swing * 12 + 6, y: by + 15 };
+    if (dip && !L.dip) {
+      this.spawn('ring', nearBlade.x, nearBlade.y + 2, { rx: 3, a: 0.8 });
+      this.spawn('ring', lock + f * swing * 9 - 4, fy(2) - 8, { rx: 2, a: 0.5, max: 1.2 });
+    }
+    if (!dip && L.dip) for (let i = 0; i < 4; i++) this.spawn('drop', nearBlade.x + (i - 1.5) * 2, nearBlade.y - 2, { vx: (i - 1.5) * 6, vy: -18 - i * 4, a: 0.9 });
+    L.dip = dip;
+    const moving = Math.abs(sea.speed) > 0.015 || Math.abs(sea.vdist) > 0.01;
+    if (moving && t - L.wake > 0.09) {
+      L.wake = t;
+      if (Math.abs(sea.speed) > 0.015) {
+        const sd = -Math.sign(sea.speed);
+        this.spawn('wake', bx + sd * (HL + 2), by + 3, { vy: -2, a: 0.6 });
+        this.spawn('wake', bx + sd * (HL + 2), by + 5, { vy: 3, a: 0.6 });
+      } else {
+        this.spawn('wake', bx - HL - 3, by + 3, { vx: -5, a: 0.5 });
+        this.spawn('wake', bx + HL + 1, by + 3, { vx: 5, a: 0.5 });
+      }
+    }
+    if (!sea.rowing && t - L.ring > 2.2 && lc > 0.6) { L.ring = t; this.spawn('ring', bx, by + 4, { rx: HL - 4, a: 0.35, max: 1.8 }); }
+    if (sea.bump > 0.95) {
+      this.spawn('ring', bx + f * 10, by - 2, { rx: 8, a: 0.9 });
+      for (let i = 0; i < 10; i++) this.spawn('drop', bx + (i - 5) * 3, by - 8, { vx: (i - 5) * 8, vy: -40 - hash(i + t) * 30, a: 1, max: 0.9 });
+    }
     sea.screen = { x: bx, y: by + 6 };
   }
 
   /** Le soir et la nuit : l'île et la barque s'assombrissent (le ciel et la mer gardent leurs couleurs) ; les lumières. */
-  private lighting(g: G, sea: Sea, tod: TimeOfDay, t: number, pav: { x: number; front: number }, pavTop: number, lh: { x: number; front: number }, v: View) {
+  private lighting(g: G, sea: Sea, tod: TimeOfDay, pav: { x: number; front: number }, pavTop: number, v: View) {
     const l = this.lg;
     l.globalCompositeOperation = 'source-over';
     l.fillStyle = '#ffffff';
@@ -662,10 +865,10 @@ export class SeaRenderer {
       l.fillRect(x - r, y - r, r * 2, r * 2);
     };
     if (pav.front > 0.45) add(pav.x, pavTop - 6 * v.z, 16 * v.z, '#ffcf8a', 0.9);
-    if (this.eyes) add(this.eyes.x, this.eyes.y, 8, '#c8ff6a', 0.8);
+    if (this.eyes) add(this.eyes.x, this.eyes.y, 8, EYE_GLOW, 0.8);
     g.globalCompositeOperation = 'multiply';
     g.drawImage(this.light, 0, 0);
-    // la lanterne de la barque éclaire l'eau autour, et les yeux du serpent percent la nuit
+    // la lanterne de la barque éclaire l'eau autour, et les yeux du monstre percent la nuit
     g.globalCompositeOperation = 'lighter';
     const glow = (x: number, y: number, r: number, color: string, a: number) => {
       const grd = g.createRadialGradient(x, y, 0, x, y, r);
@@ -675,15 +878,8 @@ export class SeaRenderer {
       g.fillRect(x - r, y - r, r * 2, r * 2);
     };
     glow(sea.screen.x - sea.facing * 26, sea.screen.y - 16, 30, '#ffb860', tod === 'night' ? 0.28 : 0.16);
-    if (this.eyes) glow(this.eyes.x, this.eyes.y, 7, '#c8ff6a', tod === 'night' ? 0.5 : 0.25);
+    if (this.eyes) glow(this.eyes.x, this.eyes.y, 7, EYE_GLOW, tod === 'night' ? 0.4 : 0.2);
     g.globalCompositeOperation = 'source-over';
-    // le faisceau du phare balaie le ciel
-    if (lh.front > -0.2) {
-      const a = Math.sin(t * 0.8);
-      const ly = HORIZON - 30;
-      g.fillStyle = rgba('#fff2c0', tod === 'night' ? 0.16 : 0.09);
-      g.beginPath(); g.moveTo(lh.x, ly); g.lineTo(lh.x + a * 160, ly - 10); g.lineTo(lh.x + a * 160, ly + 6); g.closePath(); g.fill();
-    }
   }
 
   /** La mini-carte : l'île vue de dessus, le phare, la grotte, les coins de pêche, et la barque (plus ou moins près). */
