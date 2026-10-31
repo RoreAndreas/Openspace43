@@ -621,6 +621,8 @@ export class OutsideRenderer {
     const cyc = Math.floor(t / per), k = t % per;
     if (k > on) return;
     const p = k / on, dir = cyc % 2 ? 1 : -1;
+    // ses poses changent dix fois par seconde, comme les images d'un sprite ; seul son trajet est continu
+    const tq = Math.floor(t * 10) / 10;
     const span = 230 + OX;
     const x = Math.round(dir > 0 ? X0 - 20 + p * span : X0 + span - 20 - p * span);
     const h = Math.sin(cyc * 12.9898) * 43758.5453;
@@ -640,7 +642,7 @@ export class OutsideRenderer {
     const fh = Math.sin(cyc * 78.233) * 43758.5453;
     const q = fh - Math.floor(fh) > 0.35 ? (p - 0.4) / 0.2 : -1;
     const alt = q > 0 && q < 1 ? Math.round(Math.sin(q * Math.PI) * 16) : 0;
-    const bob = alt ? 0 : Math.round(Math.sin(t * 1.1) * 0.6);
+    const bob = alt ? 0 : Math.round(Math.sin(tq * 1.1) * 0.6);
     const yy = y + bob - alt;
     if (alt) for (let k = -5; k <= 5; k++) dot(x - dir * 7 + k, y, rgba('#000818', 0.35 * (1 - alt / 20)));
     for (const [q0, x0] of [[0, x - dir * 8], [1, x]] as [number, number][]) {
@@ -648,7 +650,7 @@ export class OutsideRenderer {
       if (q > -0.5 && k < 1) for (let i = -3; i <= 3; i++) dot(Math.round(x0 + i * 2 * k), Math.round(y - (4 - Math.abs(i)) * (1 - k) * 2), rgba('#dfe6ff', 1 - k));
     }
     // ses nageoires-ailes : posées sur l'eau quand il nage, grandes ouvertes quand il vole
-    const flap = alt ? Math.sin(t * 7) : -0.3 + Math.sin(t * 1.1) * 0.15;
+    const flap = alt ? [1, 0.55, -0.15, -0.8, -0.15, 0.55][Math.floor(t * 10) % 6] : -0.3 + Math.sin(tq * 1.1) * 0.15;
     const wing = (near: boolean) => {
       const rx = x - dir * (near ? 4 : 6), ry = yy - (near ? 2 : 3);
       const span = near ? 9 : 7;
@@ -673,7 +675,7 @@ export class OutsideRenderer {
     let hx = x;
     for (let r = 0; r < nh; r++) {
       const u = r / 11;
-      hx = x + Math.round(dir * u * u * 3 + Math.sin(r * 0.4 + t) * 0.6);
+      hx = x + Math.round(dir * u * u * 3 + Math.sin(r * 0.4 + tq) * 0.6);
       dot(hx, yy - r, '#2a5a8a'); dot(hx - dir, yy - r, '#1c3e64'); dot(hx + dir, yy - r, r < 8 ? '#9a947e' : '#2a5a8a');
     }
     if (nh > 4) {

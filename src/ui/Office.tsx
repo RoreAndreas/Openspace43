@@ -158,7 +158,7 @@ export function Office() {
       annex.update(acc);
       // Dehors vit aussi : ceux qui y prennent l'air se promènent, et rentrent à l'heure
       outside.update(acc);
-      if (inSea) { sea.update(acc); if (tip.current) tip.current.style.opacity = '0'; }
+      if (inSea) { sea.night = timeOfDay(todRef.current) === 'night'; sea.update(acc); if (tip.current) tip.current.style.opacity = '0'; }
       acc = 0;
       if (inSea) seaRenderer.draw(lg, sea, timeOfDay(todRef.current), outside.rore.info.id);
       else if (inOutside) outsideRenderer.draw(lg, outside, timeOfDay(todRef.current));

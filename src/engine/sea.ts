@@ -67,7 +67,9 @@ export class Sea {
   sway = 0;
   /** la barque vient de cogner les rochers (1, puis ça s'efface) */
   bump = 0;
-  /** le monstre marin (long cou, carapace) : au fond de sa grotte, la tête dehors, ou qui replonge */
+  /** il fait nuit (le monstre ne sort que la nuit) : posé par la boucle d'`Office.tsx` */
+  night = false;
+  /** le monstre marin (long cou, carapace, ailes) : au fond de sa grotte, la tête dehors, ou qui replonge */
   serpent: { phase: 'lair' | 'peek' | 'dive'; t: number; calm: number } = { phase: 'lair', t: 0, calm: 0 };
   /** où se trouve la barque à l'écran (posé par le dessin, pour l'étiquette « E · … ») */
   screen = { x: 216, y: 200 };
@@ -118,13 +120,14 @@ export class Sea {
     this.updateSerpent(dt);
   }
 
-  /** Le monstre sort la tête quand la barque approche de sa grotte, regarde un moment, puis replonge. */
+  /** La nuit seulement, le monstre sort la tête quand la barque approche de sa grotte, regarde un moment, puis replonge
+   *  (et il replonge aussi quand le jour se lève). */
   private updateSerpent(dt: number) {
     const s = this.serpent;
     s.t += dt;
     const close = Math.abs(angleDiff(this.at, LANDMARKS.cave)) < 0.3 && this.dist < 0.6;
-    if (s.phase === 'lair' && close && this.time >= s.calm) { s.phase = 'peek'; s.t = 0; }
-    else if (s.phase === 'peek' && (s.t > 8 || (!close && s.t > 1.5))) { s.phase = 'dive'; s.t = 0; }
+    if (s.phase === 'lair' && close && this.night && this.time >= s.calm) { s.phase = 'peek'; s.t = 0; }
+    else if (s.phase === 'peek' && (s.t > 8 || !this.night || (!close && s.t > 1.5))) { s.phase = 'dive'; s.t = 0; }
     else if (s.phase === 'dive' && s.t > 1.8) { s.phase = 'lair'; s.t = 0; s.calm = this.time + 22; }
   }
 
