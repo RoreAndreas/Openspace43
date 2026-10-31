@@ -615,7 +615,7 @@ export class OutsideRenderer {
   }
 
   /** La nuit, le monstre marin sort de sa grotte et nage au large : on le voit souvent depuis la falaise (sa carapace,
-   *  son long cou, son œil qui accroche la lune, le sillage argenté). */
+   *  ses nageoires-ailes, son long cou, son œil qui accroche la lune, le sillage argenté) ; parfois il s'envole. */
   private monster(g: G, t: number) {
     const per = 34, on = 22;
     const cyc = Math.floor(t / per), k = t % per;
@@ -636,15 +636,38 @@ export class OutsideRenderer {
       }
     }
     // la carapace bosselée sur le dos (la lune l'éclaire par-dessus), qui monte et descend avec la houle
-    const bob = Math.round(Math.sin(t * 1.4) * 0.6);
-    const yy = y + bob;
+    // certaines nuits, au milieu de sa traversée, il s'envole un moment, en battant des ailes
+    const fh = Math.sin(cyc * 78.233) * 43758.5453;
+    const q = fh - Math.floor(fh) > 0.35 ? (p - 0.4) / 0.2 : -1;
+    const alt = q > 0 && q < 1 ? Math.round(Math.sin(q * Math.PI) * 16) : 0;
+    const bob = alt ? 0 : Math.round(Math.sin(t * 1.1) * 0.6);
+    const yy = y + bob - alt;
+    if (alt) for (let k = -5; k <= 5; k++) dot(x - dir * 7 + k, y, rgba('#000818', 0.35 * (1 - alt / 20)));
+    for (const [q0, x0] of [[0, x - dir * 8], [1, x]] as [number, number][]) {
+      const k = Math.abs(q - q0) / 0.15;
+      if (q > -0.5 && k < 1) for (let i = -3; i <= 3; i++) dot(Math.round(x0 + i * 2 * k), Math.round(y - (4 - Math.abs(i)) * (1 - k) * 2), rgba('#dfe6ff', 1 - k));
+    }
+    // ses nageoires-ailes : posées sur l'eau quand il nage, grandes ouvertes quand il vole
+    const flap = alt ? Math.sin(t * 7) : -0.3 + Math.sin(t * 1.1) * 0.15;
+    const wing = (near: boolean) => {
+      const rx = x - dir * (near ? 4 : 6), ry = yy - (near ? 2 : 3);
+      const span = near ? 9 : 7;
+      for (let k = 0; k <= span; k++) {
+        const u = k / span;
+        const wx = Math.round(rx - dir * k * 0.8), wy = Math.round(ry - flap * span * u);
+        for (let r = 0; r < Math.max(1, Math.round((1 - u) * 3)); r++) dot(wx, wy + r, r === 0 ? '#2a5a8a' : near ? '#4a7aa8' : '#33587e');
+      }
+    };
+    wing(false);
     const sx = x - dir * 7, sh = Math.round(4 * show);
     for (let q = -7; q <= 7; q++) {
       const ah = Math.round(sh * Math.sqrt(Math.max(0, 1 - (q / 7.5) ** 2)));
       for (let r = 1; r <= ah; r++) dot(sx + q, yy - r, r === ah ? '#8a90b4' : q * dir > 2 ? '#2a3150' : '#3e4668');
     }
     if (sh > 2) for (const q of [-4, 0, 4]) dot(sx + q, yy - Math.round(sh * Math.sqrt(1 - (q / 7.5) ** 2)) - 1, '#2a3150');
-    dot(sx - 9, yy, rgba('#ffffff', 0.5 * show)); dot(sx + 9, yy, rgba('#ffffff', 0.5 * show));
+    if (alt) for (let q2 = -6; q2 <= 6; q2++) dot(sx + q2, yy, q2 * dir > -2 ? '#9a947e' : '#2a5a8a');
+    else { dot(sx - 9, yy, rgba('#ffffff', 0.5 * show)); dot(sx + 9, yy, rgba('#ffffff', 0.5 * show)); }
+    wing(true);
     // le long cou qui se penche en avant, la tête ronde, la corne, l'œil qui accroche la lune
     const nh = Math.round(11 * show);
     let hx = x;
