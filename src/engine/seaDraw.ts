@@ -93,12 +93,13 @@ const cliffH = (a: number) => {
 };
 
 /** Ce que la distance change à l'image : l'île grandit (`z`), s'élargit (`rs`), son pied descend (`base`). */
-interface View { at: number; z: number; rs: number; base: number }
+interface View { at: number; z: number; rs: number; base: number; baseF: number }
 const viewOf = (sea: Sea): View => {
   // l'île avance par pixels entiers : un cran de distance, un pixel de rotation (et la falaise n'est redessinée qu'à ce moment)
   const near = 1 - Math.round(sea.dist * 400) / 400;
   const z = 1 + near * 1.25, rs = RS * z;
-  return { at: Math.round(sea.at * rs) / rs, z, rs, base: HORIZON + Math.round(Math.pow(near, 1.5) * 40) };
+  // l'eau, elle, suit la distance sans arrondi (`baseF`) : sinon tous les rangs de vagues sauteraient d'un coup
+  return { at: Math.round(sea.at * rs) / rs, z, rs, base: HORIZON + Math.round(Math.pow(near, 1.5) * 40), baseF: HORIZON + Math.pow(1 - sea.dist, 1.5) * 40 };
 };
 /** Où tombe à l'écran un point de l'île (angle `a`), vu de la barque ; et s'il est de notre côté. */
 const project = (a: number, v: View, r = v.rs) => { const d = angleDiff(a, v.at); return { x: CX + Math.sin(d) * r, front: Math.cos(d) }; };
@@ -167,7 +168,7 @@ export class SeaRenderer {
     if (!this.bg || this.bgTod !== tod) { this.bg = this.backdrop(tod); this.bgTod = tod; }
     const t = sea.time, at = sea.at;
     const v = viewOf(sea);
-    const pl = planeOf(at, v.base);
+    const pl = planeOf(at, v.baseF);
     this.plane = pl;
     this.dt = clamp(t - this.last.t, 0, 0.1);
     this.last.t = t;
@@ -249,7 +250,13 @@ export class SeaRenderer {
     if (tod !== 'day') this.shade(g, tod, pav, pavTop, v);
 
     // l'eau : les rangs de vagues et leurs remous, les vaguelettes, les ronds, les poissons, le monstre
-    const hidden = (x: number, y: number) => x >= x0 && x <= x1 && y <= v.base + 1;
+    // l'eau ne passe ni sur l'île, ni sur le phare quand il est devant elle (seulement ce qui est plus près de nous)
+    const onLighthouse = (x: number, y: number) => {
+      if (!lhShown || y > lhY) return false;
+      const dx = Math.abs(x - lh.x);
+      return (dx <= 3.5 * lhZ && y >= lhY - 34 * lhZ) || (dx <= 15 * lhZ && y >= lhY - 6 * lhZ * Math.sqrt(Math.max(0, 1 - (dx / (15 * lhZ)) ** 2)) - 1);
+    };
+    const hidden = (x: number, y: number) => (x >= x0 && x <= x1 && y <= v.base + 1) || onLighthouse(x, y);
     this.crests(g, v, t, tod, hidden);
     this.wavelets(g, t, tod, hidden);
     this.water(g, hidden);
@@ -474,7 +481,7 @@ export class SeaRenderer {
    *  la barque (en mètres) : il garde sa largeur et sa direction quand on tourne, et la barque vient s'y ranger. */
   private jetty(g: G, footX: number, sea: Sea, v: View, t: number) {
     const pl = this.plane;
-    const foot = toWater(pl, footX, v.base);
+    const foot = toWater(pl, footX, v.baseF);
     const d = angleDiff(LANDMARKS.pavilion, sea.at);
     const LEN = 13, HALF = 1.1, DECK = 0.6, STEP = 0.5;
     // il vise la place de la barque (à sa droite, quand on est en face) ; quand on tourne, son bout s'écarte

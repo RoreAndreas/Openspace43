@@ -87,7 +87,8 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
   des rangs de crêtes qui avancent vers nous, `crestW`, chacune une chaîne de ressorts ; `disturb` y lance une onde, depuis
   les rames, l'étrave, la coque, les poissons, le monstre ; `heightAt` pour la barque). On voit aussi le
   monstre la nuit depuis Dehors (`monster` dans `outsideDraw.ts`, avec ses ailes et son envol). Dehors et la mer sont plus larges que le bureau (`WIDE`, `OX`, `viewWidth` dans `layout.ts` ; la scène de
-  Dehors est décalée de `OX`, le fond s'étend de `-OX`). `goRoom` suit les voisinages (`NEXT` : bureau ↔ Pause, bureau ↔
+  Dehors est décalée de `OX`, le fond s'étend de `-OX`) et dessinés à chaque image de l'écran (`fluid` dans la boucle
+  d'`Office.tsx` ; le bureau et la Pause restent à 24 images par seconde). L'eau suit la distance sans arrondi (`baseF`). `goRoom` suit les voisinages (`NEXT` : bureau ↔ Pause, bureau ↔
   Dehors, Dehors ↔ mer) ; en mer, Roré est toujours dirigé (`outside.roreToSea/roreFromSea`). `interactSea` : la pêche
   (`modal game fishing`, `lucky` au grand large) ou l'accostage.
 - **Les heures de travail** (`state/hours.ts` : `WorkHours`, `isWorkTime` ; `workHours` dans le store, préférence `bureau:workHours` ; champ dans les Réglages) :

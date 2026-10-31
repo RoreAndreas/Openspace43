@@ -145,7 +145,10 @@ export function Office() {
       world.setMusic(m ? m.on : jukebox.playing, level, m ? m.beat : jukebox.beat);
       // le levier montre le cerveau de l'équipe : Claude (orange) ou l'IA gratuite (vert)
       world.leverFree = st.engine === 'ollama' || (st.engine === 'cloud' && modelInfo(st.settings.model)?.provider !== 'claude');
-      if (!cap && acc < (active || camMoving ? 1 / 24 : 1 / 8)) return;
+      // le bureau et la Pause vivent à 24 images par seconde (le rythme du pixel art) ; Dehors et la mer, où tout bouge
+      // (l'eau, la barque, le monstre), à chaque image de l'écran
+      const fluid = inSea || inOutside;
+      if (!cap && !fluid && acc < (active || camMoving ? 1 / 24 : 1 / 8)) return;
       const t0 = performance.now();
       // le bureau et la Pause vivent tous les deux ; on dessine celle où tu es
       active = world.update(acc) || inAnnex || inOutside || inSea;

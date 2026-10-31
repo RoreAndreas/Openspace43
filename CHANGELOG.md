@@ -11,6 +11,7 @@
 - **La barque flotte** : elle suit l'eau sous elle et roule doucement, avec un peu de retard, sans à-coups. Chaque coup de rame laisse un rond et des gouttes ; l'écume du sillage s'ouvre en V et reste sur l'eau.
 - **Le ponton** avance droit vers la barque, sur ses pieux, avec sa lanterne et sa bitte d'amarrage. Amarrée, la barque y est reliée par une corde.
 - **Le phare est posé sur l'eau**, sur son îlot, à sa vraie distance : il ne flotte plus dans les airs.
+- **Plus fluide en mer et Dehors** : ces deux espaces sont dessinés à chaque image de l'écran (le bureau garde son rythme de 24 images par seconde). Les vagues ne sautent plus quand la barque avance ou dérive, et elles ne passent plus sur le phare.
 - **La barque va plus doucement** : elle avance par à-coups, au rythme des rames, et glisse encore un peu quand tu t'arrêtes.
 - Le faisceau du phare reste dans le ciel : il ne passe plus sur la falaise quand tu fais le tour.
 - **La mer vit** : des vaguelettes, des poissons qui sautent, des voiliers au loin et, de temps en temps, un paquebot sur l'horizon (ses hublots s'allument la nuit).
