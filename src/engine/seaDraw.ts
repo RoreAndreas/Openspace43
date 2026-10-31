@@ -291,7 +291,7 @@ export class SeaRenderer {
     }
 
     // le ponton qui avance dans l'eau quand on est devant, puis la barque, Roré et ses rames ; les lumières
-    if (sea.dist < 0.55 && Math.abs(angleDiff(LANDMARKS.pavilion, at)) < 0.6 && pav.front > 0.45) this.jetty(g, pav.x + Math.round(8 * pav.front * v.z), sea, v, t);
+    if (pav.front > 0.45 && pav.x > -60 && pav.x < W + 60) this.jetty(g, pav.x + Math.round(8 * pav.front * v.z), sea, v, t);
     this.boat(g, sea, roreKey, t, tod);
     if (tod !== 'day') this.glows(g, sea, tod);
     if (lhShown) this.beam(g, lh.x, lhY, lhZ, t, tod);
@@ -481,13 +481,19 @@ export class SeaRenderer {
    *  la barque (en mètres) : il garde sa largeur et sa direction quand on tourne, et la barque vient s'y ranger. */
   private jetty(g: G, footX: number, sea: Sea, v: View, t: number) {
     const pl = this.plane;
-    const foot = toWater(pl, footX, v.baseF);
+    // son pied est sur la ligne d'eau, au pied de l'échelle (de loin comme de près, il reste attaché à l'île)
+    const r0 = C / (pl.dw + E);
+    const footU = (footX - CX) / (r0 * Q) + pl.at * RW;
     const d = angleDiff(LANDMARKS.pavilion, sea.at);
-    const LEN = 13, HALF = 1.1, DECK = 0.6, STEP = 0.5;
-    // il vise la place de la barque (à sa droite, quand on est en face) ; quand on tourne, son bout s'écarte
-    const u0 = foot.u + 1.8;
+    // l'île est dessinée plus grande que sa vraie distance : de loin, le ponton grandit avec elle pour rester à
+    // l'échelle (sinon, en perspective exacte, il ne serait plus qu'un trait au pied de l'échelle)
+    const grow = Math.max(1, pl.dw / 14);
+    const LEN = 13 * grow ** 0.75, HALF = 1.1 * grow ** 0.5, DECK = 0.6 * grow ** 0.5, STEP = LEN / 26;
+    // il vise la place de la barque (à sa droite, quand on est en face) ; quand on tourne, son bout s'écarte, sans
+    // jamais partir à plat le long de la falaise
+    const u0 = footU + 1.8;
     const uT = pl.at * RW + 2.6 + d * 22;
-    const k = (uT - u0) / LEN, n = Math.hypot(1, k);
+    const k = clamp((uT - u0) / LEN, -1, 1), n = Math.hypot(1, k);
     const su = k / n, sw = 1 / n;
     const at = (s: number, side: number) => toScreen(pl, u0 + s * su + side * sw, s * sw - side * su);
     let end: { x: number; y: number; s: number } | null = null;

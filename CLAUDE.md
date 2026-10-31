@@ -75,7 +75,7 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
   carapace, ailes) : `lair`, `peek` quand on approche de sa grotte, la nuit seulement (`night`, posé par `Office.tsx`), `dive`),
   `engine/seaDraw.ts` (le panorama en pixel art, `viewOf` : l'île grandit avec la distance ; chaque colonne de la falaise montre la
   face tournée vers la barque, `cliffH` ; arbres, pavillon, échelle et ponton qui avance vers la barque (`jetty`, posé sur l'eau
-  en mètres), la grotte et le monstre (`creature` : carapace, nageoires-ailes, cou, tête à corne ; un sprite en pixel art,
+  en mètres, visible de partout où l'on voit le pavillon ; de loin il grandit avec l'île, `grow`), la grotte et le monstre (`creature` : carapace, nageoires-ailes, cou, tête à corne ; un sprite en pixel art,
   `monster` : dessiné à l'échelle 1 dans son canevas, une pose tous les dixièmes de seconde, cerné, posé ×1 ou ×2 ; le jour il
   dort, des bulles ; la nuit ses yeux luisent, il sort (`peek`/`peeking`), respire, étire ses ailes, fredonne (`notes`), nage
   au large et parfois s'envole (`roam`/`roaming`, `FLAP`)), phare posé sur l'eau à sa distance (`rowAt`), son faisceau `beam`
