@@ -81,17 +81,17 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
   dessiné à l'échelle 1 dans son canevas, une pose tous les dixièmes de seconde, cerné, posé ×1 ou ×2, `sub` pour remonter ;
   le jour il dort, des bulles ; la nuit ses yeux luisent au fond, il sort, tend le cou vers la barque et s'avance
   (`peek`/`peeking`) ; au large il pousse l'eau (vague, sillage en V, ronds), s'approche de la barque en passant et
-  s'enfonce si Roré rame (`shy`) ; parfois il s'envole, ses nageoires battent comme des ailes (`roam`/`roaming`, `FLAP`) ;
-  la lueur `glowCol`), phare posé sur l'eau à sa distance (`rowAt` ; quand on passe près de son îlot, il
-  s'écarte sur le côté et sort du cadre, `lhPush`), son faisceau `beam`
-  limité au ciel ; soleil, îles, voiliers et paquebot rare au loin ; les rangs de vagues (`crests`), vaguelettes, reflet du
-  soleil ; les remous `fx` en mètres (ronds des rames, écume du sillage, gouttes) ; poissons qui sautent ; la barque vue d'un
+  s'enfonce si Roré rame (`shy`) ; il reste toujours dans l'eau (`roam`/`roaming`) ; la lueur `glowCol`), le phare au loin
+  sur son îlot, comme depuis la falaise : un repère lointain qui défile avec les îles et passe derrière l'île, qu'on ne peut
+  pas atteindre en barque (`farX`), son faisceau `beam` limité au ciel ; soleil, îles, voiliers et paquebot rare au loin ; les rangs de vagues (`crests`), vaguelettes (`caps`) et poissons qui
+  sautent (`jumps`), posés sur l'eau en mètres comme les remous `fx` (ronds des rames, écume du sillage, gouttes), reflet du
+  soleil ; la barque vue d'un
   peu au-dessus, Roré assis dedans, qui flotte (`float` : ressort amorti sur la houle) ; mini-carte). La falaise est mise en
   cache (`cliff`, redessinée quand la vue change d'un pixel) et les couleurs mélangées aussi (`cmix`, `crgba`).
   `engine/seaWater.ts` : la perspective du plan d'eau (`planeOf`, `toScreen`, `toWater`, `rowAt`) et la houle (`Swell` :
   des rangs de crêtes qui avancent vers nous, `crestW`, chacune une chaîne de ressorts ; `disturb` y lance une onde, depuis
   les rames, l'étrave, la coque, les poissons, le monstre ; `heightAt` pour la barque). On voit aussi le
-  monstre la nuit depuis Dehors (`monster` dans `outsideDraw.ts`, avec ses ailes et son envol). Dehors et la mer sont plus larges que le bureau (`WIDE`, `OX`, `viewWidth` dans `layout.ts` ; la scène de
+  monstre la nuit depuis Dehors (`monster` dans `outsideDraw.ts`). Dehors et la mer sont plus larges que le bureau (`WIDE`, `OX`, `viewWidth` dans `layout.ts` ; la scène de
   Dehors est décalée de `OX`, le fond s'étend de `-OX`) et dessinés à chaque image de l'écran (`fluid` dans la boucle
   d'`Office.tsx` ; le bureau et la Pause restent à 24 images par seconde). L'eau suit la distance sans arrondi (`baseF`). `goRoom` suit les voisinages (`NEXT` : bureau ↔ Pause, bureau ↔
   Dehors, Dehors ↔ mer) ; en mer, Roré est toujours dirigé (`outside.roreToSea/roreFromSea`). `interactSea` : la pêche

@@ -12,7 +12,7 @@ import { g2d, hline, makeCanvas, mix, outline, P, px, rect, rgba, vline, type G 
 import { ANCHOR_X, ANCHOR_Y, robotSprite, type Dir, type Pose } from './robots.ts';
 import type { TimeOfDay } from './room.ts';
 import { angleDiff, LANDMARKS, OFFSHORE, SPOTS, type Sea } from './sea.ts';
-import { BOAT_Y, C, crestRange, crestW, E, HORIZON, planeOf, Q, rowAt, RW, SEA, Swell, toScreen, toWater, type Plane } from './seaWater.ts';
+import { BOAT_Y, C, crestRange, crestW, E, HORIZON, planeOf, Q, RW, SEA, Swell, toScreen, toWater, type Plane } from './seaWater.ts';
 
 /** La mer est plus large que le bureau : elle remplit le cadre. */
 const W = WIDE;
@@ -37,8 +37,6 @@ const STRATA = ['#c2b6a0', '#b0a48e', '#9c917f', '#8a806f', '#776e60'];
 const NESSIE = { body: '#e88a8a', dark: '#c0606a', hi: '#ffb0a8', belly: '#fff0dc', spot: '#ffc8b8', gill: '#ff6a9a', gillHi: '#ffb0d0', eye: '#141a28', blush: '#ff6a8a' };
 type Palette = typeof NESSIE;
 const NESSIE_NIGHT: Palette = Object.fromEntries(Object.entries(NESSIE).map(([k, c]) => [k, k === 'eye' ? c : mix(c, '#0b1230', 0.32)])) as Palette;
-/** Ses battements de nageoires en vol : six images, comme un sprite (il plane souvent entre deux battements). */
-const FLAP = [0.95, 0.6, 0.15, -0.35, 0.15, 0.6];
 /** Son petit canevas (il y est dessiné à l'échelle 1) et sa ligne d'eau dedans. */
 const MON_W = 128, MON_H = 104, MON_X = 64, MON_Y = 64;
 /** Ses yeux, la nuit, accrochent la moindre lueur. */
@@ -139,11 +137,11 @@ export class SeaRenderer {
   /** le monstre qui sort de sa grotte (dessiné après l'ombre du soir, pour ne pas être assombri deux fois) */
   private peek: { x: number; wl: number; rise: number; look: number; sc: number; phase: string; st: number; z: number } | null = null;
   private lastPeek = 'lair';
-  /** les poissons : le dernier saut dont on a déjà lancé l'éclaboussure (sortie, retombée) */
-  private fishOut = [-1, -1, -1, -1];
-  private fishIn = [-1, -1, -1, -1];
+  /** les vaguelettes et les poissons qui sautent, posés sur l'eau (en mètres) */
+  private caps: { u: number; w: number; t0: number; life: number }[] = [];
+  private jumps: { u: number; w: number; t0: number; dir: number; landed: boolean }[] = [];
+  private nextJump = 0;
   private lastFly = 0;
-  private wasFlying = false;
   /** il s'enfonce quand Roré rame près de lui (0 à 1) */
   private shy = 0;
   /** la couleur de la lueur (ses yeux) */
@@ -208,17 +206,10 @@ export class SeaRenderer {
       px(g, sunX + Math.sin(i * 12.9) * (2 + p * 22), Math.round(HORIZON + 2 + p * (H - HORIZON - 4)), GLINT[tod]);
     }
 
-    // le phare, sur son îlot : posé sur l'eau à sa distance (devant l'île, plus près de nous ; derrière, plus loin)
-    const lh = project(LANDMARKS.lighthouse, v, v.rs + 52 * v.z);
-    const lhFront = lh.front >= 0;
-    const lhF = pl.dw - 45 * lh.front;
-    const lhRow = rowAt(pl, lhF);
-    // quand la barque passe près de l'îlot, il s'écarte sur le côté et sort du cadre (on le longe, on ne rame pas dessus)
-    const lhPush = lhFront ? clamp((26 - lhF) / 26, 0, 1) : 0;
-    const lhX = lh.x + (lh.x >= CX ? 1 : -1) * Math.pow(lhPush, 1.6) * 320;
-    const lhY = lhRow ? Math.round(lhRow.y) : 0, lhZ = lhRow ? clamp(v.z * lhRow.scale, 0.6, 2.6) : 1;
-    // son faisceau part de la lanterne : derrière l'île, il est dessiné avant elle (la falaise le cache)
-    if (!lhFront && lhRow && Math.abs(lh.x - CX) > v.rs * 0.95) { this.lighthouse(g, lh.x, lhY, lhZ, t, tod); this.beam(g, lh.x, lhY, lhZ, t, tod); }
+    // le phare, au loin sur son îlot, comme on le voit depuis la falaise : on ne peut pas l'atteindre en barque ; il
+    // défile avec les îles lointaines et passe derrière l'île (dessiné avant elle, son faisceau aussi)
+    const lhX = farX(LANDMARKS.lighthouse);
+    if (lhX > -40 && lhX < W + 40) { this.lighthouse(g, lhX, HORIZON, 1, t, tod); this.beam(g, lhX, HORIZON, 1, t, tod); }
 
     // l'île : chaque colonne montre la face tournée vers nous
     const haze = HAZE[tod];
@@ -254,19 +245,12 @@ export class SeaRenderer {
     this.peek = null;
     const roam = tod === 'night' && sea.serpent.phase === 'lair' ? this.roam(t) : null;
     if (cave.front > 0.3) this.cave(g, cave.x, cave.front, v, sea, t, !roam);
-    const lhShown = lhFront && !!lhRow && lhY > v.base && Math.abs(lhX - CX) < W;
-    if (lhShown) this.lighthouse(g, lhX, lhY, lhZ, t, tod);
     // le soir et la nuit, la falaise s'assombrit
     if (tod !== 'day') this.shade(g, tod, pav, pavTop, v);
 
     // l'eau : les rangs de vagues et leurs remous, les vaguelettes, les ronds, les poissons, le monstre
-    // l'eau ne passe ni sur l'île, ni sur le phare quand il est devant elle (seulement ce qui est plus près de nous)
-    const onLighthouse = (x: number, y: number) => {
-      if (!lhShown || y > lhY) return false;
-      const dx = Math.abs(x - lhX);
-      return (dx <= 3.5 * lhZ && y >= lhY - 34 * lhZ) || (dx <= 15 * lhZ && y >= lhY - 6 * lhZ * Math.sqrt(Math.max(0, 1 - (dx / (15 * lhZ)) ** 2)) - 1);
-    };
-    const hidden = (x: number, y: number) => (x >= x0 && x <= x1 && y <= v.base + 1) || onLighthouse(x, y);
+    // l'eau ne passe pas sur l'île
+    const hidden = (x: number, y: number) => x >= x0 && x <= x1 && y <= v.base + 1;
     this.crests(g, v, t, tod, hidden);
     this.wavelets(g, t, tod, hidden);
     this.water(g, hidden);
@@ -304,7 +288,6 @@ export class SeaRenderer {
     if (pav.front > 0.45 && pav.x > -60 && pav.x < W + 60) this.jetty(g, pav.x + Math.round(8 * pav.front * v.z), sea, v, t);
     this.boat(g, sea, roreKey, t, tod);
     if (tod !== 'day') this.glows(g, sea, tod);
-    if (lhShown) this.beam(g, lhX, lhY, lhZ, t, tod);
     this.minimap(g, sea);
   }
 
@@ -347,23 +330,31 @@ export class SeaRenderer {
     }
   }
 
-  /** Des vaguelettes : de petits moutons qui naissent et s'effacent, plus grands près de nous. */
+  /** Des vaguelettes : de petits moutons qui naissent et s'effacent, plus grands près de nous. Ils sont posés sur l'eau
+   *  (en mètres) : quand la barque tourne ou avance, ils défilent avec les vagues au lieu de rester collés à l'écran. */
   private wavelets(g: G, t: number, tod: TimeOfDay, hidden: (x: number, y: number) => boolean) {
-    const [, near] = SEA[tod];
-    for (let i = 0; i < 30; i++) {
-      const cycle = Math.floor(t / 2.2 + i * 0.37);
-      const life = (t / 2.2 + i * 0.37) % 1;
-      const u = hash(cycle * 13 + i * 7), p = hash(cycle * 5 + i * 11) ** 0.9;
-      const y = Math.round(HORIZON + 6 + p * (H - HORIZON - 10));
-      const x = Math.round(u * W);
+    const pl = this.plane, [, near] = SEA[tod];
+    const first = this.caps.length === 0;
+    this.caps = this.caps.filter((c) => t - c.t0 < c.life && t >= c.t0);
+    while (this.caps.length < 30) {
+      // un endroit au hasard sur l'eau qu'on voit, réparti sur la hauteur de l'écran
+      const r = 6 + Math.random() * (H - HORIZON - 10);
+      const life = 1.8 + Math.random() * 1.2;
+      this.caps.push({ u: pl.at * RW + (Math.random() * 2 - 1) * (CX / (r * Q)), w: pl.dw - (C / r - E), t0: t - (first ? Math.random() * life : 0), life });
+    }
+    for (const c of this.caps) {
+      const p = toScreen(pl, c.u, c.w);
+      if (!p || p.y > H + 2) { c.life = 0; continue; }
+      const x = Math.round(p.x), y = Math.round(p.y);
       if (hidden(x, y)) continue;
-      const a = Math.sin(life * Math.PI);
-      const s = 1 + Math.round(p * 3 * a);
+      const k = clamp((p.y - HORIZON) / (H - HORIZON), 0, 1);
+      const a = Math.sin(((t - c.t0) / c.life) * Math.PI);
+      const sz = 1 + Math.round(k * 3 * a);
       g.fillStyle = crgba('#ffffff', 0.8 * a);
-      g.fillRect(x - s, y, s * 2 + 1, 1);
-      if (p > 0.35) { g.fillRect(x, y - 1, 1, 1); if (p > 0.7) { g.fillRect(x - 1, y - 1, 3, 1); g.fillRect(x, y - 2, 1, 1); } }
+      g.fillRect(x - sz, y, sz * 2 + 1, 1);
+      if (k > 0.35) { g.fillRect(x, y - 1, 1, 1); if (k > 0.7) { g.fillRect(x - 1, y - 1, 3, 1); g.fillRect(x, y - 2, 1, 1); } }
       g.fillStyle = crgba(cmix(near, '#000020', 0.3), 0.35 * a);
-      g.fillRect(x - s, y + 1, s * 2 + 1, 1);
+      g.fillRect(x - sz, y + 1, sz * 2 + 1, 1);
     }
   }
 
@@ -610,13 +601,13 @@ export class SeaRenderer {
 
   /** Nessie en pixel art : dessiné à l'échelle 1 dans son petit canevas, une pose tous les dixièmes de seconde (comme les
    *  images d'un sprite), cerné, puis posé à l'écran en pixels entiers (×1 ou ×2). Renvoie où est son œil, à l'écran. */
-  private monster(g: G, x: number, y: number, o: { look: number; sc: number; t: number; night: boolean; sub: number; flap: number; curious?: number; flying?: boolean }) {
+  private monster(g: G, x: number, y: number, o: { look: number; sc: number; t: number; night: boolean; sub: number; flap: number; curious?: number }) {
     const tq = Math.floor(o.t * 10) / 10;
     const mg = this.monG;
     mg.clearRect(0, 0, MON_W, MON_H);
     const eye = this.nessie(mg, MON_X, MON_Y, o.look, tq, o);
     if (!eye) return null;
-    outline(this.monCan, o.night ? '#070a18' : '#10202e', { skipBottom: !o.flying });
+    outline(this.monCan, o.night ? '#070a18' : '#10202e', { skipBottom: true });
     const dx = Math.round(x) - MON_X * o.sc, dy = Math.round(y) - MON_Y * o.sc;
     g.imageSmoothingEnabled = false;
     g.drawImage(this.monCan, dx, dy, MON_W * o.sc, MON_H * o.sc);
@@ -626,15 +617,13 @@ export class SeaRenderer {
   /** Nessie, à l'échelle 1, sa ligne d'eau en (x, wl) : deux bosses qui ondulent et le bout de la queue qui frétille,
    *  derrière ; la nageoire qui pagaie ; le long cou en S, qui se tend vers la barque quand il est curieux ; la tête ronde,
    *  le museau, la mâchoire crème, l'œil doux, les branchies en plumeau. `sub` : combien il est encore sous l'eau (0 : sorti).
-   *  En vol : tout le corps, le ventre crème, quatre nageoires (celles de devant battent comme des ailes), la queue. */
-  private nessie(g: G, x: number, wl: number, look: number, t: number, o: { night: boolean; sub: number; flap: number; curious?: number; flying?: boolean }) {
+   *  Il reste toujours dans l'eau. */
+  private nessie(g: G, x: number, wl: number, look: number, t: number, o: { night: boolean; sub: number; flap: number; curious?: number }) {
     const c = o.night ? NESSIE_NIGHT : NESSIE;
-    const flying = !!o.flying;
     // il remonte : tout est décalé vers le bas, et ce qui est sous la ligne d'eau ne se dessine pas
-    const sink = flying ? 0 : Math.round(clamp(o.sub, 0, 1) * 34);
-    const clipY = flying ? Infinity : wl;
+    const sink = Math.round(clamp(o.sub, 0, 1) * 34);
     const fill = (x0: number, y0: number, w: number, hh: number, col: string) => {
-      const ya = Math.round(y0 + sink), yb = Math.min(Math.round(y0 + sink + hh), clipY + 1);
+      const ya = Math.round(y0 + sink), yb = Math.min(Math.round(y0 + sink + hh), wl + 1);
       if (yb > ya && w > 0) rect(g, x0, ya, w, yb - ya, col);
     };
     const dot = (x0: number, y0: number, col: string) => fill(x0, y0, 1, 1, col);
@@ -642,50 +631,23 @@ export class SeaRenderer {
     const base = wl + breath;
     const curious = o.curious ?? 0;
     // un dôme (une bosse) : le dessus plus clair, des taches
-    const dome = (cx: number, r: number, h: number, spots: boolean) => {
+    const dome = (cx: number, r: number, h: number) => {
       for (let k = -r; k <= r; k++) {
         const hh = Math.round(h * Math.sqrt(Math.max(0, 1 - (k / (r + 0.5)) ** 2)));
         if (hh <= 0) continue;
         fill(cx + k, base - hh + 1, 1, hh, k * look > 0 ? c.body : c.dark);
         dot(cx + k, base - hh + 1, c.hi);
-        if (spots && (k + 40) % 4 === 1 && hh > 3) dot(cx + k, base - hh + 3, c.spot);
+        if ((k + 40) % 4 === 1 && hh > 3) dot(cx + k, base - hh + 3, c.spot);
       }
     };
-    if (flying) {
-      // en vol : le corps entier, le ventre crème, la queue, les nageoires de derrière
-      for (let k = -14; k <= 12; k++) {
-        const u = k / 14, hh = Math.round(6 * Math.sqrt(Math.max(0, 1 - u * u)));
-        if (hh <= 0) continue;
-        fill(x - look * 6 + look * k, base - hh, 1, hh, c.body);
-        fill(x - look * 6 + look * k, base, 1, Math.max(1, hh - 2), c.belly);
-        dot(x - look * 6 + look * k, base - hh, c.hi);
-      }
-      for (let i = 0; i < 12; i++) fill(x - look * (20 + i), base - 1 + Math.round(Math.sin(t * 4 - i * 0.5) * (i / 6)), 1, Math.max(1, 3 - Math.floor(i / 4)), c.body);
-      for (const s of [-1, 1]) for (let i = 0; i < 5; i++) dot(x - look * (14 + i), base + 3 + i * 0.6 + s * 0, c.dark);
-    } else {
-      // deux bosses qui ondulent l'une après l'autre, et le bout de la queue qui frétille
-      dome(x - look * 10, 7, 6 + Math.round(Math.sin(t * 1.6) * 1.5), true);
-      dome(x - look * 23, 6, 5 + Math.round(Math.sin(t * 1.6 - 1.3) * 1.5), true);
-      const tw = Math.round(Math.sin(t * 3) * 1.5);
-      for (let i = 0; i < 5; i++) fill(x - look * (32 + i), base - i - 1 + (i > 2 ? tw : 0), 2, 1, i < 3 ? c.dark : c.body);
-    }
-    // la nageoire de devant : elle pagaie à la surface ; en vol, elle bat comme une aile
-    const fin = (far: boolean) => {
-      const fl = flying ? o.flap : 0.15 * o.flap;
-      const rx = x + look * (far ? 1 : 3), ry = base - (flying ? 2 : 0) - (far ? 1 : 0);
-      const len = flying ? (far ? 13 : 16) : 7;
-      const ang = flying ? fl * 1.2 : -0.2 + fl;
-      const tx = rx - look * len * 0.55 * Math.cos(ang), ty = ry - len * Math.sin(ang) + (flying ? 0 : 2);
-      for (let k = 0; k <= len; k++) {
-        const q = k / len, w = Math.max(1, Math.round((flying ? 4 : 2.5) * Math.sin(q * Math.PI)));
-        fill(rx + (tx - rx) * q, ry + (ty - ry) * q - w / 2, Math.max(1, w), w, far ? c.dark : k < 2 ? c.dark : c.body);
-      }
-    };
-    if (flying) fin(true);
+    // deux bosses qui ondulent l'une après l'autre, et le bout de la queue qui frétille
+    dome(x - look * 10, 7, 6 + Math.round(Math.sin(t * 1.6) * 1.5));
+    dome(x - look * 23, 6, 5 + Math.round(Math.sin(t * 1.6 - 1.3) * 1.5));
+    const tw = Math.round(Math.sin(t * 3) * 1.5);
+    for (let i = 0; i < 5; i++) fill(x - look * (32 + i), base - i - 1 + (i > 2 ? tw : 0), 2, 1, i < 3 ? c.dark : c.body);
     // le cou : épais à la base, il monte en S ; il se tend vers la barque quand Nessie est curieux
-    const nx0 = x + look * 3, ny0 = base - (flying ? 2 : 0);
-    const N = flying ? 20 : 28;
-    const lean = (flying ? 9 : 3) + curious * 5;
+    const nx0 = x + look * 3, ny0 = base;
+    const N = 28, lean = 3 + curious * 5;
     let hx = nx0, hy = ny0;
     for (let i = 0; i <= N; i++) {
       const u = i / N;
@@ -697,9 +659,17 @@ export class SeaRenderer {
       dot(look > 0 ? nx - w / 2 : nx + w / 2 - 1, ny, c.dark);
       hx = nx; hy = ny;
     }
-    fin(false);
+    // la nageoire de devant, qui pagaie à la surface
+    {
+      const rx = x + look * 3, ry = base, len = 7, ang = -0.2 + 0.15 * o.flap;
+      const tx = rx - look * len * 0.55 * Math.cos(ang), ty = ry - len * Math.sin(ang) + 2;
+      for (let k = 0; k <= len; k++) {
+        const q = k / len, w = Math.max(1, Math.round(2.5 * Math.sin(q * Math.PI)));
+        fill(rx + (tx - rx) * q, ry + (ty - ry) * q - w / 2, w, w, k < 2 ? c.dark : c.body);
+      }
+    }
     // la tête : ronde, le museau vers la barque, la mâchoire crème, l'œil doux, les branchies ; elle se penche
-    const tilt = flying ? 0 : Math.round(Math.sin(t * 0.5) * 0.8 + curious);
+    const tilt = Math.round(Math.sin(t * 0.5) * 0.8 + curious);
     const cx = hx + look * 2, cy = hy - 2 + tilt;
     for (let dy = -3; dy <= 3; dy++) { const w = Math.round(4.5 * Math.sqrt(Math.max(0, 1 - (dy / 3.3) ** 2))); fill(cx - w, cy + dy, w * 2 + 1, 1, c.body); }
     const sn = cx + look * 3;
@@ -721,65 +691,40 @@ export class SeaRenderer {
     return { x: ex, y: ey + sink };
   }
 
-  /** La nuit, Nessie quitte sa grotte et nage au large : où il en est (ou null s'il est chez lui) ; certaines nuits, au
-   *  milieu de sa traversée, il s'envole. */
+  /** La nuit, Nessie quitte sa grotte et nage au large : où il en est (ou null s'il est chez lui). */
   private roam(t: number) {
     const per = 46, on = 26;
     const cyc = Math.floor(t / per), k = t % per;
     if (k > on) return null;
-    return { p: k / on, dir: cyc % 2 ? 1 : -1, y: 142 + Math.round(hash(cyc) * 12), fly: hash(cyc * 7 + 1) > 0.35 };
+    return { p: k / on, dir: cyc % 2 ? 1 : -1, y: 142 + Math.round(hash(cyc) * 12) };
   }
 
   /** Nessie qui nage au large, la nuit : le cou dressé, ses bosses qui ondulent, l'eau qu'il pousse. Curieux, il
-   *  s'approche de la barque en passant ; timide, il s'enfonce si Roré rame. Certaines nuits, il jaillit, plane en battant
-   *  des nageoires, et replonge dans une gerbe. */
-  private roaming(g: G, r: { p: number; dir: number; y: number; fly: boolean }, t: number, base: number, sea: Sea) {
+   *  s'approche de la barque en passant ; timide, il s'enfonce si Roré rame. Il reste toujours dans l'eau. */
+  private roaming(g: G, r: { p: number; dir: number; y: number }, t: number, base: number, sea: Sea) {
     const SC = 2;
     const x = Math.round(r.dir > 0 ? -90 + r.p * (W + 180) : W + 90 - r.p * (W + 180));
     // en passant près de la barque, il vient voir de plus près
     const near = Math.exp(-(((x - sea.screen.x) / 110) ** 2));
     const y = Math.round(Math.max(r.y, base + 10) + near * 16);
-    const q = r.fly ? (r.p - 0.38) / 0.24 : -1;
-    const alt = q > 0 && q < 1 ? Math.round(Math.sin(q * Math.PI) * 44) : 0;
     // il apparaît et disparaît doucement ; si Roré rame près de lui, il s'enfonce
     this.shy += ((sea.rowing && near > 0.3 ? 1 : 0) - this.shy) * Math.min(1, this.dt * 1.5);
     const show = Math.min(1, r.p * 6, (1 - r.p) * 6) * (1 - this.shy * 0.85);
-    if (show < 0.05 && !alt) return;
+    if (show < 0.05) return;
     // en nageant, il pousse l'eau : une vague devant son cou, la houle soulevée par ses bosses, un sillage en V
-    if (!alt && show > 0.3 && t - this.lastFly > 0.1) {
+    if (show > 0.3 && t - this.lastFly > 0.1) {
       this.lastFly = t;
       this.splash(x + r.dir * 14, y, -0.06 * show, 2.4);
       this.splash(x - r.dir * 20, y, -0.05 * show, 2.2);
       this.splash(x - r.dir * 46, y, -0.04 * show, 2);
       for (const side of [-1, 1]) this.spawnAt('foam', x - r.dir * 70, y + side * 3, { vu: -r.dir * 0.4, vw: side * 0.9, a: 0.6 * show, max: 3.2 });
     }
-    if ((alt > 0) !== this.wasFlying) { this.splash(x, y, -0.25, 4); this.spawnAt('ring', x, y + 1, { r: 1, a: 0.9, max: 2 }); this.wasFlying = alt > 0; }
-    if (!alt) for (let k = 1; k < 14; k++) {
+    for (let k = 1; k < 14; k++) {
       g.fillStyle = crgba('#dfe6ff', 0.4 * (1 - k / 14) * show);
       g.fillRect(Math.round(x - r.dir * (72 + k * 6)), y - Math.round(k * 0.6), 4, 1);
       g.fillRect(Math.round(x - r.dir * (72 + k * 6)), y + 1 + Math.round(k * 0.9), 4, 1);
     }
-    // les gerbes, quand il jaillit et quand il retombe
-    for (const [q0, x0] of [[0, x - r.dir * 20], [1, x + r.dir * 10]] as [number, number][]) {
-      const k = Math.abs(q - q0) / 0.12;
-      if (q < -0.5 || k > 1) continue;
-      for (let i = 0; i < 14; i++) {
-        const ang = (i / 13 - 0.5) * 2.2;
-        const d = k * 26;
-        px(g, x0 + Math.sin(ang) * d * 1.4, y - Math.cos(ang) * d * (1.2 - k) * 1.6 + k * k * 14, crgba('#dfe6ff', 1 - k));
-      }
-    }
-    // son ombre sur l'eau, quand il vole
-    if (alt) {
-      const k = clamp(1 - alt / 90, 0.2, 1);
-      g.fillStyle = crgba('#000818', 0.3 * k);
-      for (let q2 = -30; q2 <= 30; q2++) g.fillRect(x - r.dir * 10 + q2, y, 1, Math.max(1, Math.round(3 * k * Math.sqrt(1 - (q2 / 31) ** 2))));
-    }
-    // en vol, il plane souvent entre deux battements
-    const glide = Math.sin(t * 0.9) > 0.2;
-    const flap = alt ? (glide ? 0.2 : FLAP[Math.floor(t * 8) % FLAP.length]) : Math.sin(t * 2.2);
-    const eye = this.monster(g, x, y - alt, { look: r.dir, sc: SC, t, night: true, sub: 1 - show, flap, curious: near, flying: alt > 0 });
-    if (alt) for (let i = 0; i < 4; i++) px(g, x - r.dir * (12 + i * 8), y - alt + 8 + ((t * 30 + i * 7) % 30), crgba('#dfe6ff', 0.6));
+    const eye = this.monster(g, x, y, { look: r.dir, sc: SC, t, night: true, sub: 1 - show, flap: Math.sin(t * 2.2), curious: near });
     if (eye && show > 0.3) { this.eyes = eye; this.eyesFar = true; this.glowCol = GLOW; }
   }
 
@@ -910,19 +855,25 @@ export class SeaRenderer {
     if (!night) for (let i = 0; i < 4; i++) { const q = (t * 0.4 + i / 4) % 1; g.fillStyle = crgba('#e8e8ee', 0.6 * (1 - q)); g.fillRect(Math.round(x - 1 - q * 14), Math.round(y - 13 - q * 6), 2 + Math.round(q * 3), 2); }
   }
 
-  /** Des poissons qui sautent hors de l'eau : un arc argenté, des gouttes, un rond dans l'eau. */
+  /** Des poissons qui sautent hors de l'eau : un arc argenté, des gouttes, un rond dans l'eau. Eux aussi sont posés sur
+   *  l'eau (en mètres) : ils restent à leur place quand la barque bouge. */
   private fish(g: G, t: number, hidden: (x: number, y: number) => boolean) {
-    for (let i = 0; i < 4; i++) {
-      const per = 6 + i * 1.7, k = (t + i * 2.3) % per, cyc = Math.floor((t + i * 2.3) / per);
-      if (k > 2) continue;
-      const p = hash(cyc * 3 + i * 17);
-      const y0 = Math.round(HORIZON + 14 + p * 70), x0 = Math.round(20 + hash(cyc * 7 + i) * (W - 40));
-      if (hidden(x0, y0)) continue;
-      const s = y0 > 160 ? 2 : 1, dir = hash(cyc + i) > 0.5 ? 1 : -1;
-      const jump = 0.9;
+    const pl = this.plane;
+    this.jumps = this.jumps.filter((j) => t - j.t0 < 2 && t >= j.t0);
+    if (t >= this.nextJump) {
+      this.nextJump = t + 1.2 + Math.random() * 1.8;
+      const r = 14 + Math.random() * 70;
+      this.jumps.push({ u: pl.at * RW + (Math.random() * 2 - 1) * (CX / (r * Q)) * 0.9, w: pl.dw - (C / r - E), t0: t, dir: Math.random() < 0.5 ? -1 : 1, landed: false });
+    }
+    for (const j of this.jumps) {
+      const p = toScreen(pl, j.u, j.w);
+      if (!p) continue;
+      const x0 = Math.round(p.x), y0 = Math.round(p.y);
+      if (hidden(x0, y0) || y0 > H) continue;
+      const s = p.s > 8.5 ? 2 : 1, dir = j.dir, k = t - j.t0, jump = 0.9;
       // il fend l'eau en sortant, et en retombant
-      if (this.fishOut[i] !== cyc) { this.fishOut[i] = cyc; this.splash(x0 - dir * 8 * s, y0, -0.04 * s, 0.6); }
-      if (k >= jump && this.fishIn[i] !== cyc) { this.fishIn[i] = cyc; this.splash(x0 + dir * 8 * s, y0, -0.06 * s, 0.7); }
+      if (k < this.dt * 1.5) this.splash(x0 - dir * 8 * s, y0, -0.04 * s, 0.6);
+      if (k >= jump && !j.landed) { j.landed = true; this.splash(x0 + dir * 8 * s, y0, -0.06 * s, 0.7); }
       if (k < jump) {
         const u = k / jump;
         const fx = x0 + dir * (u - 0.5) * 16 * s, fy = y0 - Math.sin(u * Math.PI) * 10 * s;
@@ -1112,7 +1063,7 @@ export class SeaRenderer {
     g.fillStyle = 'rgba(70,140,190,0.6)'; g.beginPath(); g.arc(cx, cy, R + 2, 0, Math.PI * 2); g.fill();
     g.fillStyle = '#7fb86a'; g.beginPath(); g.arc(cx, cy, 8, 0, Math.PI * 2); g.fill();
     const at = (a: number, r: number) => ({ x: cx + Math.sin(a) * r, y: cy + Math.cos(a) * r });
-    const lh = at(LANDMARKS.lighthouse, 12);
+    const lh = at(LANDMARKS.lighthouse, R + 1);
     g.fillStyle = '#f1ede6'; g.fillRect(Math.round(lh.x) - 1, Math.round(lh.y) - 1, 2, 2);
     const cave = at(LANDMARKS.cave, 8);
     g.fillStyle = '#10142a'; g.fillRect(Math.round(cave.x) - 1, Math.round(cave.y) - 1, 2, 2);

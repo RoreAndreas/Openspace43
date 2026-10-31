@@ -617,7 +617,7 @@ export class OutsideRenderer {
   }
 
   /** La nuit, Nessie sort de sa grotte et nage au large : on le voit souvent depuis la falaise (ses bosses qui ondulent,
-   *  son long cou, son œil qui accroche la lune, le sillage argenté) ; parfois il s'envole. */
+   *  son long cou, son œil qui accroche la lune, le sillage argenté). */
   private monster(g: G, t: number) {
     const per = 34, on = 22;
     const cyc = Math.floor(t / per), k = t % per;
@@ -639,17 +639,8 @@ export class OutsideRenderer {
         dot(x - dir * (22 + i * 4) + w, y + 1 + Math.round(i * 0.6), rgba('#dfe6ff', a));
       }
     }
-    // certaines nuits, au milieu de sa traversée, il s'envole un moment
-    const fh = Math.sin(cyc * 78.233) * 43758.5453;
-    const q = fh - Math.floor(fh) > 0.35 ? (p - 0.4) / 0.2 : -1;
-    const alt = q > 0 && q < 1 ? Math.round(Math.sin(q * Math.PI) * 16) : 0;
-    const yy = y - alt;
-    if (alt) for (let k2 = -6; k2 <= 6; k2++) dot(x + k2, y, rgba('#000818', 0.35 * (1 - alt / 20)));
-    for (const [q0, x0] of [[0, x - dir * 8], [1, x]] as [number, number][]) {
-      const k2 = Math.abs(q - q0) / 0.15;
-      if (q > -0.5 && k2 < 1) for (let i = -3; i <= 3; i++) dot(Math.round(x0 + i * 2 * k2), Math.round(y - (4 - Math.abs(i)) * (1 - k2) * 2), rgba('#dfe6ff', 1 - k2));
-    }
-    // Nessie corail : deux bosses qui ondulent, le long cou, la petite tête et ses branchies ; en vol, ses nageoires battent
+    const yy = y;
+    // Nessie corail : deux bosses qui ondulent, le long cou, la petite tête et ses branchies ; il reste dans l'eau
     const body = '#b86a74', dark = '#7e4654', belly = '#d8c4b4';
     const bump = (cx: number, r: number, h: number) => {
       for (let q2 = -r; q2 <= r; q2++) {
@@ -657,22 +648,15 @@ export class OutsideRenderer {
         for (let rr = 1; rr <= ah; rr++) dot(cx + q2, yy - rr + 1, rr === ah ? '#e8a0a4' : body);
       }
     };
-    if (alt) {
-      for (let q2 = -6; q2 <= 5; q2++) { dot(x - dir * 4 + dir * q2, yy, belly); dot(x - dir * 4 + dir * q2, yy - 1, body); dot(x - dir * 4 + dir * q2, yy - 2, q2 > -4 && q2 < 4 ? body : '#e8a0a4'); }
-      for (let q2 = 0; q2 < 5; q2++) dot(x - dir * (11 + q2), yy - 1 + Math.round(Math.sin(tq * 4 - q2) * 0.6), dark);
-      const flap = [1, 0.6, 0.2, -0.3, 0.2, 0.6][Math.floor(t * 8) % 6];
-      for (let q2 = 1; q2 <= 6; q2++) dot(x - dir * Math.round(q2 * 0.6), yy - 2 - Math.round(q2 * flap), dark);
-    } else {
-      bump(x - dir * 4, 3, Math.round(3 + Math.sin(tq * 1.6))); bump(x - dir * 10, 3, Math.round(2.5 + Math.sin(tq * 1.6 - 1.3)));
-      dot(x - dir * 15, yy - 1, dark); dot(x - dir * 16, yy - 2 + (Math.sin(tq * 3) > 0 ? 1 : 0), dark);
-      dot(x + dir * 2, yy, dark); dot(x + dir * 3, yy + (Math.sin(tq * 1.8) > 0 ? 0 : -1), dark);
-    }
+    bump(x - dir * 4, 3, Math.round(3 + Math.sin(tq * 1.6))); bump(x - dir * 10, 3, Math.round(2.5 + Math.sin(tq * 1.6 - 1.3)));
+    dot(x - dir * 15, yy - 1, dark); dot(x - dir * 16, yy - 2 + (Math.sin(tq * 3) > 0 ? 1 : 0), dark);
+    dot(x + dir * 2, yy, dark); dot(x + dir * 3, yy + (Math.sin(tq * 1.8) > 0 ? 0 : -1), dark);
     // le cou et la tête
-    const nh = alt ? 7 : 11;
+    const nh = 11;
     let hx = x;
     for (let r = 0; r < nh; r++) {
       const u = r / 11;
-      hx = x + Math.round(dir * u * u * (alt ? 5 : 3) + Math.sin(r * 0.4 + tq) * 0.6);
+      hx = x + Math.round(dir * u * u * 3 + Math.sin(r * 0.4 + tq) * 0.6);
       dot(hx, yy - r, body); dot(hx - dir, yy - r, dark); dot(hx + dir, yy - r, r < 8 ? belly : body);
     }
     const top = yy - nh;
