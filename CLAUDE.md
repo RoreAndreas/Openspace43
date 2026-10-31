@@ -71,14 +71,18 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
   `engine/sea.ts` (la barque est un angle `at` autour de l'île et une distance `dist`, 0 contre les rochers, 1 au large ; ← → pour
   tourner, ↑ ↓ pour s'approcher ou s'éloigner ; la rame pousse par à-coups (`pulse`) et l'eau freine (la barque glisse) ; on cogne les rochers (`bump`), sauf au ponton (`atDock`) : `near()` renvoie
   `dock` (« Accoster au ponton », retour au jardin) ou un coin de pêche `SPOTS` (`restUntil` ; le grand large demande `OFFSHORE`) ;
-  sans rame, la houle `swell` fait dériver ; `LANDMARKS` : pavillon au sud, phare, grotte au nord ; le monstre marin `serpent` (long cou,
-  carapace, ailes) : `lair`, `peek` quand on approche de sa grotte, la nuit seulement (`night`, posé par `Office.tsx`), `dive`),
+  sans rame, la houle `swell` fait dériver ; `LANDMARKS` : pavillon au sud, phare, grotte au nord ; le monstre marin `serpent` (une
+  raie-lanterne, timide et curieuse) : `lair`, `peek` quand on approche de sa grotte, la nuit seulement (`night`, posé par
+  `Office.tsx`), `dive` (aussi si la barque est trop près ou si Roré rame vers elle)),
   `engine/seaDraw.ts` (le panorama en pixel art, `viewOf` : l'île grandit avec la distance ; chaque colonne de la falaise montre la
   face tournée vers la barque, `cliffH` ; arbres, pavillon, échelle et ponton qui avance vers la barque (`jetty`, posé sur l'eau
-  en mètres, visible de partout où l'on voit le pavillon ; de loin il grandit avec l'île, `grow`), la grotte et le monstre (`creature` : carapace, nageoires-ailes, cou, tête à corne ; un sprite en pixel art,
-  `monster` : dessiné à l'échelle 1 dans son canevas, une pose tous les dixièmes de seconde, cerné, posé ×1 ou ×2 ; le jour il
-  dort, des bulles ; la nuit ses yeux luisent, il sort (`peek`/`peeking`), respire, étire ses ailes, fredonne (`notes`), nage
-  au large, à la même taille (×2), en poussant l'eau : vague d'étrave, sillage en V, ronds ; et parfois s'envole (`roam`/`roaming`, `FLAP`)), phare posé sur l'eau à sa distance (`rowAt`), son faisceau `beam`
+  en mètres, visible de partout où l'on voit le pavillon ; de loin il grandit avec l'île, `grow`), la grotte et le monstre (`ray` : une raie-lanterne, ailes en manta, lobes enroulés, queue fouet et
+  sa lanterne, points lumineux qui clignotent ; `RAY`, `RAY_NIGHT`, `UNDER` pour la teinte sous l'eau ; un sprite en pixel
+  art, `monster` : dessiné à l'échelle 1 dans son canevas, une pose tous les dixièmes de seconde, cerné hors de l'eau, posé ×1
+  ou ×2 ; le jour elle dort, des bulles ; la nuit ses points et ses yeux luisent au fond, elle remonte, lève la tête, s'avance
+  vers la barque (`peek`/`peeking`) ; au large, juste sous la surface, le bout de ses ailes affleure, elle pousse l'eau (vague,
+  sillage en V, ronds), s'approche de la barque en passant et file plus profond si Roré rame (`shy`) ; parfois elle s'envole et
+  plane (`roam`/`roaming`, `FLAP`) ; la lueur `glowCol`), phare posé sur l'eau à sa distance (`rowAt`), son faisceau `beam`
   limité au ciel ; soleil, îles, voiliers et paquebot rare au loin ; les rangs de vagues (`crests`), vaguelettes, reflet du
   soleil ; les remous `fx` en mètres (ronds des rames, écume du sillage, gouttes) ; poissons qui sautent ; la barque vue d'un
   peu au-dessus, Roré assis dedans, qui flotte (`float` : ressort amorti sur la houle) ; mini-carte). La falaise est mise en

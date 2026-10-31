@@ -614,8 +614,8 @@ export class OutsideRenderer {
     if (tod === 'night') this.monster(g, t);
   }
 
-  /** La nuit, le monstre marin sort de sa grotte et nage au large : on le voit souvent depuis la falaise (sa carapace,
-   *  ses nageoires-ailes, son long cou, son œil qui accroche la lune, le sillage argenté) ; parfois il s'envole. */
+  /** La nuit, la raie-lanterne sort de sa grotte et nage au large : on la voit souvent depuis la falaise (sa silhouette
+   *  sous l'eau, ses points lumineux, la lanterne de sa queue, le sillage argenté) ; parfois elle s'envole. */
   private monster(g: G, t: number) {
     const per = 34, on = 22;
     const cyc = Math.floor(t / per), k = t % per;
@@ -629,7 +629,7 @@ export class OutsideRenderer {
     const y = Math.round(HORIZON + 16 + (h - Math.floor(h)) * 18);
     const show = Math.min(1, p * 6, (1 - p) * 6);
     const dot = (px0: number, py0: number, col: string) => { if (py0 < edgeAt(px0) - 1) { g.fillStyle = col; g.fillRect(px0, py0, 1, 1); } };
-    // le sillage, en V derrière lui
+    // le sillage, en V derrière elle
     for (let i = 1; i < 9; i++) {
       const a = 0.35 * (1 - i / 9) * show;
       for (const w of [0, 1]) {
@@ -638,55 +638,33 @@ export class OutsideRenderer {
       }
     }
     // la carapace bosselée sur le dos (la lune l'éclaire par-dessus), qui monte et descend avec la houle
-    // certaines nuits, au milieu de sa traversée, il s'envole un moment, en battant des ailes
+    // certaines nuits, au milieu de sa traversée, elle s'envole un moment
     const fh = Math.sin(cyc * 78.233) * 43758.5453;
     const q = fh - Math.floor(fh) > 0.35 ? (p - 0.4) / 0.2 : -1;
     const alt = q > 0 && q < 1 ? Math.round(Math.sin(q * Math.PI) * 16) : 0;
-    const bob = alt ? 0 : Math.round(Math.sin(tq * 1.1) * 0.6);
-    const yy = y + bob - alt;
-    if (alt) for (let k = -5; k <= 5; k++) dot(x - dir * 7 + k, y, rgba('#000818', 0.35 * (1 - alt / 20)));
+    const yy = y - alt;
+    if (alt) for (let k2 = -6; k2 <= 6; k2++) dot(x + k2, y, rgba('#000818', 0.35 * (1 - alt / 20)));
     for (const [q0, x0] of [[0, x - dir * 8], [1, x]] as [number, number][]) {
-      const k = Math.abs(q - q0) / 0.15;
-      if (q > -0.5 && k < 1) for (let i = -3; i <= 3; i++) dot(Math.round(x0 + i * 2 * k), Math.round(y - (4 - Math.abs(i)) * (1 - k) * 2), rgba('#dfe6ff', 1 - k));
+      const k2 = Math.abs(q - q0) / 0.15;
+      if (q > -0.5 && k2 < 1) for (let i = -3; i <= 3; i++) dot(Math.round(x0 + i * 2 * k2), Math.round(y - (4 - Math.abs(i)) * (1 - k2) * 2), rgba('#dfe6ff', 1 - k2));
     }
-    // ses nageoires-ailes : posées sur l'eau quand il nage, grandes ouvertes quand il vole
-    const flap = alt ? [1, 0.55, -0.15, -0.8, -0.15, 0.55][Math.floor(t * 10) % 6] : -0.3 + Math.sin(tq * 1.1) * 0.15;
-    const wing = (near: boolean) => {
-      const rx = x - dir * (near ? 4 : 6), ry = yy - (near ? 2 : 3);
-      const span = near ? 9 : 7;
-      for (let k = 0; k <= span; k++) {
-        const u = k / span;
-        const wx = Math.round(rx - dir * k * 0.8), wy = Math.round(ry - flap * span * u);
-        for (let r = 0; r < Math.max(1, Math.round((1 - u) * 3)); r++) dot(wx, wy + r, r === 0 ? '#2a5a8a' : near ? '#4a7aa8' : '#33587e');
-      }
-    };
-    wing(false);
-    const sx = x - dir * 7, sh = Math.round(4 * show);
-    for (let q = -7; q <= 7; q++) {
-      const ah = Math.round(sh * Math.sqrt(Math.max(0, 1 - (q / 7.5) ** 2)));
-      for (let r = 1; r <= ah; r++) dot(sx + q, yy - r, r === ah ? '#8a90b4' : q * dir > 2 ? '#2a3150' : '#3e4668');
+    // la raie-lanterne vue d'en haut : un losange sombre, les ailes de part et d'autre (elles battent : leur bout se
+    // rapproche), la queue et sa lanterne ; sous l'eau, elle prend la couleur de la mer, ses points lumineux percent
+    const under = !alt;
+    const body = under ? '#1a2a4a' : '#2d5b84', wingC = under ? '#16243f' : '#3d6f99';
+    const flap = alt ? [1, 0.6, 0.2, 0, 0.2, 0.6][Math.floor(t * 8) % 6] : 0.15 + 0.2 * Math.max(0, Math.sin(tq * 2.2));
+    const reach = Math.round(6 * (1 - flap * 0.6));
+    for (let r = 1; r <= reach; r++) {
+      const w = Math.max(1, Math.round((1 - r / (reach + 1)) * 5));
+      for (let c = 0; c < w; c++) { dot(x - dir * c, yy - r, wingC); dot(x - dir * c, yy + r, wingC); }
     }
-    if (sh > 2) for (const q of [-4, 0, 4]) dot(sx + q, yy - Math.round(sh * Math.sqrt(1 - (q / 7.5) ** 2)) - 1, '#2a3150');
-    if (alt) for (let q2 = -6; q2 <= 6; q2++) dot(sx + q2, yy, q2 * dir > -2 ? '#9a947e' : '#2a5a8a');
-    else { dot(sx - 9, yy, rgba('#ffffff', 0.5 * show)); dot(sx + 9, yy, rgba('#ffffff', 0.5 * show)); }
-    wing(true);
-    // le long cou qui se penche en avant, la tête ronde, la corne, l'œil qui accroche la lune
-    const nh = Math.round(11 * show);
-    let hx = x;
-    for (let r = 0; r < nh; r++) {
-      const u = r / 11;
-      hx = x + Math.round(dir * u * u * 3 + Math.sin(r * 0.4 + tq) * 0.6);
-      dot(hx, yy - r, '#2a5a8a'); dot(hx - dir, yy - r, '#1c3e64'); dot(hx + dir, yy - r, r < 8 ? '#9a947e' : '#2a5a8a');
-    }
-    if (nh > 4) {
-      const top = yy - nh;
-      for (let q = -1; q <= 4; q++) { dot(hx + dir * q, top, '#2a5a8a'); dot(hx + dir * q, top - 1, '#2a5a8a'); }
-      for (let q = 0; q <= 2; q++) dot(hx + dir * q, top - 2, '#2a5a8a');
-      dot(hx + dir * 4, top + 1, '#9a947e'); dot(hx + dir * 3, top + 1, '#9a947e');
-      dot(hx + dir * 2, top - 1, '#e8ff7a');
-      dot(hx, top - 3, '#c8c0a4'); dot(hx - dir, top - 4, '#c8c0a4');
-      dot(hx - dir * 2, top - 1, '#1c3e64');
-    }
+    for (let c = -2; c <= 4; c++) dot(x + dir * c, yy, body);
+    dot(x + dir * 5, yy - 1, body); dot(x + dir * 5, yy + 1, body);
+    for (let c = 1; c <= 8; c++) dot(x - dir * (2 + c), yy + Math.round(Math.sin(tq * 3 - c * 0.5) * 0.6), '#132538');
+    dot(x - dir * 11, yy, '#fff2a8');
+    for (let i = 0; i < 4; i++) if (Math.sin(tq * 2.2 + i * 1.4) > 0.1) dot(x - dir * (i % 2), yy + (i < 2 ? -2 - i : 2 + i - 2), '#8ff0ff');
+    // le bout des ailes affleure et l'eau scintille
+    if (under && flap > 0.25) { dot(x - dir, yy - reach - 1, rgba('#ffffff', 0.7)); dot(x - dir, yy + reach + 1, rgba('#ffffff', 0.7)); }
   }
 
   /** Des ombres de nuages qui glissent sur la prairie. */

@@ -2,7 +2,7 @@
 // falaise, le pavillon 43, le phare sur son îlot, la grotte au nord. ← → pour ramer autour de l'île (le panorama
 // tourne), ↑ ↓ pour s'en approcher ou s'en éloigner (l'île grandit). On se cogne aux rochers, sauf au pied de l'échelle :
 // là, on accoste au ponton et on remonte au jardin. Quand Roré ne rame pas, la houle fait dériver la barque. X pour revenir.
-// Dans la grotte vit un monstre marin (un long cou, une carapace) : il sort la tête quand on approche, puis replonge. Le dessin : `seaDraw.ts`.
+// Dans la grotte vit un monstre marin, une raie-lanterne timide : la nuit, elle sort quand on approche, puis replonge. Le dessin : `seaDraw.ts`.
 
 export interface Spot {
   id: string;
@@ -69,7 +69,7 @@ export class Sea {
   bump = 0;
   /** il fait nuit (le monstre ne sort que la nuit) : posé par la boucle d'`Office.tsx` */
   night = false;
-  /** le monstre marin (long cou, carapace, ailes) : au fond de sa grotte, la tête dehors, ou qui replonge */
+  /** le monstre marin, une raie-lanterne : au fond de sa grotte, sortie, ou qui replonge */
   serpent: { phase: 'lair' | 'peek' | 'dive'; t: number; calm: number } = { phase: 'lair', t: 0, calm: 0 };
   /** où se trouve la barque à l'écran (posé par le dessin, pour l'étiquette « E · … ») */
   screen = { x: 216, y: 200 };
@@ -120,14 +120,16 @@ export class Sea {
     this.updateSerpent(dt);
   }
 
-  /** La nuit seulement, le monstre sort la tête quand la barque approche de sa grotte, regarde un moment, puis replonge
-   *  (et il replonge aussi quand le jour se lève). */
+  /** La nuit seulement, la raie-lanterne sort quand la barque approche de sa grotte, regarde un moment, puis replonge
+   *  (et aussi quand le jour se lève, ou quand Roré rame vers elle : elle est timide). */
   private updateSerpent(dt: number) {
     const s = this.serpent;
     s.t += dt;
     const close = Math.abs(angleDiff(this.at, LANDMARKS.cave)) < 0.3 && this.dist < 0.6;
-    if (s.phase === 'lair' && close && this.night && this.time >= s.calm) { s.phase = 'peek'; s.t = 0; }
-    else if (s.phase === 'peek' && (s.t > 8 || !this.night || (!close && s.t > 1.5))) { s.phase = 'dive'; s.t = 0; }
+    // timide : elle ne sort pas si la barque est déjà tout près, et replonge si Roré rame vers elle
+    const tooClose = this.dist < 0.22 || (this.rowing && this.heading < 0);
+    if (s.phase === 'lair' && close && !tooClose && this.night && this.time >= s.calm) { s.phase = 'peek'; s.t = 0; }
+    else if (s.phase === 'peek' && (s.t > 9 || !this.night || (tooClose && s.t > 0.6) || (!close && s.t > 1.5))) { s.phase = 'dive'; s.t = 0; }
     else if (s.phase === 'dive' && s.t > 1.8) { s.phase = 'lair'; s.t = 0; s.calm = this.time + 22; }
   }
 

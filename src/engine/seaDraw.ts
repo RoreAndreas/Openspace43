@@ -30,17 +30,20 @@ const HAZE: Record<TimeOfDay, string> = { day: '#bcdff5', evening: '#e0907a', ni
 const AMBIENT: Record<TimeOfDay, string> = { day: '#ffffff', evening: '#c8a2b0', night: '#4a5890' };
 const GLINT: Record<TimeOfDay, string> = { day: '#ffffff', evening: '#ffd2a0', night: '#dfe6ff' };
 const STRATA = ['#c2b6a0', '#b0a48e', '#9c917f', '#8a806f', '#776e60'];
-/** Le monstre marin : un grand plésiosaure à carapace, doux et timide (le corps bleu, le ventre crème, la carapace
- *  grise bosselée, une petite corne enroulée). La nuit, ses couleurs passent au bleu sombre. */
-const CREATURE = { body: '#4a8ed4', bodyDark: '#326aa6', belly: '#f1e5c3', shell: '#9b96ad', shellHi: '#c8c3d8', shellDark: '#6c6784', knob: '#5d5876', horn: '#e8dcc0', eye: '#141a28', wing: '#86c8ea', wingDark: '#5a9ccc', wingEdge: '#d4f0fb' };
-type Palette = typeof CREATURE;
-const CREATURE_NIGHT: Palette = Object.fromEntries(Object.entries(CREATURE).map(([k, c]) => [k, k === 'eye' ? c : mix(c, '#0b1230', k.startsWith('wing') ? 0.28 : 0.38)])) as Palette;
-/** Les battements d'ailes en vol : six images, comme un sprite. */
-const FLAP = [1, 0.55, -0.15, -0.8, -0.15, 0.55];
-/** Son petit canevas (il y est dessiné à l'échelle 1) et sa ligne d'eau dedans. */
-const MON_W = 112, MON_H = 96, MON_X = 56, MON_Y = 72;
-/** Ses yeux, au fond de la grotte, accrochent la moindre lueur. */
-const EYE_GLOW = '#e8ff7a';
+/** Le monstre marin : une raie-lanterne. Une grande raie-dragon, timide et curieuse : larges ailes en manta, petite tête
+ *  aux deux lobes enroulés, longue queue fouet dont le bout s'allume comme une lanterne, et des points lumineux qui
+ *  clignotent sur les ailes. Le dos sombre, le ventre clair. */
+const RAY = { back: '#24476a', backHi: '#4a7ea8', wing: '#2d5b84', wingHi: '#3d6f99', edge: '#79b3d6', belly: '#e6eef3', dark: '#132538', spot: '#8ff0ff', lamp: '#fff2a8', eye: '#e8fbff' };
+type Palette = typeof RAY;
+const RAY_NIGHT: Palette = Object.fromEntries(Object.entries(RAY).map(([k, c]) => [k, k === 'spot' || k === 'lamp' || k === 'eye' ? c : mix(c, '#0b1230', 0.3)])) as Palette;
+/** Sous la surface, elle prend la couleur de l'eau ; ses points lumineux, eux, percent. */
+const UNDER = { day: '#2a6aa0', night: '#101c40' };
+/** Ses battements d'ailes en vol : six images, comme un sprite (elle plane souvent entre deux battements). */
+const FLAP = [0.95, 0.6, 0.15, -0.35, 0.15, 0.6];
+/** Son petit canevas (elle y est dessinée à l'échelle 1) et son centre dedans. */
+const MON_W = 128, MON_H = 104, MON_X = 64, MON_Y = 64;
+/** Ses yeux et ses points, au fond de la grotte ; la lanterne de sa queue. */
+const GLOW = '#9ff3ff', LAMP = '#ffe9a0';
 /** Les remous : des ronds qui s'élargissent, l'écume du sillage, des gouttes qui retombent. Ils sont posés sur l'eau
  *  (en mètres : u de côté, w depuis le pied de la falaise) et défilent avec elle quand la barque tourne ou avance. */
 interface Fx { kind: 'ring' | 'foam' | 'drop'; u: number; w: number; vu: number; vw: number; h: number; vh: number; life: number; max: number; r: number; a: number }
@@ -142,6 +145,10 @@ export class SeaRenderer {
   private fishIn = [-1, -1, -1, -1];
   private lastFly = 0;
   private wasFlying = false;
+  /** elle file plus profond quand Roré rame près d'elle (0 à 1) */
+  private shy = 0;
+  /** la couleur de la lueur (ses yeux dans la grotte, la lanterne de sa queue) */
+  private glowCol = GLOW;
   private plane: Plane = { at: 0, dw: 30 };
   private fx: Fx[] = [];
   private dt = 0;
@@ -261,7 +268,7 @@ export class SeaRenderer {
     this.wavelets(g, t, tod, hidden);
     this.water(g, hidden);
     this.fish(g, t, hidden);
-    if (roam) this.roaming(g, roam, t, v.base);
+    if (roam) this.roaming(g, roam, t, v.base, sea);
     this.peeking(g, t);
 
     // les coins de pêche : des ronds dans l'eau, des oiseaux qui tournent, leur nom
@@ -565,183 +572,126 @@ export class SeaRenderer {
         return;
       }
       if (!home) return;
-      // la nuit, ses yeux, au fond : ils clignent de temps en temps
-      if ((t % 4.3) < 0.15) return;
-      const ey = Math.round(base - h * 0.42), es = Math.max(1, Math.round(z * 0.6));
-      rect(g, cx - 2 * es, ey, es, es, EYE_GLOW); rect(g, cx + es, ey, es, es, EYE_GLOW);
+      // la nuit, au fond : ses points lumineux clignotent, ses deux yeux s'ouvrent et se ferment
+      const ey = Math.round(base - h * 0.4), es = Math.max(1, Math.round(z * 0.6));
+      for (let i = 0; i < 5; i++) if (Math.sin(t * 2.2 + i * 1.3) > 0.2) px(g, cx + (i - 2) * 3 * z, ey + 3 * z + (i % 2) * z, crgba(GLOW, 0.7));
+      if ((t % 4.3) >= 0.15) { rect(g, cx - 2 * es, ey, es, es, RAY.eye); rect(g, cx + es, ey, es, es, RAY.eye); }
       this.eyes = { x: cx, y: ey };
+      this.glowCol = GLOW;
       return;
     }
-    // il sort de l'eau devant sa grotte (vers nous) : il est dessiné plus tard, par-dessus l'ombre du soir
+    // elle sort de l'eau devant sa grotte (vers nous) : elle est dessinée plus tard, par-dessus l'ombre du soir
     const rise = s.phase === 'peek' ? Math.min(1, s.t / 1.4) : Math.max(0, 1 - s.t / 1.4);
     const look = cx < sea.screen.x ? 1 : -1;
     this.peek = { x: cx + Math.round(look * w * 0.1), wl: base + Math.round(6 * z), rise, look, sc: z >= 1.5 ? 2 : 1, phase: s.phase, st: s.t, z };
   }
 
-  /** Le monstre devant sa grotte : l'eau bouillonne, il sort, regarde la barque, fredonne, puis replonge. */
+  /** La raie devant sa grotte : elle remonte sous la surface (on voit ses points briller), sort la tête, regarde la
+   *  barque et s'avance un peu vers elle, curieuse ; ses ailes soulèvent l'eau ; elle replonge si on vient trop près. */
   private peeking(g: G, t: number) {
     const pk = this.peek;
     if (!pk) { this.lastPeek = 'lair'; return; }
-    if (pk.phase !== this.lastPeek) { this.splash(pk.x, pk.wl, pk.phase === 'peek' ? -0.12 : -0.18, 2.5); this.lastPeek = pk.phase; }
+    if (pk.phase !== this.lastPeek) { this.splash(pk.x, pk.wl, pk.phase === 'peek' ? -0.12 : -0.2, 2.5); this.lastPeek = pk.phase; }
     const z = pk.z;
+    const curious = pk.phase === 'peek' ? clamp((pk.st - 1.5) / 2, 0, 1) : 0;
+    const x = Math.round(pk.x + pk.look * Math.min(18, pk.st * 3) * z * (pk.phase === 'peek' ? 1 : 0));
     const ring = (t * 1.2) % 1;
-    g.fillStyle = crgba('#ffffff', 0.6 * (1 - ring) * Math.min(1, pk.rise * 3));
-    for (let q = 0; q < Math.PI * 2; q += 0.3) g.fillRect(Math.round(pk.x + Math.cos(q) * (12 + ring * 10) * z), Math.round(pk.wl + Math.sin(q) * (1.5 + ring * 2.5) * z), 1, 1);
-    const head = this.monster(g, pk.x, pk.wl, pk.rise, pk.look, pk.sc, t, true);
-    if (pk.phase === 'peek' && pk.st > 2 && head) this.notes(g, head.x + pk.look * 6 * z, head.y - 4 * z, pk.st, z);
-    if (pk.phase === 'dive' && pk.st > 1) for (let i = 0; i < 8; i++) px(g, pk.x + (i - 3.5) * 2.5 * z, pk.wl - (pk.st - 1) * 34 * (1 - Math.abs(i - 3.5) / 4.5) + (pk.st - 1) ** 2 * 70, '#ffffff');
+    g.fillStyle = crgba('#ffffff', 0.5 * (1 - ring) * Math.min(1, pk.rise * 3));
+    for (let q = 0; q < Math.PI * 2; q += 0.3) g.fillRect(Math.round(x + Math.cos(q) * (16 + ring * 10) * z), Math.round(pk.wl + Math.sin(q) * (2 + ring * 3) * z), 1, 1);
+    // ses ailes affleurent en rythme ; la tête se lève quand elle est curieuse
+    const flap = 0.08 + 0.32 * Math.max(0, Math.sin(t * 1.4));
+    const lamp = this.monster(g, x, pk.wl, { look: pk.look, sc: pk.sc, t, night: true, sub: 1 - pk.rise * 0.8, flap, lift: Math.round(curious * 5), curious });
+    if (flap > 0.3) { this.splash(x - pk.look * 4 * z, pk.wl, -0.01, 1.5); }
+    if (lamp) { this.eyes = lamp; this.glowCol = LAMP; this.eyesFar = true; }
+    if (pk.phase === 'dive' && pk.st > 0.6) for (let i = 0; i < 8; i++) px(g, x + (i - 3.5) * 3 * z, pk.wl - (pk.st - 0.6) * 30 * (1 - Math.abs(i - 3.5) / 4.5) + (pk.st - 0.6) ** 2 * 70, '#ffffff');
   }
 
-  /** Le monstre en pixel art : il est dessiné à l'échelle 1 dans son petit canevas, une pose tous les dixièmes de
-   *  seconde (comme les images d'un sprite), cerné d'un trait sombre, puis posé à l'écran en pixels entiers (×1 ou ×2),
-   *  coupé à la ligne d'eau. Renvoie où est son œil, à l'écran. */
-  private monster(g: G, x: number, wl: number, rise: number, look: number, sc: number, t: number, night: boolean, flying = false, flap?: number) {
-    if (rise <= 0.02) return null;
-    const tq = Math.floor(t * 10) / 10;
+  /** La raie en pixel art : dessinée à l'échelle 1 dans son petit canevas, une pose tous les dixièmes de seconde (comme
+   *  les images d'un sprite), cernée quand elle est hors de l'eau, puis posée à l'écran en pixels entiers (×1 ou ×2).
+   *  Renvoie où est la lanterne de sa queue, à l'écran. */
+  private monster(g: G, x: number, y: number, o: { look: number; sc: number; t: number; night: boolean; sub: number; flap: number; lift?: number; curious?: number; flying?: boolean }) {
+    const tq = Math.floor(o.t * 10) / 10;
     const mg = this.monG;
     mg.clearRect(0, 0, MON_W, MON_H);
-    const eye = this.creature(mg, MON_X, MON_Y, 1, look, 1, tq, night, flying, flap);
-    outline(this.monCan, night ? '#070a18' : '#1a2440');
-    const sink = Math.round((1 - rise) * 44);
-    const dx = Math.round(x) - MON_X * sc, dy = Math.round(wl) - (MON_Y - sink) * sc;
-    g.save();
-    if (!flying) { g.beginPath(); g.rect(0, 0, W, Math.round(wl)); g.clip(); }
+    const lamp = this.ray(mg, MON_X, MON_Y, o.look, tq, o);
+    if (o.sub < 0.5) outline(this.monCan, o.night ? '#070a18' : '#10202e');
+    const dx = Math.round(x) - MON_X * o.sc, dy = Math.round(y) - MON_Y * o.sc;
     g.imageSmoothingEnabled = false;
-    g.drawImage(this.monCan, dx, dy, MON_W * sc, MON_H * sc);
-    g.restore();
-    return eye ? { x: dx + eye.x * sc, y: dy + eye.y * sc } : null;
+    g.drawImage(this.monCan, dx, dy, MON_W * o.sc, MON_H * o.sc);
+    return { x: dx + lamp.x * o.sc, y: dy + lamp.y * o.sc };
   }
 
-  /** Le monstre marin sorti de l'eau en (x, wl), sa ligne d'eau : la carapace bosselée sur le dos, deux grandes
-   *  nageoires-ailes (comme une raie manta), le long cou, la tête douce tournée vers `look`, la petite corne enroulée.
-   *  `rise` : combien il est sorti (0 à 1). Au repos, il respire : la carapace monte et descend, les ailes frémissent,
-   *  le cou ondule. `flying` : en vol (on voit son ventre et sa queue) ; `flap` : le battement des ailes (−1 en bas, 1 en
-   *  haut). Renvoie où est son œil. */
-  private creature(g: G, x: number, wl: number, rise: number, look: number, z: number, t: number, night: boolean, flying = false, flap?: number) {
-    if (rise <= 0.02) return null;
-    const c = night ? CREATURE_NIGHT : CREATURE;
-    const S = (n: number) => n * z;
-    // ce qui est sous la ligne d'eau ne se voit pas (sauf en vol)
-    const clipY = flying ? Infinity : wl;
-    const fill = (x0: number, y0: number, w: number, hh: number, col: string) => {
-      const ya = Math.round(y0), yb = Math.min(Math.round(y0 + hh), clipY);
-      if (yb > ya && w > 0) rect(g, x0, ya, w, yb - ya, col);
-    };
-    const breath = Math.sin(t * 1.1);
-    const base = Math.round(wl + (flying ? 0 : breath * S(0.6)));
-    const sx = Math.round(x - look * S(6));
-    const a = Math.round(S(11)), B = S(7) * rise;
-    // les ailes : elles partent des épaules, sous le bord de la carapace, et s'étendent en arrière
-    // au repos, les ailes reposent sur l'eau ; de temps en temps, il les étire et les dresse, comme des voiles
-    const stretch = Math.pow(Math.max(0, Math.sin(t * 0.55 - 1)), 3);
-    const fl = flap ?? -0.3 + Math.sin(t * 1.1 + 0.6) * 0.1 + stretch * 1.05 + Math.sin(t * 9) * 0.04 * stretch;
+  /** La raie-lanterne, vue d'un peu au-dessus : ses ailes s'étendent vers le fond et vers nous, et se lèvent en
+   *  battant. `sub` : combien elle est sous l'eau (elle en prend la couleur, sauf le bout des ailes qui affleure et ses
+   *  points lumineux) ; `lift` : la tête levée hors de l'eau ; `curious` : ses points s'allument plus fort. */
+  private ray(g: G, x: number, y: number, look: number, t: number, o: { night: boolean; sub: number; flap: number; lift?: number; curious?: number; flying?: boolean }) {
+    const P = o.night ? RAY_NIGHT : RAY;
+    const water = o.night ? UNDER.night : UNDER.day;
+    const sub = clamp(o.sub, 0, 1);
+    const tint = (c: string, k = 1) => (sub > 0 ? cmix(c, water, 0.62 * sub * k) : c);
+    const span = 26, ph = o.flap * 1.15;
+    const ca = Math.cos(ph), sa = Math.sin(ph);
+    const shoulder = { x: x + look * 7, y }, back = { x: x - look * 9, y: y };
+    const tipOf = (near: boolean) => ({ x: x - look * 7, y: y + (near ? 1 : -1) * 0.45 * span * ca - span * 0.85 * sa });
+    const midOf = (tip: { x: number; y: number }) => ({ x: back.x + (tip.x - back.x) * 0.62 - look * 2, y: back.y + (tip.y - back.y) * 0.62 + 2 });
+    const lerp = (a: { x: number; y: number }, b: { x: number; y: number }, k: number) => ({ x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k });
+    const glowK = 0.55 + 0.45 * (o.curious ?? 0);
     const wing = (near: boolean) => {
-      const span = S(near ? 19 : 15);
-      const ang = fl * 1.15;
-      const rx = sx + look * S(near ? 4 : 2), ry = base - S(near ? 3 : 5) * rise;
-      const tip = { x: rx - look * span * 0.8 * Math.cos(ang), y: ry - span * Math.sin(ang) - (near ? 0 : S(2)) };
-      const back = { x: sx - look * S(near ? 8 : 6), y: ry + S(near ? 1 : 0) };
-      const mid = { x: back.x + (tip.x - back.x) * 0.55, y: back.y + (tip.y - back.y) * 0.55 + S(2.5) * Math.cos(ang) };
-      const root = { x: rx, y: ry };
-      poly(g, [root, tip, mid, back], near ? c.wing : c.wingDark, clipY);
-      // le bord d'attaque, plus sombre ; deux nervures ; le bord de fuite, festonné et clair
-      for (let k = 0; k <= 12; k++) { const q = k / 12; const yy = root.y + (tip.y - root.y) * q; if (yy <= clipY) px(g, root.x + (tip.x - root.x) * q, yy, c.bodyDark); }
-      for (const f of [0.35, 0.7]) {
-        const ex = mid.x + (tip.x - mid.x) * (f - 0.35), ey = mid.y + (tip.y - mid.y) * (f - 0.35);
-        for (let k = 1; k < 8; k++) { const q = k / 8; const yy = root.y + (ey - root.y) * q; if (yy <= clipY) px(g, root.x + (ex - root.x) * q, yy, c.wingDark); }
+      const tip = tipOf(near), mid = midOf(tip);
+      // vue d'en dessous quand l'aile proche se lève : le ventre clair
+      const top = near && ph > 0.55 ? P.belly : near ? P.wingHi : P.wing;
+      poly(g, [shoulder, tip, mid, back], tint(top));
+      for (let k = 0; k <= 14; k++) { const q = lerp(shoulder, tip, k / 14); px(g, q.x, q.y, tint(P.edge)); }
+      for (let k = 0; k <= 8; k++) { const q = lerp(mid, tip, k / 8); px(g, q.x, q.y + (k % 2), tint(P.dark, 0.6)); }
+      // le bout de l'aile affleure : hors de l'eau, il garde ses couleurs, et l'eau ruisselle
+      if (sub > 0.2 && o.flap > 0.2) {
+        const cut = 0.72;
+        poly(g, [lerp(shoulder, tip, cut), tip, lerp(mid, tip, cut)], near ? P.wingHi : P.wing);
+        for (let k = 0; k <= 6; k++) { const q = lerp(lerp(shoulder, tip, cut), lerp(mid, tip, cut), k / 6); px(g, q.x, q.y + 1, '#ffffff'); }
       }
-      for (let k = 0; k <= 8; k++) { const q = k / 8; const yy = mid.y + (tip.y - mid.y) * q + (k % 2); if (yy <= clipY) px(g, mid.x + (tip.x - mid.x) * q, yy, c.wingEdge); }
-      // posée sur l'eau, l'aile y fait de petites rides
-      if (!flying && Math.abs(tip.y - wl) < S(2) && Math.sin(t * 3 + (near ? 0 : 2)) > 0.3) { px(g, tip.x - 1, wl, '#ffffff'); px(g, tip.x + 1, wl, '#ffffff'); }
+      // les points lumineux, qui clignotent l'un après l'autre
+      const SP = [[0.3, 0.2], [0.5, 0.45], [0.68, 0.3], [0.42, 0.7], [0.8, 0.62], [0.22, 0.5]];
+      SP.forEach(([a, b], i) => {
+        const on = Math.sin(t * 2.2 + i * 1.3 + (near ? 0 : 2.4));
+        if (on < 0.1 - 0.4 * (o.curious ?? 0)) return;
+        const q = lerp(lerp(shoulder, tip, a), lerp(back, mid, a), b);
+        px(g, q.x, q.y, cmix(P.spot, water, 0.25 * sub * (1 - glowK)));
+      });
     };
     wing(false);
-    // en vol, on voit son ventre et sa queue
-    if (flying) {
-      for (let k = -a - S(2); k <= a + S(2); k++) {
-        const u = k / (a + S(2));
-        fill(sx + k, base - S(1), 1, S(4) * Math.sqrt(Math.max(0, 1 - u * u)), u * look > -0.2 ? c.belly : c.body);
-      }
-      poly(g, [{ x: sx - look * (a + S(1)), y: base - S(2) }, { x: sx - look * (a + S(8)), y: base + S(1) + Math.sin(t * 5) * S(1) }, { x: sx - look * (a + S(1)), y: base + S(2) }], c.body);
+    // la longue queue fouet, qui ondule, et sa lanterne au bout
+    let lamp = { x: back.x, y: back.y };
+    for (let i = 0; i <= 34; i++) {
+      const lx = back.x - look * i, ly = y + Math.sin(t * 3 - i * 0.28) * 2 * (i / 34);
+      px(g, lx, ly, tint(P.dark));
+      lamp = { x: lx, y: ly };
     }
-    // le dos : un dôme bleu, et la carapace dessus (plus claire côté lune, ses bosses, son rebord sombre)
-    for (let k = -a - S(3); k <= a + S(3); k++) {
-      const u = k / (a + S(3));
-      const hh = S(3.5) * rise * Math.sqrt(Math.max(0, 1 - u * u));
-      fill(sx + k, base - hh, 1, hh, k * look > 0 ? c.body : c.bodyDark);
+    rect(g, lamp.x - 1, lamp.y - 1, 2, 2, P.lamp);
+    // le corps : un losange arrondi, le dos plus clair au milieu
+    for (let k = -10; k <= 11; k++) {
+      const u = k / 11, hh = Math.round(4 * Math.sqrt(Math.max(0, 1 - u * u)));
+      if (hh > 0) rect(g, x + look * k, y - hh, 1, hh * 2, tint(P.back));
+      if (hh > 1) px(g, x + look * k, y - hh, tint(P.backHi));
     }
-    for (let k = -a; k <= a; k++) {
-      const u = k / a;
-      const hh = Math.round(B * Math.sqrt(Math.max(0, 1 - u * u)));
-      if (hh <= 0) continue;
-      const y0 = base - S(1.5) * rise - hh;
-      fill(sx + k, y0, 1, hh, u < -0.35 ? c.shellHi : u > 0.45 ? c.shellDark : c.shell);
-      fill(sx + k, y0, 1, 1, u < 0.3 ? c.shellHi : c.shell);
-      fill(sx + k, y0 + hh - 1, 1, 1, c.shellDark);
-    }
-    for (const u of [-0.6, -0.2, 0.2, 0.6]) {
-      const kx = Math.round(sx + u * a), top = base - S(1.5) * rise - B * Math.sqrt(1 - u * u);
-      const kh = Math.max(1, Math.round(S(2) * rise));
-      for (let r = 0; r < kh; r++) fill(kx - (kh - 1 - r), top - r - 1, (kh - r) * 2 - 1, 1, c.knob);
-      fill(kx, top - kh, 1, 1, c.shellHi);
-    }
+    // la tête : deux lobes enroulés devant, les yeux sur les côtés ; levée hors de l'eau quand elle est curieuse
+    const lift = o.lift ?? 0;
+    const hx = x + look * 10, hy = y - Math.min(2, lift);
+    const head = (c: (s: string) => string) => {
+      rect(g, hx - 2, hy - 3, 5, 6, c(P.back));
+      for (const sgn of [-1, 1]) { px(g, hx + look * 3, hy + sgn * 3, c(P.dark)); px(g, hx + look * 4, hy + sgn * 2, c(P.dark)); px(g, hx + look * 4, hy + sgn * 1, c(P.edge)); }
+      if ((t % 4.6) >= 0.14) { px(g, hx + look, hy - 2, P.eye); px(g, hx + look, hy + 2, P.eye); }
+    };
+    if (lift > 0) {
+      // elle lève l'avant hors de l'eau pour regarder : la tête garde ses couleurs, l'eau ruisselle dessous
+      head((c) => c);
+      for (let k = 0; k < 3; k++) px(g, hx - 2 + k * 2, y + 3 + ((Math.floor(t * 10) + k) % 3), '#dfeaff');
+    } else head(tint);
     wing(true);
-    // le cou : épais à la base, il monte en se penchant vers la barque (en vol, il s'allonge vers l'avant) et ondule
-    const nx0 = x + look * S(3), ny0 = base - S(2) * rise;
-    const N = Math.round(S(flying ? 18 : 24) * rise);
-    const lean = flying ? S(9) : S(3);
-    let hx = nx0, hy = ny0;
-    for (let i = 0; i <= N; i++) {
-      const u = i / Math.max(1, N);
-      const nx = nx0 + look * (Math.sin(u * Math.PI * 0.85) * S(3) + u * u * lean) + Math.sin(t * 1.1 + u * 2.4) * S(0.8) * u;
-      const ny = ny0 - i;
-      const tw = S(5) * (1 - u * 0.4);
-      fill(nx - tw / 2, ny, tw, 1, c.body);
-      fill(look > 0 ? nx + tw * 0.05 : nx - tw * 0.45, ny, tw * 0.4, 1, c.belly);
-      fill(look > 0 ? nx - tw / 2 : nx + tw / 2 - 1, ny, 1, 1, c.bodyDark);
-      hx = nx; hy = ny;
-    }
-    if (N < S(6)) return null;
-    // la tête : ronde, le museau vers la barque, la mâchoire crème, l'œil doux, la corne enroulée, l'oreille pointue ;
-    // au repos, elle se penche un peu, de temps en temps
-    const tilt = flying ? 0 : Math.sin(t * 0.5) * S(0.8);
-    const cx = hx + look * S(1.5), cy = hy - S(2) + tilt;
-    const rx = S(4.5), ry = S(3.2);
-    for (let dy = -Math.round(ry); dy <= Math.round(ry); dy++) {
-      const w = rx * Math.sqrt(Math.max(0, 1 - (dy / ry) ** 2));
-      fill(cx - w, cy + dy, w * 2 + 1, 1, c.body);
-    }
-    const sn = cx + look * S(3.2);
-    for (let dy = -Math.round(S(1.8)); dy <= Math.round(S(1.4)); dy++) {
-      const w = S(2.6) * Math.sqrt(Math.max(0, 1 - (dy / S(2)) ** 2));
-      fill(look > 0 ? sn : sn - w, cy + dy + S(0.6), w, 1, dy > 0 ? c.belly : c.body);
-    }
-    fill(look > 0 ? cx - S(1) : cx - S(3.5), cy + S(1.6), S(4.5), S(1.4), c.belly);
-    fill(look > 0 ? sn + S(1) : sn - S(2.4), cy + S(1.2), S(1.4), 1, c.bodyDark);
-    const ex0 = cx - look * S(3.6);
-    for (let r = 0; r < Math.round(S(2.4)); r++) fill(ex0 - look * r, cy - S(1.5) - r, Math.max(1, S(1.6) - r * 0.6), 1, c.bodyDark);
-    const hornX = Math.round(cx + look * S(0.3)), hornY = Math.round(cy - ry);
-    const hl = Math.max(2, Math.round(S(2.6)));
-    for (let r = 1; r <= hl; r++) fill(hornX - look * Math.round(r * 0.3), hornY - r, Math.max(1, Math.round(z * 0.8)), 1, c.horn);
-    fill(hornX - look * Math.round(hl * 0.3) - look * Math.max(1, Math.round(z)), hornY - hl, Math.max(1, Math.round(z)), Math.max(1, Math.round(z)), c.horn);
-    const ex = Math.round(cx + look * S(1.4)), ey = Math.round(cy - S(0.8));
-    const es = Math.max(1, Math.round(S(1.2)));
-    if ((t % 4.6) < 0.14) fill(ex - es / 2, ey, es + 1, 1, c.eye);
-    else { fill(ex - es / 2, ey - es / 2, es, es + 1, c.eye); fill(ex - es / 2, ey - es / 2, 1, 1, '#ffffff'); }
-    return { x: ex, y: ey };
+    return lamp;
   }
 
-  /** Quand il est sorti, le monstre fredonne : de petites notes s'envolent. */
-  private notes(g: G, x: number, y: number, st: number, z: number) {
-    for (let i = 0; i < 3; i++) {
-      const q = ((st - 2) * 0.45 + i / 3) % 1;
-      const nx = Math.round(x + Math.sin(q * 6 + i) * 3 * z), ny = Math.round(y - q * 18 * z);
-      g.fillStyle = crgba('#ffffff', 0.85 * Math.sin(q * Math.PI));
-      g.fillRect(nx + 2, ny - 4, 1, 4); g.fillRect(nx, ny - 1, 2, 2); g.fillRect(nx + 3, ny - 4, 1, 1); g.fillRect(nx + 3, ny - 3, 1, 1);
-    }
-  }
-
-  /** La nuit, le monstre quitte sa grotte et nage au large : où il en est (ou null s'il est chez lui) ; certaines
-   *  nuits, au milieu de sa traversée, il s'envole. */
+  /** La nuit, la raie quitte sa grotte et nage au large : où elle en est (ou null si elle est chez elle) ; certaines
+   *  nuits, au milieu de sa traversée, elle s'envole. */
   private roam(t: number) {
     const per = 46, on = 26;
     const cyc = Math.floor(t / per), k = t % per;
@@ -749,37 +699,33 @@ export class SeaRenderer {
     return { p: k / on, dir: cyc % 2 ? 1 : -1, y: 142 + Math.round(hash(cyc) * 12), fly: hash(cyc * 7 + 1) > 0.35 };
   }
 
-  /** Le monstre qui nage au large, la nuit : la carapace, le cou dressé, le sillage argenté ; parfois il jaillit, plane
-   *  au-dessus de l'eau en battant des ailes, et replonge dans une grande gerbe. */
-  private roaming(g: G, r: { p: number; dir: number; y: number; fly: boolean }, t: number, base: number) {
-    // il est à la même taille que devant sa grotte (×2), et toujours devant l'île, sur l'eau
+  /** La raie qui nage au large, la nuit, juste sous la surface : on voit sa silhouette, ses points qui brillent, le bout
+   *  de ses ailes qui affleure à chaque battement et l'eau qu'elle pousse. Curieuse, elle s'approche de la barque en
+   *  passant ; timide, elle plonge si Roré rame. Certaines nuits, elle jaillit, plane, et replonge dans une gerbe. */
+  private roaming(g: G, r: { p: number; dir: number; y: number; fly: boolean }, t: number, base: number, sea: Sea) {
     const SC = 2;
     const x = Math.round(r.dir > 0 ? -90 + r.p * (W + 180) : W + 90 - r.p * (W + 180));
-    const y = Math.max(r.y, base + 10);
-    // il apparaît et disparaît doucement : il plonge en partant
-    const show = Math.min(1, r.p * 6, (1 - r.p) * 6);
+    // en passant près de la barque, elle vient voir de plus près
+    const near = Math.exp(-(((x - sea.screen.x) / 110) ** 2));
+    const y = Math.round(Math.max(r.y, base + 10) + near * 16);
     const q = r.fly ? (r.p - 0.38) / 0.24 : -1;
-    const alt = q > 0 && q < 1 ? Math.round(Math.sin(q * Math.PI) * 40) : 0;
-    // en nageant, il pousse l'eau : une vague d'étrave devant son cou, la houle qui se soulève autour de sa carapace,
-    // un sillage d'écume qui s'ouvre en V derrière lui et des ronds qui s'élargissent ; il la fend quand il jaillit
-    // et quand il retombe
-    if (!alt && show > 0.3) {
-      if (t - this.lastFly > 0.1) {
-        this.lastFly = t;
-        this.splash(x + r.dir * 10, y, -0.07 * show, 2.2);
-        this.splash(x - r.dir * 14, y, -0.05 * show, 3);
-        for (const side of [-1, 1]) this.spawnAt('foam', x - r.dir * 34, y + 1, { vu: -r.dir * 0.4, vw: side * 0.9, a: 0.75 * show, max: 3.4 });
-      }
-      if (Math.floor(t * 1.2) !== Math.floor((t - this.dt) * 1.2)) this.spawnAt('ring', x - r.dir * 12, y + 1, { r: 1.2, a: 0.45 * show, max: 2.2 });
+    const alt = q > 0 && q < 1 ? Math.round(Math.sin(q * Math.PI) * 44) : 0;
+    // elle apparaît et disparaît doucement ; si Roré rame près d'elle, elle file plus profond
+    this.shy += ((sea.rowing && near > 0.3 ? 1 : 0) - this.shy) * Math.min(1, this.dt * 1.5);
+    const show = Math.min(1, r.p * 6, (1 - r.p) * 6) * (1 - this.shy * 0.85);
+    if (show < 0.05 && !alt) return;
+    const sub = alt ? 0 : 1 - 0.25 * show;
+    // en nageant, elle pousse l'eau : une vague devant elle, la houle soulevée au bout de ses ailes, un sillage en V
+    const beat = Math.sin(t * 2.2);
+    if (!alt && show > 0.3 && t - this.lastFly > 0.1) {
+      this.lastFly = t;
+      this.splash(x + r.dir * 24, y, -0.06 * show, 2.4);
+      if (beat > 0.3) { this.splash(x - r.dir * 12, y - 22, -0.05 * show, 2); this.splash(x - r.dir * 12, y + 22, -0.05 * show, 2); }
+      for (const side of [-1, 1]) this.spawnAt('foam', x - r.dir * 30, y + side * 4, { vu: -r.dir * 0.4, vw: side * 0.9, a: 0.6 * show, max: 3.2 });
     }
-    if ((alt > 0) !== this.wasFlying) { this.splash(x, y, -0.25, 4); this.spawnAt('ring', x, y + 1, { r: 0.8, a: 0.9, max: 2 }); this.wasFlying = alt > 0; }
-    if (!alt) for (let k = 1; k < 16; k++) {
-      g.fillStyle = crgba('#dfe6ff', 0.45 * (1 - k / 16) * show);
-      g.fillRect(Math.round(x - r.dir * (30 + k * 7)), y - Math.round(k * 0.6), 4, 1);
-      g.fillRect(Math.round(x - r.dir * (30 + k * 7)), y + 1 + Math.round(k * 0.9), 4, 1);
-    }
-    // les gerbes, quand il jaillit et quand il retombe
-    for (const [q0, x0] of [[0, x - r.dir * 30], [1, x + r.dir * 10]] as [number, number][]) {
+    if ((alt > 0) !== this.wasFlying) { this.splash(x, y, -0.25, 4); this.spawnAt('ring', x, y + 1, { r: 1, a: 0.9, max: 2 }); this.wasFlying = alt > 0; }
+    // les gerbes, quand elle jaillit et quand elle retombe
+    for (const [q0, x0] of [[0, x - r.dir * 20], [1, x + r.dir * 10]] as [number, number][]) {
       const k = Math.abs(q - q0) / 0.12;
       if (q < -0.5 || k > 1) continue;
       for (let i = 0; i < 14; i++) {
@@ -788,16 +734,18 @@ export class SeaRenderer {
         px(g, x0 + Math.sin(ang) * d * 1.4, y - Math.cos(ang) * d * (1.2 - k) * 1.6 + k * k * 14, crgba('#dfe6ff', 1 - k));
       }
     }
-    // son ombre sur l'eau, quand il vole
+    // son ombre sur l'eau, quand elle vole
     if (alt) {
-      const k = clamp(1 - alt / 80, 0.2, 1);
+      const k = clamp(1 - alt / 90, 0.2, 1);
       g.fillStyle = crgba('#000818', 0.3 * k);
-      for (let q2 = -24; q2 <= 24; q2++) g.fillRect(x - r.dir * 12 + q2, y, 1, Math.max(1, Math.round(3 * k * Math.sqrt(1 - (q2 / 25) ** 2))));
+      for (let q2 = -30; q2 <= 30; q2++) g.fillRect(x + q2, y + Math.round(Math.abs(q2) * 0.2), 1, Math.max(1, Math.round(3 * k * Math.sqrt(1 - (q2 / 31) ** 2))));
     }
-    const eye = this.monster(g, x, y - alt, show, r.dir, SC, t, true, alt > 0, alt ? FLAP[Math.floor(t * 10) % FLAP.length] : undefined);
-    if (!alt) { g.fillStyle = crgba('#ffffff', 0.5); g.fillRect(x - 28, y, 6, 1); g.fillRect(x + 20, y, 6, 1); }
-    else for (let i = 0; i < 4; i++) px(g, x - r.dir * (12 + i * 8), y - alt + 8 + ((t * 30 + i * 7) % 30), crgba('#dfe6ff', 0.6));
-    if (eye) { this.eyes = eye; this.eyesFar = true; }
+    // en vol, elle plane souvent entre deux battements
+    const glide = Math.sin(t * 0.9) > 0.2;
+    const flap = alt ? (glide ? 0.2 : FLAP[Math.floor(t * 8) % FLAP.length]) : 0.15 + 0.35 * Math.max(0, beat);
+    const lamp = this.monster(g, x, y - alt, { look: r.dir, sc: SC, t, night: true, sub: sub * (alt ? 0 : 1) + (1 - show) * 0.5, flap, curious: near, flying: alt > 0 });
+    if (alt) for (let i = 0; i < 4; i++) px(g, x - r.dir * (12 + i * 8), y - alt + 8 + ((t * 30 + i * 7) % 30), crgba('#dfe6ff', 0.6));
+    if (lamp && show > 0.3) { this.eyes = lamp; this.eyesFar = true; this.glowCol = LAMP; }
   }
 
   /** Le phare, sur son îlot : la tour blanche à bandes rouges, la lanterne qui clignote. */
@@ -1101,7 +1049,7 @@ export class SeaRenderer {
       l.fillRect(x - r, y - r, r * 2, r * 2);
     };
     if (pav.front > 0.45) add(pav.x, pavTop - 6 * v.z, 16 * v.z, '#ffcf8a', 0.9);
-    if (this.eyes) add(this.eyes.x, this.eyes.y, 8, EYE_GLOW, 0.8);
+    if (this.eyes) add(this.eyes.x, this.eyes.y, 8, this.glowCol, 0.8);
     g.globalCompositeOperation = 'multiply';
     g.drawImage(this.light, 0, 0);
     g.globalCompositeOperation = 'source-over';
@@ -1118,7 +1066,7 @@ export class SeaRenderer {
       g.fillRect(x - r, y - r, r * 2, r * 2);
     };
     glow(sea.screen.x - sea.facing * 26, sea.screen.y - 16, 30, '#ffb860', tod === 'night' ? 0.28 : 0.16);
-    if (this.eyes) glow(this.eyes.x, this.eyes.y, this.eyesFar ? 3 : 7, EYE_GLOW, (tod === 'night' ? 0.4 : 0.2) * (this.eyesFar ? 0.6 : 1));
+    if (this.eyes) glow(this.eyes.x, this.eyes.y, this.eyesFar ? 6 : 7, this.glowCol, (tod === 'night' ? 0.45 : 0.2) * (this.eyesFar ? 0.8 : 1));
     g.globalCompositeOperation = 'source-over';
   }
 
