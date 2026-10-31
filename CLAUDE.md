@@ -71,13 +71,13 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
   `engine/sea.ts` (la barque est un angle `at` autour de l'île et une distance `dist`, 0 contre les rochers, 1 au large ; ← → pour
   tourner, ↑ ↓ pour s'approcher ou s'éloigner ; la rame pousse par à-coups (`pulse`) et l'eau freine (la barque glisse) ; on cogne les rochers (`bump`), sauf au ponton (`atDock`) : `near()` renvoie
   `dock` (« Accoster au ponton », retour au jardin) ou un coin de pêche `SPOTS` (`restUntil` ; le grand large demande `OFFSHORE`) ;
-  sans rame, la houle `swell` fait dériver ; `LANDMARKS` : pavillon au sud, phare, grotte au nord ; le monstre marin `serpent` (un
-  Nessie dans le style de l'ancien monstre façon Lapras, timide et curieux) : `lair`, `peek` quand on approche de sa grotte, la nuit seulement (`night`, posé par
+  sans rame, la houle `swell` fait dériver ; `LANDMARKS` : pavillon au sud, phare, grotte au nord ; le monstre marin `serpent` (Nessie
+  corail, dans le style de l'ancien monstre façon Lapras, timide et curieux) : `lair`, `peek` quand on approche de sa grotte, la nuit seulement (`night`, posé par
   `Office.tsx`), `dive` (aussi si la barque est trop près ou si Roré rame vers elle)),
   `engine/seaDraw.ts` (le panorama en pixel art, `viewOf` : l'île grandit avec la distance ; chaque colonne de la falaise montre la
   face tournée vers la barque, `cliffH` ; arbres, pavillon, échelle et ponton qui avance vers la barque (`jetty`, posé sur l'eau
   en mètres, visible de partout où l'on voit le pavillon ; de loin il grandit avec l'île, `grow`), la grotte et le monstre (`nessie` : deux bosses qui ondulent, queue qui frétille,
-  nageoires, long cou en S, petite tête ronde aux deux cornes ; `NESSIE`, `NESSIE_NIGHT` ; un sprite en pixel art, `monster` :
+  nageoires, long cou en S, petite tête ronde, rose corail, branchies en plumeau comme un axolotl ; `NESSIE`, `NESSIE_NIGHT` ; un sprite en pixel art, `monster` :
   dessiné à l'échelle 1 dans son canevas, une pose tous les dixièmes de seconde, cerné, posé ×1 ou ×2, `sub` pour remonter ;
   le jour il dort, des bulles ; la nuit ses yeux luisent au fond, il sort, tend le cou vers la barque et s'avance
   (`peek`/`peeking`) ; au large il pousse l'eau (vague, sillage en V, ronds), s'approche de la barque en passant et

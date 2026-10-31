@@ -649,16 +649,16 @@ export class OutsideRenderer {
       const k2 = Math.abs(q - q0) / 0.15;
       if (q > -0.5 && k2 < 1) for (let i = -3; i <= 3; i++) dot(Math.round(x0 + i * 2 * k2), Math.round(y - (4 - Math.abs(i)) * (1 - k2) * 2), rgba('#dfe6ff', 1 - k2));
     }
-    // Nessie : deux bosses qui ondulent, le long cou, la petite tête et ses cornes ; en vol, ses nageoires battent
-    const body = '#3a7a5c', dark = '#265440', belly = '#c8bf9e';
+    // Nessie corail : deux bosses qui ondulent, le long cou, la petite tête et ses branchies ; en vol, ses nageoires battent
+    const body = '#b86a74', dark = '#7e4654', belly = '#d8c4b4';
     const bump = (cx: number, r: number, h: number) => {
       for (let q2 = -r; q2 <= r; q2++) {
         const ah = Math.round(h * Math.sqrt(Math.max(0, 1 - (q2 / (r + 0.5)) ** 2)));
-        for (let rr = 1; rr <= ah; rr++) dot(cx + q2, yy - rr + 1, rr === ah ? '#6fb48a' : body);
+        for (let rr = 1; rr <= ah; rr++) dot(cx + q2, yy - rr + 1, rr === ah ? '#e8a0a4' : body);
       }
     };
     if (alt) {
-      for (let q2 = -6; q2 <= 5; q2++) { dot(x - dir * 4 + dir * q2, yy, belly); dot(x - dir * 4 + dir * q2, yy - 1, body); dot(x - dir * 4 + dir * q2, yy - 2, q2 > -4 && q2 < 4 ? body : '#6fb48a'); }
+      for (let q2 = -6; q2 <= 5; q2++) { dot(x - dir * 4 + dir * q2, yy, belly); dot(x - dir * 4 + dir * q2, yy - 1, body); dot(x - dir * 4 + dir * q2, yy - 2, q2 > -4 && q2 < 4 ? body : '#e8a0a4'); }
       for (let q2 = 0; q2 < 5; q2++) dot(x - dir * (11 + q2), yy - 1 + Math.round(Math.sin(tq * 4 - q2) * 0.6), dark);
       const flap = [1, 0.6, 0.2, -0.3, 0.2, 0.6][Math.floor(t * 8) % 6];
       for (let q2 = 1; q2 <= 6; q2++) dot(x - dir * Math.round(q2 * 0.6), yy - 2 - Math.round(q2 * flap), dark);
@@ -680,7 +680,8 @@ export class OutsideRenderer {
     for (let q2 = 0; q2 <= 1; q2++) dot(hx + dir * q2, top - 2, body);
     dot(hx + dir * 3, top + 1, belly); dot(hx + dir * 2, top + 1, belly);
     dot(hx + dir, top - 1, '#e8ff9a');
-    dot(hx - dir, top - 3, '#e0d8b8'); dot(hx, top - 3, '#e0d8b8');
+    // les branchies, en plumeau derrière la tête
+    dot(hx - dir * 2, top - 2, '#ff7aa4'); dot(hx - dir * 3, top - 1, '#ff7aa4'); dot(hx - dir * 2, top + 1, '#ff7aa4'); dot(hx - dir * 3, top - 3, '#ffb0d0');
   }
 
   /** Des ombres de nuages qui glissent sur la prairie. */

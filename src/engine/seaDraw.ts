@@ -30,10 +30,11 @@ const HAZE: Record<TimeOfDay, string> = { day: '#bcdff5', evening: '#e0907a', ni
 const AMBIENT: Record<TimeOfDay, string> = { day: '#ffffff', evening: '#c8a2b0', night: '#4a5890' };
 const GLINT: Record<TimeOfDay, string> = { day: '#ffffff', evening: '#ffd2a0', night: '#dfe6ff' };
 const STRATA = ['#c2b6a0', '#b0a48e', '#9c917f', '#8a806f', '#776e60'];
-/** Le monstre marin : un Nessie dans le style de l'ancien monstre (façon Lapras), doux, timide et curieux. Un long cou,
- *  une petite tête ronde aux yeux doux, deux petites cornes, le ventre crème ; deux bosses qui ondulent dans l'eau, le
- *  bout de la queue qui frétille, des nageoires qui pagaient (en vol, elles battent comme des ailes). */
-const NESSIE = { body: '#4c9a72', dark: '#33704f', hi: '#78c494', belly: '#efe2bf', spot: '#8fd0a4', horn: '#e8dcc0', eye: '#141a28', blush: '#e89aa0' };
+/** Le monstre marin : Nessie corail, dans le style de l'ancien monstre (façon Lapras), doux, timide et curieux. Rose
+ *  corail, le ventre crème, des branchies en plumeau de chaque côté de la tête (comme un axolotl) ; un long cou, une petite
+ *  tête ronde aux yeux doux ; deux bosses tachetées qui ondulent dans l'eau, le bout de la queue qui frétille, des
+ *  nageoires qui pagaient (en vol, elles battent comme des ailes). */
+const NESSIE = { body: '#e88a8a', dark: '#c0606a', hi: '#ffb0a8', belly: '#fff0dc', spot: '#ffc8b8', gill: '#ff6a9a', gillHi: '#ffb0d0', eye: '#141a28', blush: '#ff6a8a' };
 type Palette = typeof NESSIE;
 const NESSIE_NIGHT: Palette = Object.fromEntries(Object.entries(NESSIE).map(([k, c]) => [k, k === 'eye' ? c : mix(c, '#0b1230', 0.32)])) as Palette;
 /** Ses battements de nageoires en vol : six images, comme un sprite (il plane souvent entre deux battements). */
@@ -624,7 +625,7 @@ export class SeaRenderer {
 
   /** Nessie, à l'échelle 1, sa ligne d'eau en (x, wl) : deux bosses qui ondulent et le bout de la queue qui frétille,
    *  derrière ; la nageoire qui pagaie ; le long cou en S, qui se tend vers la barque quand il est curieux ; la tête ronde,
-   *  le museau, la mâchoire crème, l'œil doux, deux petites cornes. `sub` : combien il est encore sous l'eau (0 : sorti).
+   *  le museau, la mâchoire crème, l'œil doux, les branchies en plumeau. `sub` : combien il est encore sous l'eau (0 : sorti).
    *  En vol : tout le corps, le ventre crème, quatre nageoires (celles de devant battent comme des ailes), la queue. */
   private nessie(g: G, x: number, wl: number, look: number, t: number, o: { night: boolean; sub: number; flap: number; curious?: number; flying?: boolean }) {
     const c = o.night ? NESSIE_NIGHT : NESSIE;
@@ -697,7 +698,7 @@ export class SeaRenderer {
       hx = nx; hy = ny;
     }
     fin(false);
-    // la tête : ronde, le museau vers la barque, la mâchoire crème, l'œil doux, deux petites cornes ; elle se penche
+    // la tête : ronde, le museau vers la barque, la mâchoire crème, l'œil doux, les branchies ; elle se penche
     const tilt = flying ? 0 : Math.round(Math.sin(t * 0.5) * 0.8 + curious);
     const cx = hx + look * 2, cy = hy - 2 + tilt;
     for (let dy = -3; dy <= 3; dy++) { const w = Math.round(4.5 * Math.sqrt(Math.max(0, 1 - (dy / 3.3) ** 2))); fill(cx - w, cy + dy, w * 2 + 1, 1, c.body); }
@@ -706,7 +707,14 @@ export class SeaRenderer {
     fill(look > 0 ? cx - 1 : cx - 4, cy + 2, 6, 1, c.belly);
     dot(look > 0 ? sn + 2 : sn - 3, cy + 1, c.dark);
     dot(cx - look, cy + 1, c.blush);
-    for (const hxo of [-1, 1]) { const bx = cx + hxo * 2 - look; fill(bx, cy - 5, 1, 2, c.horn); dot(bx, cy - 6, c.horn); }
+    // les branchies en plumeau, derrière la tête : trois de chaque côté, qui ondulent (celles d'en face, plus sombres)
+    for (const [far, dx0] of [[true, 1], [false, 0]] as [boolean, number][]) {
+      [[-3, 0], [-1, 1], [1, 2]].forEach(([gy, ph]) => {
+        const wig = Math.round(Math.sin(t * 3 + ph) * 0.6);
+        for (let k = 0; k < 3; k++) dot(cx - look * (4 + k + dx0), cy + gy - Math.round(k * 0.6) + (far ? -1 : 0) + (k === 2 ? wig : 0), far ? c.dark : c.gill);
+        dot(cx - look * (7 + dx0), cy + gy - 2 + (far ? -1 : 0) + wig, far ? c.gill : c.gillHi);
+      });
+    }
     const ex = Math.round(cx + look * 1.5), ey = Math.round(cy - 1);
     if ((t % 4.6) < 0.14) fill(ex - 1, ey, 2, 1, c.eye);
     else { fill(ex - 1, ey - 1, 2, 2, c.eye); dot(ex - 1, ey - 1, '#ffffff'); }
