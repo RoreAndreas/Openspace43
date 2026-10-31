@@ -1,6 +1,6 @@
 // Le dessin de Dehors. Deux plans :
 // - le fond, en perspective : le ciel, la mer qui s'étend jusqu'à l'horizon (brumeuse au loin, plus franche près de
-//   la falaise), le soleil ou la lune et leur reflet, un cap lointain avec son phare, à gauche ;
+//   la falaise), le soleil ou la lune et leur reflet, le phare sur son îlot au loin, à gauche ;
 // - le sol, vu de dessus en 3/4 comme le bureau : le pavillon 43 à droite (toit plat, bardage bois, grande baie),
 //   la prairie que le vent parcourt en vagues, les pins, le chemin de gravier, et le bord de la falaise, face au large.
 // Le décor fixe est dessiné une fois par heure du jour ; le reste bouge à chaque image.
@@ -267,7 +267,7 @@ function disc(g: G, cx: number, cy: number, r: number, color: string) {
   for (let dy = -r; dy <= r; dy++) { const w = Math.round(Math.sqrt(r * r - dy * dy)); hline(g, cx - w, cy + dy, w * 2 + 1, color); }
 }
 
-/** Le fond : le ciel, l'astre, le cap lointain et son phare, la mer jusqu'à l'horizon. */
+/** Le fond : le ciel, l'astre, le phare sur son îlot au loin, la mer jusqu'à l'horizon. */
 function drawBackdrop(g: G, tod: TimeOfDay, r: () => number) {
   // le ciel, en bandes qui s'éclaircissent vers l'horizon
   const sky = SKY[tod];
@@ -292,11 +292,13 @@ function drawBackdrop(g: G, tod: TimeOfDay, r: () => number) {
   }
   // la ligne d'horizon, un peu plus claire
   hline(g, X0, HORIZON, W, mix(far, '#ffffff', 0.25));
-  // le cap lointain, à gauche, et son phare (tout petit : il est loin)
+  // le phare au loin, à gauche, sur son îlot rocheux (le même qu'en mer) ; tout petit : il est loin
   const [land, landHi] = LAND[tod];
-  for (let x = 0; x < 72; x++) {
-    const top = Math.round(HORIZON - 9 + Math.pow(Math.max(0, (x - 28) / 44), 1.6) * 9 - (x < 28 ? Math.sin(x * 0.4) * 1 : 0));
-    if (top < HORIZON) { rect(g, x, top, 1, HORIZON - top + 1, land); px(g, x, top, landHi); }
+  const rock = mix('#7a7062', land, 0.45), rockHi = mix('#a39a8a', landHi, 0.4);
+  for (let x = 12; x <= 44; x++) {
+    const u = (x - 28) / 16.5;
+    const top = Math.round(HORIZON - 9 * Math.sqrt(Math.max(0, 1 - u * u)) - (Math.abs(u) < 0.5 ? 0 : Math.sin(x * 1.7) * 0.6));
+    if (top < HORIZON) { rect(g, x, top, 1, HORIZON - top + 1, rock); px(g, x, top, rockHi); if ((x * 7) % 5 === 0 && HORIZON - top > 3) px(g, x, top + 2, land); }
   }
   rect(g, 27, HORIZON - 20, 3, 11, '#f1ede6');
   rect(g, 27, HORIZON - 16, 3, 2, '#d24a40');

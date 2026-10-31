@@ -62,7 +62,7 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
 - **Dehors** (`room: 'outside'`, derrière la porte d'entrée en bas du bureau ; 🌿, touche O) : `engine/outside.ts` (le bord de la
   falaise `coastY`, `HORIZON`, la grille, `Walker` pour Roré et les collègues, places assises `SEATS` avec leur regard, chemins `PATHS`,
   vent `gust`), `engine/outsideDraw.ts` (deux plans : le sol en 3/4 comme le bureau, et un fond en perspective, ciel, mer jusqu'à
-  l'horizon, phare au loin ; pavillon au toit plat avec le petit logo 43, prairie animée, pins, manche à air, lumière), `audio/outside.ts` (vent, mer et
+  l'horizon, phare au loin sur son îlot rocheux, le même qu'en mer ; pavillon au toit plat avec le petit logo 43, prairie animée, pins, manche à air, lumière), `audio/outside.ts` (vent, mer et
   musique lofi en Web Audio, sans fichier ; coupé avec le son). Le chemin de la barque
   (`outside.onFish`) mène en mer. La pêche est la fenêtre `game` « fishing » (`ui/games/Fishing.tsx`, au timing : lancer, touche, combat ;
   légendaires en boss avec barre de vie ; carnet `fish.journal` dans `bureau:jeux`, `FishSave` dans `common.ts` ; en dev, `window.__fishing`).
