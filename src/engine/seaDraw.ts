@@ -9,6 +9,7 @@
 import { pixelText, textWidth } from './font.ts';
 import { H, WIDE } from './layout.ts';
 import { g2d, hline, makeCanvas, mix, outline, P, px, rect, rgba, vline, type G } from './pixels.ts';
+import { paintBoat } from './boat.ts';
 import { ANCHOR_X, ANCHOR_Y, robotSprite, type Dir, type Pose } from './robots.ts';
 import type { TimeOfDay } from './room.ts';
 import { angleDiff, LANDMARKS, OFFSHORE, SPOTS, type Sea } from './sea.ts';
@@ -142,6 +143,8 @@ export class SeaRenderer {
   private jumps: { u: number; w: number; t0: number; dir: number; landed: boolean }[] = [];
   private nextJump = 0;
   private lastFly = 0;
+  /** le trajet de Nessie au large, posé sur l'eau (en mètres) : il le garde toute sa traversée */
+  private route: { cyc: number; u0: number; u1: number; w: number } | null = null;
   /** il s'enfonce quand Roré rame près de lui (0 à 1) */
   private shy = 0;
   /** la couleur de la lueur (ses yeux) */
@@ -696,17 +699,30 @@ export class SeaRenderer {
     const per = 46, on = 26;
     const cyc = Math.floor(t / per), k = t % per;
     if (k > on) return null;
-    return { p: k / on, dir: cyc % 2 ? 1 : -1, y: 142 + Math.round(hash(cyc) * 12) };
+    return { p: k / on, dir: cyc % 2 ? 1 : -1, y: 142 + Math.round(hash(cyc) * 12), cyc };
   }
 
   /** Nessie qui nage au large, la nuit : le cou dressé, ses bosses qui ondulent, l'eau qu'il pousse. Curieux, il
    *  s'approche de la barque en passant ; timide, il s'enfonce si Roré rame. Il reste toujours dans l'eau. */
-  private roaming(g: G, r: { p: number; dir: number; y: number }, t: number, base: number, sea: Sea) {
-    const SC = 2;
-    const x = Math.round(r.dir > 0 ? -90 + r.p * (W + 180) : W + 90 - r.p * (W + 180));
+  private roaming(g: G, r: { p: number; dir: number; y: number; cyc: number }, t: number, base: number, sea: Sea) {
+    // son trajet est posé sur l'eau (en mètres) : quand la barque tourne ou avance, il reste à sa place sur la mer et
+    // défile avec elle, au lieu de suivre l'écran ; il traverse la vue qu'on avait quand il est apparu
+    const pl = this.plane;
+    if (!this.route || this.route.cyc !== r.cyc) {
+      const row = Math.max(r.y, base + 10) - HORIZON;
+      const half = (CX + 90) / (row * Q);
+      this.route = { cyc: r.cyc, u0: pl.at * RW - r.dir * half, u1: pl.at * RW + r.dir * half, w: Math.max(6, pl.dw - (C / row - E)) };
+    }
+    const rt = this.route;
+    const u = rt.u0 + (rt.u1 - rt.u0) * r.p;
     // en passant près de la barque, il vient voir de plus près
-    const near = Math.exp(-(((x - sea.screen.x) / 110) ** 2));
-    const y = Math.round(Math.max(r.y, base + 10) + near * 16);
+    const p0 = toScreen(pl, u, rt.w);
+    if (!p0) return;
+    const near = Math.exp(-(((p0.x - sea.screen.x) / 110) ** 2));
+    const p = toScreen(pl, u, rt.w + near * 4);
+    if (!p || p.y > H + 40 || p.y <= base + 2) return;
+    const x = Math.round(p.x), y = Math.round(p.y);
+    const SC = p.s > 5 ? 2 : 1;
     // il apparaît et disparaît doucement ; si Roré rame près de lui, il s'enfonce
     this.shy += ((sea.rowing && near > 0.3 ? 1 : 0) - this.shy) * Math.min(1, this.dt * 1.5);
     const show = Math.min(1, r.p * 6, (1 - r.p) * 6) * (1 - this.shy * 0.85);
@@ -913,10 +929,11 @@ export class SeaRenderer {
     const dip = sea.rowing && Math.cos(ph) > 0;
     const swing = sea.rowing ? Math.sin(ph) : 0.25;
     const [, nearSea] = SEA[tod];
-    // le profil de la barque : le plat-bord de devant (gy), celui du fond (fy, plus haut : on voit dedans), la quille (ky)
-    const gy = (i: number) => { const u = i / HL; return by - 5 - Math.round(u * u * 3) - Math.round(Math.pow(Math.max(0, u * f - 0.55) / 0.45, 2) * 3) + Math.round(tilt * u); };
-    const fy = (i: number) => gy(i) - Math.round(6 * Math.sqrt(Math.max(0, 1 - (i / HL) ** 2)));
-    const ky = (i: number) => by + 4 - Math.round(Math.pow(Math.abs(i / HL), 3) * 7) + Math.round(tilt * i / HL);
+    // la barque (boat.ts) : le fond, puis Roré, puis le devant ; son profil : le plat-bord de devant (gy), celui du fond
+    // (fy, plus haut : on voit dedans), la quille (ky)
+    const bt = paintBoat(HL, f > 0 ? 1 : -1, tilt, 6, tod !== 'day');
+    const bdx = bx - bt.ox, bdy = by - bt.oy;
+    const gy = (i: number) => bt.gy(i) + bdy, fy = (i: number) => bt.fy(i) + bdy, ky = (i: number) => bt.ky(i) + bdy;
     // l'ombre et le reflet dans l'eau, qui ondulent
     for (let i = -HL - 2; i <= HL + 2; i++) { g.fillStyle = crgba('#081430', 0.3); g.fillRect(bx + i, ky(clamp(i, -HL, HL)) - 1, 1, 3); }
     for (let k = 0; k < 6; k++) { const wob = Math.round(Math.sin(t * 2.6 + k * 1.3) * (1 + k * 0.4)); g.fillStyle = crgba('#8a5530', 0.22 - k * 0.035); g.fillRect(bx - HL + 5 + k * 3 + wob, by + 6 + k * 2, (HL - 5 - k * 3) * 2, 1); }
@@ -925,60 +942,30 @@ export class SeaRenderer {
     const farBlade = { x: lock + f * swing * 9 - 4, y: fy(2) - 10 + (dip ? 3 : 0) };
     {
       const sx = lock, sy = fy(2) - 1, ex = farBlade.x, ey = farBlade.y;
-      for (let k = 0; k <= 12; k++) { const u = k / 12; px(g, sx + (ex - sx) * u, sy + (ey - sy) * u, '#a0703f'); }
-      rect(g, ex - 2, ey - 1, 4, 2, '#c89a6a');
+      for (let k = 0; k <= 12; k++) { const u = k / 12; px(g, sx + (ex - sx) * u, sy + (ey - sy) * u, '#b08a60'); }
+      rect(g, ex - 2, ey - 1, 4, 2, '#24587e');
     }
-    // dedans : la membrure du fond, le bordé intérieur, les varangues, le plancher
-    for (let i = -HL; i <= HL; i++) {
-      const top = fy(i), bot = gy(i);
-      if (bot - top < 1) continue;
-      px(g, bx + i, top, '#d8a870');
-      rect(g, bx + i, top + 1, 1, bot - top - 1, '#7a4a2a');
-      if (bot - top > 3) rect(g, bx + i, bot - 2, 1, 2, '#5e3a22');
-      if ((i + 60) % 6 === 0) rect(g, bx + i, top + 1, 1, bot - top - 1, '#5a3620');
-    }
-    // les bancs (vus d'un peu au-dessus, ils traversent la barque) : celui de Roré au milieu, un autre à l'arrière
-    for (const u of [0, -0.55 * f]) {
-      const i0 = Math.round(u * HL) - 3;
-      for (let i = i0; i < i0 + 6; i++) { const top = fy(i) + 1; rect(g, bx + i, top, 1, gy(i) - top, i === i0 ? '#a0703f' : '#c8955e'); }
-    }
-    // une lanterne à l'arrière, sur son petit mât
-    const lx = bx - f * Math.round(HL * 0.78);
-    vline(g, lx, gy(lx - bx) - 8, 8, '#3e2818');
-    rect(g, lx - 1, gy(lx - bx) - 11, 3, 3, '#2e2e3c'); px(g, lx, gy(lx - bx) - 10, tod === 'day' ? '#c8b070' : '#ffe9a0');
+    g.drawImage(bt.back, bdx, bdy);
     // Roré, assis sur son banc : il regarde l'île quand il se repose, il se tourne pour ramer
     const dir: Dir = sea.heading > 0 ? 'down' : sea.rowing && sea.heading === 0 ? (f > 0 ? 'right' : 'left') : 'up';
     const pose: Pose = sea.rowing ? 'type' : 'sit';
     g.drawImage(robotSprite(roreKey, pose, dir, sea.rowing ? (Math.sin(ph) > 0 ? 1 : 0) : 0, 'open'), bx - ANCHOR_X, gy(0) + 6 - ANCHOR_Y);
-    // le bordé devant : le plat-bord clair, le liston, la bande rouge, les virures à clin, le « 43 » à la proue
+    // le devant de la barque ; ce qui est sous l'eau prend sa couleur, et la ligne d'eau ondule le long de la coque
+    g.drawImage(bt.front, bdx, bdy);
     for (let i = -HL; i <= HL; i++) {
-      const top = gy(i), bot = ky(i);
-      if (bot <= top) continue;
-      const x = bx + i;
-      rect(g, x, top, 1, bot - top, '#9a6438');
-      px(g, x, top, '#e8bc84');
-      px(g, x, top + 1, '#6b4528');
-      if (bot - top > 4) px(g, x, top + 2, '#c0443a');
-      for (let k = top + 4; k < bot - 1; k += 2) px(g, x, k, '#7e4e2c');
-      px(g, x, bot - 1, '#5a3820');
-      // ce qui est sous l'eau prend sa couleur ; la ligne d'eau ondule le long de la coque
+      const x = bx + i, bot = ky(i) + 1;
       const wl = by + 2 + Math.round(Math.sin(t * 2.2 + i * 0.25) * 0.6);
-      for (let y = wl; y < bot; y++) { g.fillStyle = crgba(nearSea, 0.5); g.fillRect(x, y, 1, 1); }
+      if (wl < bot) { g.fillStyle = crgba(nearSea, 0.5); g.fillRect(x, wl, 1, bot - wl); }
       if (wl < bot && (i + Math.round(t * 6)) % 5 === 0) px(g, x, wl, 'rgba(255,255,255,0.7)');
     }
-    // l'étrave, un peu plus haute, du côté où l'on va
-    const sx = bx + f * HL;
-    vline(g, sx, gy(f * HL) - 2, ky(f * HL) - gy(f * HL) + 2, '#6b4528');
-    px(g, sx, gy(f * HL) - 3, '#e8bc84');
-    pixelText(g, '43', bx + f * (HL - 12) - 3, gy(f * (HL - 12)) + 3, '#f4ead8');
     // les tolets, et la rame de devant : elle descend vers nous, sa pale plonge devant la barque
-    rect(g, lock - 1, gy(2) - 2, 2, 2, '#2e2e3c');
     const nearBlade = { x: lock + f * swing * 12 + 6, y: by + 13 + (dip ? 3 : 0) };
     {
       const sx0 = lock, sy0 = gy(2) - 1, ex = nearBlade.x, ey = nearBlade.y;
-      for (let k = 0; k <= 18; k++) { const u = k / 18; rect(g, sx0 + (ex - sx0) * u, sy0 + (ey - sy0) * u, 2, 1, k < 4 ? '#8a5f3e' : '#c08a57'); }
-      if (dip) { rect(g, ex - 3, ey - 1, 6, 2, '#e0b880'); g.fillStyle = crgba(nearSea, 0.6); g.fillRect(Math.round(ex - 3), Math.round(ey + 1), 6, 1); }
-      else { rect(g, ex - 3, ey - 1, 6, 3, '#e0b880'); hline(g, ex - 3, ey + 1, 6, '#b08050'); }
+      // le manche en bois clair, la pale peinte en bleu comme la coque, le bout blanc
+      for (let k = 0; k <= 18; k++) { const u = k / 18; rect(g, sx0 + (ex - sx0) * u, sy0 + (ey - sy0) * u, 2, 1, k < 4 ? '#8a5f3e' : '#d8b080'); }
+      if (dip) { rect(g, ex - 3, ey - 1, 6, 2, '#2f6f9a'); hline(g, ex - 3, ey - 1, 6, '#4a90c2'); g.fillStyle = crgba(nearSea, 0.6); g.fillRect(Math.round(ex - 3), Math.round(ey + 1), 6, 1); }
+      else { rect(g, ex - 3, ey - 1, 6, 3, '#2f6f9a'); hline(g, ex - 3, ey - 1, 6, '#4a90c2'); hline(g, ex - 3, ey + 1, 6, '#f2ede0'); }
     }
     // les remous : un rond à chaque coup de rame, des gouttes quand la pale ressort, l'écume du sillage qui s'ouvre en
     // V derrière la barque, une ride autour de la coque quand elle retombe sur la houle, une gerbe sur les rochers

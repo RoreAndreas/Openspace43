@@ -824,3 +824,14 @@ input[type='color'] { width: 34px; height: 34px; padding: 0; border: 1px solid v
 .fish-chip { font-size: 12px; padding: 4px 9px; border-radius: 999px; background: var(--surface2); border: 1px solid var(--line); }
 .fish-chip.unknown { color: #8a8698; border-style: dashed; }
 .fish-chip.legend { border-color: #ffd166; color: #ffd166; }
+/* le bestiaire de la pêche */
+.bestiary-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.bestiary { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; max-height: 320px; overflow-y: auto; padding-right: 2px; }
+.bestiary-card { display: grid; justify-items: center; align-content: start; gap: 3px; padding: 8px; border-radius: 10px; background: var(--surface2); border: 1px solid var(--line); text-align: center; }
+.bestiary-card canvas { width: 128px; height: 72px; image-rendering: pixelated; background: linear-gradient(#1a2850, #0f1c40); border-radius: 6px; }
+.bestiary-card b { font: 700 14px var(--pixel); }
+.bestiary-card.legend { border-color: #ffd166; box-shadow: 0 0 14px rgba(255, 209, 102, 0.25); }
+.bestiary-card.legend b { color: #ffd166; }
+.bestiary-card.unknown b { color: #8a8698; }
+.bestiary-stars { color: #ffd166; letter-spacing: 1px; font-size: 12px; }
+.bestiary-stars .dim { color: #4a4458; }

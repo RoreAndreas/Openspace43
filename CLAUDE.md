@@ -65,7 +65,9 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
   l'horizon, phare au loin sur son îlot rocheux, le même qu'en mer ; pavillon au toit plat avec le petit logo 43, prairie animée, pins, manche à air, lumière), `audio/outside.ts` (vent, mer et
   musique lofi en Web Audio, sans fichier ; coupé avec le son). Le chemin de la barque
   (`outside.onFish`) mène en mer. La pêche est la fenêtre `game` « fishing » (`ui/games/Fishing.tsx`, au timing : lancer, touche, combat ;
-  légendaires en boss avec barre de vie ; carnet `fish.journal` dans `bureau:jeux`, `FishSave` dans `common.ts` ; en dev, `window.__fishing`).
+  les poissons coriaces (`tough`, `drags`) traînent la barque : bras de fer `drag`, Espace très vite (`rope`) ; légendaires
+  en boss avec barre de vie ; le bestiaire (`Bestiary` : dessin, rareté, description, record ; silhouette et indice sinon),
+  à partir de `fish.journal` dans `bureau:jeux`, `FishSave` dans `common.ts` ; en dev, `window.__fishing`).
 - **La mer** (`room: 'sea'`, le quatrième espace ; ⛵, touche L ; depuis le chemin de la barque, Dehors : deux poteaux et des cordes
   au bord de la falaise, « Descendre à la barque » ; X pour revenir) : même logique que le jardin, l'île est vue depuis la barque.
   `engine/sea.ts` (la barque est un angle `at` autour de l'île et une distance `dist`, 0 contre les rochers, 1 au large ; ← → pour
@@ -81,12 +83,14 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
   dessiné à l'échelle 1 dans son canevas, une pose tous les dixièmes de seconde, cerné, posé ×1 ou ×2, `sub` pour remonter ;
   le jour il dort, des bulles ; la nuit ses yeux luisent au fond, il sort, tend le cou vers la barque et s'avance
   (`peek`/`peeking`) ; au large il pousse l'eau (vague, sillage en V, ronds), s'approche de la barque en passant et
-  s'enfonce si Roré rame (`shy`) ; il reste toujours dans l'eau (`roam`/`roaming`) ; la lueur `glowCol`), le phare au loin
+  s'enfonce si Roré rame (`shy`) ; il reste toujours dans l'eau, son trajet est posé sur l'eau en mètres (`route`) :
+  il ne suit pas la barque quand elle tourne (`roam`/`roaming`) ; la lueur `glowCol`), le phare au loin
   sur son îlot, comme depuis la falaise : un repère lointain qui défile avec les îles et passe derrière l'île, qu'on ne peut
   pas atteindre en barque (`farX`), son faisceau `beam` limité au ciel ; soleil, îles, voiliers et paquebot rare au loin ; les rangs de vagues (`crests`), vaguelettes (`caps`) et poissons qui
   sautent (`jumps`), posés sur l'eau en mètres comme les remous `fx` (ronds des rames, écume du sillage, gouttes), reflet du
   soleil ; la barque vue d'un
-  peu au-dessus, Roré assis dedans, qui flotte (`float` : ressort amorti sur la houle) ; mini-carte). La falaise est mise en
+  peu au-dessus (`engine/boat.ts`, `paintBoat` : coque bleue, bande blanche, « 43 », plat-bord verni, bancs, lanterne,
+  cernée ; la même dans la pêche), Roré assis dedans, qui flotte (`float` : ressort amorti sur la houle) ; mini-carte). La falaise est mise en
   cache (`cliff`, redessinée quand la vue change d'un pixel) et les couleurs mélangées aussi (`cmix`, `crgba`).
   `engine/seaWater.ts` : la perspective du plan d'eau (`planeOf`, `toScreen`, `toWater`, `rowAt`) et la houle (`Swell` :
   des rangs de crêtes qui avancent vers nous, `crestW`, chacune une chaîne de ressorts ; `disturb` y lance une onde, depuis
