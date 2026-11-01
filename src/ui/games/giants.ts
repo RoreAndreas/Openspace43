@@ -314,7 +314,7 @@ function arrow(g: G, x: number, y: number, lane: Lane, col: string) {
 
 // ─────────────────────────────── Nessie ───────────────────────────────
 
-type NessPhase = 'rise' | 'away' | 'turn' | 'look' | 'track' | 'snap' | 'gulp' | 'dive' | 'under' | 'startle' | 'final' | 'leave';
+type NessPhase = 'under' | 'rise' | 'away' | 'wake' | 'look' | 'track' | 'snap' | 'gulp' | 'dive' | 'startle' | 'final' | 'leave';
 
 /** Une sardine en vol : elle tourne sur elle-même (quatre poses). */
 function sardine(g: G, x: number, y: number, f: number) {
@@ -334,6 +334,13 @@ function sardine(g: G, x: number, y: number, f: number) {
   }
 }
 
+/** Un ressort amorti : la valeur suit sa cible en douceur, sans à-coups (et sans osciller). */
+class Spring {
+  v = 0; vel = 0;
+  constructor(v = 0) { this.v = v; }
+  to(target: number, dt: number, k = 70) { const d = 2 * Math.sqrt(k); this.vel += (k * (target - this.v) - d * this.vel) * dt; this.v += this.vel * dt; return this.v; }
+}
+
 export class NessieMeet {
   t = 0;
   trust = 0;
@@ -341,12 +348,11 @@ export class NessieMeet {
   phase: NessPhase = 'under';
   pt = 0;
   dur = 0.6;
-  x = 222;
-  sc = 1;
-  look = 1;
-  turnAt = -9;
+  x = 214;
   over: null | 'win' | 'lose' = null;
   overAt = 0;
+  /** distrait : il regarde le ciel (la lune, les mouettes) ou il somnole */
+  mood: 'sky' | 'doze' = 'sky';
   /** la sardine en vol : d'où, où elle tombe (ou la bouche qu'elle vise), si Nessie l'attend */
   fish: null | { t0: number; x0: number; y0: number; x1: number; y1: number; good: boolean } = null;
   hearts: { x: number; y: number; t0: number }[] = [];
@@ -354,28 +360,37 @@ export class NessieMeet {
   rings: { x: number; t0: number; w: number }[] = [];
   readonly night: boolean;
   private events: GiantEvent[] = [];
-  private can = canvas(128, 104);
-  private mouth = { x: 222, y: SURFACE - 20 };
-  private head = { x: 222, y: SURFACE - 30 };
+  /** Nessie est dessiné au pixel près, à sa taille (moyenne), dans ce canevas ; sa ligne d'eau en (AX, AY) */
+  private can = canvas(170, 86);
+  private mouth = { x: 214, y: SURFACE - 30 };
+  private head = { x: 214, y: SURFACE - 40 };
+  private target = 214;
+  // ce qui bouge en douceur : le cou (curieux, tendu ou en arrière), la gueule, la plongée, la tête qui suit
+  private sCur = new Spring(-0.3);
+  private sOpen = new Spring(0);
+  private sSub = new Spring(1);
+  private sX = new Spring(214);
   static readonly GOAL = 5;
   static readonly FLIGHT = 0.75;
+  static readonly SIZE = 1.5;
+  static readonly AX = 85;
+  static readonly AY = 80;
 
   constructor(night: boolean) { this.night = night; }
 
   /** sa place selon sa confiance : loin au début, de plus en plus près ; à la fin, contre la barque */
-  private spot() { return Math.round(222 - this.trust * 24); }
-  private face(l: number) { if (l !== this.look) { this.look = l; this.turnAt = this.t; } }
+  private spot() { return Math.round(214 - this.trust * 20); }
   private set(p: NessPhase, dur: number) {
-    if (p === 'rise' || p === 'dive') this.rings.push({ x: this.x, t0: this.t, w: this.sc });
+    if (p === 'rise' || p === 'dive') this.rings.push({ x: this.x - 8, t0: this.t, w: 1.5 });
     this.phase = p; this.pt = 0; this.dur = dur;
   }
 
   /** Espace : Roré lance une sardine (une à la fois). S'il te regarde, il la guette ; sinon, elle tombe à l'eau devant lui. */
   toss(roreX: number, roreY: number) {
-    if (this.over || this.fish || !['away', 'turn', 'look'].includes(this.phase)) return;
-    const good = this.phase === 'look' || (this.phase === 'turn' && this.look < 0);
-    this.fish = { t0: this.t, x0: roreX, y0: roreY, x1: good ? this.mouth.x : this.x - 14 * this.sc, y1: good ? this.mouth.y : SURFACE, good };
-    if (good) { this.face(-1); this.set('track', NessieMeet.FLIGHT); }
+    if (this.over || this.fish || !['away', 'wake', 'look'].includes(this.phase)) return;
+    const good = this.phase === 'look';
+    this.fish = { t0: this.t, x0: roreX, y0: roreY, x1: good ? this.mouth.x : this.head.x - 10, y1: good ? this.mouth.y : SURFACE, good };
+    if (good) this.set('track', NessieMeet.FLIGHT);
     this.events.push('toss');
   }
 
@@ -394,21 +409,29 @@ export class NessieMeet {
           this.trust++;
           this.events.push('catch');
           for (let i = 0; i < 6; i++) this.bits.push({ x: this.mouth.x, y: this.mouth.y, vx: (Math.random() - 0.5) * 50, vy: -20 - Math.random() * 30, life: 0.5, col: '#ffffff' });
-          this.set('snap', 0.16);
+          this.set('snap', 0.18);
         } else {
           this.splash(f.x1, 12);
           this.scares++;
           this.trust = Math.max(0, this.trust - 1);
           this.events.push('startle');
-          this.face(-1);
-          this.set('startle', 0.45);
+          this.set('startle', 0.5);
         }
       }
     }
     if (!this.over && this.pt >= this.dur) this.next();
-    // il nage sous l'eau vers sa nouvelle place
-    if (this.phase === 'under') this.x += (this.spotTarget - this.x) * Math.min(1, dt * 3);
+    // les ressorts : la pose suit ce que fait Nessie, en douceur
+    const k = Math.min(1, this.pt / Math.max(0.01, this.dur)), ph = this.phase;
+    const cur = ph === 'away' ? (this.mood === 'sky' ? -0.55 : -0.15) : ph === 'wake' || ph === 'look' ? 1 : ph === 'track' ? 1.7 : ph === 'snap' ? 1.5
+      : ph === 'gulp' ? 0.9 : ph === 'startle' ? -0.8 : ph === 'final' ? 1.8 : 0.3;
+    this.sCur.to(cur, dt, ph === 'snap' || ph === 'startle' ? 160 : 40);
+    const u = f ? Math.min(1, (t - f.t0) / NessieMeet.FLIGHT) : 0;
+    this.sOpen.to(ph === 'track' ? smooth((u - 0.3) / 0.45) : 0, dt, ph === 'snap' ? 400 : 90);
+    this.sSub.to(ph === 'under' || ph === 'leave' ? 1.25 : ph === 'dive' ? 1.25 * smooth(k * 1.4) : 0, dt, 30);
+    if (ph === 'under') this.x = this.target;
+    this.sX.to(this.x, dt, 20);
     if (this.over === 'win' && Math.random() < dt * 2.5) this.hearts.push({ x: this.head.x + (Math.random() - 0.5) * 10, y: this.head.y - 6, t0: t });
+    if (ph === 'gulp' && this.pt < dt * 1.5) for (let i = 0; i < 3; i++) this.hearts.push({ x: this.head.x + (i - 1) * 6, y: this.head.y - 8, t0: t + i * 0.15 });
     this.hearts = this.hearts.filter((h) => t - h.t0 < 1.6);
     for (const b of this.bits) { b.x += b.vx * dt; b.y += b.vy * dt; b.vy += 120 * dt; b.life -= dt; }
     this.bits = this.bits.filter((b) => b.life > 0 && b.y < SURFACE + 3);
@@ -418,28 +441,27 @@ export class NessieMeet {
     return ev;
   }
 
-  private spotTarget = 222;
-  /** la suite : il sort, regarde ailleurs, se tourne vers la barque, guette… */
+  /** la suite : il sort, rêvasse (le ciel, ou il somnole), revient à toi, te regarde… (avec un peu de hasard : pas d'horloge) */
   private next() {
+    const rnd = (a: number, b: number) => a + Math.random() * (b - a);
     switch (this.phase) {
       case 'under':
         if (this.scares >= 3) { this.over = 'lose'; this.overAt = this.t; this.events.push('lose'); this.phase = 'leave'; return; }
-        this.x = this.spotTarget;
-        this.sc = this.trust >= NessieMeet.GOAL ? 2 : this.trust >= 2 ? 2 : 1;
-        this.face(this.trust >= NessieMeet.GOAL ? -1 : 1);
-        this.set('rise', 1.1);
+        this.x = this.target;
+        this.set('rise', 1.2);
         return;
       case 'rise':
-        if (this.trust >= NessieMeet.GOAL) { this.set('final', 2.6); for (let i = 0; i < 6; i++) this.hearts.push({ x: this.head.x + (i - 3) * 4, y: this.head.y - 8, t0: this.t + i * 0.18 }); return; }
-        this.set('away', 1.3 + Math.random() * 1.5);
+        if (this.trust >= NessieMeet.GOAL) { this.set('final', 2.8); for (let i = 0; i < 6; i++) this.hearts.push({ x: this.head.x + (i - 3) * 4, y: this.head.y - 8, t0: this.t + 0.8 + i * 0.18 }); return; }
+        this.mood = Math.random() < 0.6 ? 'sky' : 'doze';
+        this.set('away', rnd(1.2, 3));
         return;
-      case 'away': this.face(-1); this.set('turn', 0.22); return;
-      case 'turn': this.set('look', Math.max(0.9, 1.4 - this.trust * 0.08)); return;
-      case 'look': this.face(1); this.set('away', 1.4 + Math.random() * 1.8); return;
-      case 'snap': this.set('gulp', 1); return;
-      case 'gulp': this.spotTarget = this.trust >= NessieMeet.GOAL ? 96 : this.spot(); this.set('dive', 0.6); return;
-      case 'startle': this.spotTarget = Math.min(222, this.spot() + 18); this.set('dive', 0.5); return;
-      case 'dive': this.set('under', 0.9); return;
+      case 'away': this.set('wake', rnd(0.3, 0.5)); return;
+      case 'wake': this.set('look', rnd(0.9, 1.6) - this.trust * 0.06); return;
+      case 'look': this.mood = Math.random() < 0.6 ? 'sky' : 'doze'; this.set('away', rnd(1.2, 3.2)); return;
+      case 'snap': this.set('gulp', 1.1); return;
+      case 'gulp': this.target = this.trust >= NessieMeet.GOAL ? 104 : this.spot(); this.set('dive', 0.7); return;
+      case 'startle': this.target = Math.min(214, this.spot() + 16); this.set('dive', 0.6); return;
+      case 'dive': this.set('under', 1); return;
       case 'final': this.over = 'win'; this.overAt = this.t; this.events.push('win'); return;
       default: return;
     }
@@ -450,39 +472,34 @@ export class NessieMeet {
     this.rings.push({ x, t0: this.t, w: 1 });
   }
 
-  /** Nessie : il sort, regarde au loin, se tourne vers la barque (un cœur : il te regarde) ; il guette la sardine, le cou
-   *  tendu, ouvre grand la gueule, la happe, l'avale (la bouchée descend le long du cou, il ferme les yeux de plaisir) ;
-   *  puis il replonge et ressort plus près. S'il ne regardait pas : plouf, il sursaute et file sous l'eau. */
+  /** Nessie, toujours tourné vers Roré : il rêvasse (il regarde le ciel, ou il somnole), revient à toi (un cœur : il te
+   *  regarde) ; il guette la sardine, le cou tendu, ouvre grand la gueule, la happe, l'avale (la bouchée descend le long
+   *  du cou, il ferme les yeux de plaisir) ; puis il replonge et ressort plus près. S'il ne regardait pas : plouf, il
+   *  sursaute et file sous l'eau. Toutes ses poses suivent des ressorts : rien ne bouge d'un bloc. */
   draw(g: G) {
-    const t = this.t, sc = this.sc, ph = this.phase, k = Math.min(1, this.pt / Math.max(0.01, this.dur));
-    let sub = 0, curious = 0, open = 0, happy = false, gulp: number | undefined;
-    if (ph === 'under' || (ph === 'leave')) return;
-    if (ph === 'rise') sub = 1 - smooth(k);
-    else if (ph === 'dive') sub = smooth(k);
-    else if (ph === 'turn' || ph === 'look') curious = smooth(this.pt / 0.35);
-    else if (ph === 'track') { const u = Math.min(1, (t - (this.fish?.t0 ?? t)) / NessieMeet.FLIGHT); curious = 1 + 0.7 * smooth(u); open = smooth((u - 0.35) / 0.45); }
-    else if (ph === 'snap') { curious = 1.7 - k * 0.5; open = 0; }
-    else if (ph === 'gulp') { curious = 1.2 - k * 0.6; gulp = k; happy = true; }
-    else if (ph === 'startle') { curious = -0.6 * Math.sin(k * Math.PI); }
-    else if (ph === 'final') { curious = Math.min(1.8, this.pt * 1.2); happy = this.pt > 0.8; }
-    else if (ph === 'away') curious = -0.1 + Math.sin(t * 0.9) * 0.15;
+    const t = this.t, ph = this.phase;
+    if (ph === 'leave' && this.sSub.v > 1.2) return;
+    const curious = this.sCur.v;
     const [c, cg] = this.can;
-    cg.clearRect(0, 0, 128, 104);
-    const tq = Math.floor(t * 12) / 12;
-    const eye = paintNessie(cg, 64, 64, this.look, tq, { night: this.night, sub, flap: Math.sin(t * 1.8), curious, open, happy, gulp });
-    if (!eye) return;
+    cg.clearRect(0, 0, c.width, c.height);
+    const eye = paintNessie(cg, NessieMeet.AX, NessieMeet.AY, -1, t, {
+      night: this.night, sub: Math.max(0, this.sSub.v), flap: Math.sin(t * 1.8), curious, open: Math.max(0, this.sOpen.v),
+      happy: ph === 'gulp' || (ph === 'final' && this.pt > 0.9) || this.over === 'win',
+      shut: ph === 'away' && this.mood === 'doze', up: ph === 'away' && this.mood === 'sky',
+      gulp: ph === 'gulp' ? Math.min(1, this.pt / this.dur) : undefined,
+      // la tête suit le cou avec un peu de retard
+      nod: Math.max(-2, Math.min(2, -this.sCur.vel * 0.35)),
+      size: NessieMeet.SIZE,
+    });
     outline(c, this.night ? '#070a18' : '#10202e', { skipBottom: true });
-    // il se retourne : une image écrasée, le temps d'un battement
-    const turning = t - this.turnAt < 0.16;
-    const w = Math.round(128 * sc * (turning ? 0.55 : 1));
-    const dx = Math.round(this.x - (64 * sc) * (turning ? 0.55 : 1)), dy = SURFACE + 1 - 64 * sc;
-    g.drawImage(c, dx, dy, w, 104 * sc);
-    const kx = turning ? 0.55 : 1;
-    this.mouth = { x: dx + eye.mx * sc * kx, y: dy + eye.my * sc };
-    this.head = { x: dx + eye.x * sc * kx, y: dy + eye.y * sc };
-    // il te regarde : un petit cœur au-dessus de sa tête ; il a peur : un « ! »
-    if (ph === 'look' && this.pt > 0.25) heart(g, Math.round(this.head.x), Math.round(this.head.y - 10 - sc * 3 + Math.sin(t * 6)), Math.floor(t * 6) % 2 ? '#ff6fa8' : '#ffb0d0');
-    if (ph === 'startle') { const hx = Math.round(this.head.x), hy = Math.round(this.head.y - 14 - sc * 3); g.fillStyle = '#ffd166'; g.fillRect(hx, hy, 2, 5); g.fillRect(hx, hy + 6, 2, 2); }
+    const dx = Math.round(this.sX.v) - NessieMeet.AX, dy = SURFACE + 1 - NessieMeet.AY;
+    g.drawImage(c, dx, dy);
+    this.mouth = { x: dx + eye.mx, y: dy + eye.my };
+    this.head = { x: dx + eye.x, y: dy + eye.y };
+    // il te regarde : un petit cœur au-dessus de sa tête ; il somnole : des « z » ; il a peur : un « ! »
+    if (ph === 'look' && this.pt > 0.2) heart(g, Math.round(this.head.x), Math.round(this.head.y - 13 + Math.sin(t * 5) * 1.2), Math.floor(t * 5) % 2 ? '#ff6fa8' : '#ffb0d0');
+    if (ph === 'away' && this.mood === 'doze') for (let i = 0; i < 2; i++) { const q = (t * 0.6 + i * 0.5) % 1; pixelText(g, 'Z', Math.round(this.head.x + 4 + q * 8), Math.round(this.head.y - 10 - q * 10), `rgba(220,230,255,${1 - q})`); }
+    if (ph === 'startle') { const hx = Math.round(this.head.x), hy = Math.round(this.head.y - 16); g.fillStyle = '#ffd166'; g.fillRect(hx, hy, 2, 5); g.fillRect(hx, hy + 6, 2, 2); }
   }
 
   drawFront(g: G) {
@@ -492,6 +509,8 @@ export class NessieMeet {
       g.fillStyle = `rgba(255,255,255,${0.55 * (1 - k)})`;
       for (let q = 0; q < Math.PI * 2; q += 0.25) g.fillRect(Math.round(rg.x + Math.cos(q) * rx), Math.round(SURFACE + 1 + Math.sin(q) * ry), 1, 1);
     }
+    // l'eau qu'il pousse quand il nage sous la surface
+    if (this.phase === 'under' || this.phase === 'dive') { const q = (t * 2) % 1; g.fillStyle = `rgba(255,255,255,${0.4 * (1 - q)})`; for (let a = 0; a < Math.PI * 2; a += 0.3) g.fillRect(Math.round(this.sX.v + Math.cos(a) * (6 + q * 10)), Math.round(SURFACE + 1 + Math.sin(a) * (1 + q * 2)), 1, 1); }
     // la sardine : un bel arc, elle tourne sur elle-même, quelques gouttes derrière
     if (this.fish) {
       const f = this.fish, u = Math.min(1, (t - f.t0) / NessieMeet.FLIGHT);
@@ -502,14 +521,12 @@ export class NessieMeet {
       for (let i = 1; i <= 3; i++) { const v = Math.max(0, u - i * 0.05); g.fillRect(Math.round(f.x0 + (f.x1 - f.x0) * v), Math.round(f.y0 + (f.y1 - f.y0) * v - Math.sin(v * Math.PI) * peak + i), 1, 1); }
     }
     for (const h of this.hearts) { const k = (t - h.t0) / 1.6; if (k < 0) continue; heart(g, Math.round(h.x + Math.sin(k * 8) * 2), Math.round(h.y - k * 20), k < 0.7 ? '#ff6fa8' : '#ffb0d0'); }
-    if (this.phase === 'gulp' && this.pt < 0.1 && this.hearts.length < 3) this.hearts.push({ x: this.head.x, y: this.head.y - 6, t0: t });
     for (const b of this.bits) { g.fillStyle = b.col; g.fillRect(Math.round(b.x), Math.round(b.y), 1, 1); }
   }
 
   drawHud(g: G) {
     const t = this.t;
-    // en bas, sous l'eau (en haut, il y a son cou) : son nom, sa confiance (cinq cœurs) et tes erreurs (trois gouttes : à
-    // la dernière, il s'en va)
+    // en bas, sous l'eau : son nom, sa confiance (cinq cœurs) et tes erreurs (trois gouttes : à la dernière, il s'en va)
     const name = 'NESSIE', y = H - 22;
     pixelText(g, name, Math.round((W - textWidth(name)) / 2), y, '#ff9ab0');
     for (let i = 0; i < NessieMeet.GOAL; i++) heart(g, W / 2 - NessieMeet.GOAL * 6 + i * 12 + 6, y + 12, i < this.trust ? '#ff6fa8' : '#3a2a3a');

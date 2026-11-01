@@ -77,9 +77,10 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
   les géants ne se pêchent pas à la ligne (`giant` dans `FISH`, `ui/games/giants.ts`, phases `boss` et `tame`) : le Kraken est une
   rencontre-boss (`KrakenBoss` : tentacules énormes qui sortent de l'eau à gauche, derrière, à droite de la barque, ← ↑ → pour
   frapper celui qui se dresse, trois bouées de vie, son ombre et son œil sous la barque), Nessie s'apprivoise (`NessieMeet` :
-  Espace quand il s'est tourné vers la barque (un cœur), il guette la sardine, ouvre la gueule, la happe et l'avale, replonge
-  et ressort plus près ; sinon plouf, il sursaute et file sous l'eau ; `paintNessie` sait ouvrir la gueule `open`, fermer les
-  yeux `happy` et avaler `gulp` ; le sprite vient d'`engine/nessie.ts`,
+  toujours tourné vers Roré, à taille fixe (`SIZE`, dessiné au pixel près) ; distrait, il lève les yeux (`up`) ou somnole (`shut`) ;
+  Espace quand il te regarde (un cœur) : il guette la sardine, ouvre la gueule, la happe et l'avale, replonge et ressort plus près ;
+  sinon plouf, il sursaute et file sous l'eau ; ses poses suivent des ressorts (`Spring`) ; `paintNessie` : `size`, `open`, `happy`,
+  `shut`, `up`, `gulp`, `nod` ; le sprite vient d'`engine/nessie.ts`,
   `paintNessie`, partagé avec la mer) ; ils surgissent pendant la pêche, ou en mer (`meet` : « Approcher Nessie » devant sa grotte,
   « Défier le Kraken » la nuit tout au large, `sea.krakenHere`, `krakenTips`) ; les poissons sont des sprites
   animés (`drawFish` : phase `SWIM_HZ`, `FRAMES` poses, queue `tailFin`, corps `wave`, bras qui ondulent) passés par `fishSprite`
