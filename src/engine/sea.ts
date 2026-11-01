@@ -43,7 +43,7 @@ const ROCKS = 0.1, DOCK = 0.02;
 /** Le grand large commence ici (pour le coin des légendes). */
 export const OFFSHORE = 0.55;
 
-export type SeaNear = { kind: 'spot'; spot: Spot } | { kind: 'dock' };
+export type SeaNear = { kind: 'spot'; spot: Spot } | { kind: 'dock' } | { kind: 'nessie' } | { kind: 'kraken' };
 
 export class Sea {
   time = 0;
@@ -136,12 +136,19 @@ export class Sea {
   /** Ce qu'on peut faire ici : accoster au ponton, ou pêcher là où les oiseaux tournent. */
   near(): SeaNear | null {
     if (this.atDock() && this.dist < 0.14) return { kind: 'dock' };
+    // Nessie, sorti de sa grotte, qui regarde la barque ; le Kraken, qui rôde la nuit au grand large
+    if (this.serpent.phase === 'peek' && this.serpent.t > 1) return { kind: 'nessie' };
+    if (this.krakenHere()) return { kind: 'kraken' };
     for (const s of SPOTS) {
       if (this.time < s.restUntil || (s.lucky && this.dist < OFFSHORE)) continue;
       if (Math.abs(angleDiff(this.at, s.at)) < 0.12) return { kind: 'spot', spot: s };
     }
     return null;
   }
+
+  /** La nuit, tout au large, le Kraken rôde (sauf s'il vient de repartir au fond). */
+  krakenRest = 0;
+  krakenHere() { return this.night && this.dist >= 0.85 && this.time >= this.krakenRest; }
 
   /** Après une partie de pêche, les poissons du coin se dispersent un moment. */
   rest(spot: Spot) { spot.restUntil = this.time + 50; }

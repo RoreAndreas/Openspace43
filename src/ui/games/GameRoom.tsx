@@ -5,9 +5,9 @@ import { Fishing } from './Fishing.tsx';
 import { PingPong } from './PingPong.tsx';
 import { SpartanRun } from './SpartanRun.tsx';
 
-export function GameRoom({ game, lucky }: { game: 'pingpong' | 'arcade' | 'fishing'; lucky?: boolean }) {
+export function GameRoom({ game, lucky, meet }: { game: 'pingpong' | 'arcade' | 'fishing'; lucky?: boolean; meet?: 'kraken' | 'nessie' }) {
   const close = () => useOffice.setState({ modal: null });
-  if (game === 'fishing') return <Shell wide title="🎣 La pêche au large" sub="Lance, attends la touche, ferre au bon moment" onClose={close}><Fishing lucky={lucky} /></Shell>;
+  if (game === 'fishing') return <Shell wide title="🎣 La pêche au large" sub="Lance, attends la touche, ferre au bon moment" onClose={close}><Fishing lucky={lucky} meet={meet} /></Shell>;
   return game === 'pingpong'
     ? <Shell wide title="🏓 Ping-pong" sub="Roré contre un collègue, en 5 points" onClose={close}><PingPong onClose={close} /></Shell>
     : <Shell wide title="🕹️ Spartan Run" sub="La borne d’arcade de la Pause" onClose={close}><SpartanRun /></Shell>;

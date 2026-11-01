@@ -2,6 +2,8 @@
 
 ## À venir
 
+- **Les géants ne se pêchent plus à la ligne.** Le Kraken (ses trois variantes) devient une rencontre-boss : la mer s’assombrit, son ombre passe sous la barque, son œil s’ouvre dans le noir, et ses tentacules énormes sortent de l’eau à gauche, derrière ou à droite de la barque. ← ↑ → pour frapper celui qui se dresse avant qu’il ne s’abatte (trois bouées de vie). Nessie, lui, s’apprivoise : quand il regarde la barque (un petit cœur), Espace lui lance une sardine ; il l’attrape et s’approche. S’il regardait ailleurs, il a peur et plonge. En confiance, il vient jusqu’à Roré.
+- **On peut aller à leur rencontre en barque** : la nuit, devant sa grotte, « E · Approcher Nessie » ; tout au large, le bout des tentacules du Kraken sort de l’eau autour de la barque : « E · Défier le Kraken ».
 - **Le Kraken a trois variantes**, chacune avec sa fiche : le Kraken rouge (la nuit, au loin : l’œil doré, huit bras à ventouses), le Kraken abyssal (la nuit, très loin : violet, une cape de peau entre les bras, des taches et des yeux qui luisent) et le Calamar géant (le soir et la nuit : long manteau, nageoires qui battent, deux tentacules à massue). Ils nagent comme des pieuvres : ils se serrent et partent d’un coup, puis glissent en s’ouvrant lentement ; quand ils filent, leurs bras traînent derrière eux. Ils ne se retournent qu’entre deux jets.
 - **Le poisson se débat** : il tire au bout de la ligne, plonge loin dans le bleu (il rapetisse et s’assombrit), revient tout près, secoue la tête et fait gicler l’eau à la surface, file d’un coup quand tu rates. Un bon coup le ramène vers la barque. La canne plie, la ligne vibre, Roré est secoué quand il tire.
 - Les poissons ne saccadent plus : leur queue bat plus ou moins vite selon l’effort, sans à-coups.

@@ -19,6 +19,7 @@ import { robotSprite } from '../../engine/robots.ts';
 import type { TimeOfDay } from '../../engine/room.ts';
 import { useOffice } from '../../state/store.ts';
 import { loadScores, saveScores, useKeys, useLoop, type FishSave } from './common.ts';
+import { KrakenBoss, NessieMeet, type GiantEvent, type KrakenKind } from './giants.ts';
 
 const W = 256, H = 144;
 const HORIZON = 54, SURFACE = 76;
@@ -57,6 +58,8 @@ interface Spec {
   /** un sprite qui a son propre ombrage (pas l'éclairage par colonne), et son propre rythme : tant d'images pour un cycle de
    *  tant de secondes (les pieuvres et le calamar battent lentement, comme un jet) */
   own?: boolean; frames?: number; cycle?: number;
+  /** un géant : il ne se pêche pas à la ligne ; le Kraken se combat (ses tentacules), Nessie s'apprivoise */
+  giant?: 'boss' | 'tame';
 }
 const FISH: Record<Kind, Spec> = {
   sardine: { name: 'Sardine', kg: [0.05, 0.1], hp: 2, speed: 0.9, zone: 0.26, window: 0.6, far: 0, often: 10, w: 7, h: 3, body: '#9fb4c8', belly: '#e4edf5', fin: '#6f8aa4', hint: 'près de la barque, à toute heure', desc: 'Elle file en bancs argentés juste sous la barque. La première prise de tout pêcheur.', fact: 'Un banc peut compter des millions de sardines : elles tournent toutes ensemble, comme un seul grand poisson.' },
@@ -69,14 +72,14 @@ const FISH: Record<Kind, Spec> = {
   lotte: { name: 'Lotte', kg: [2, 8], hp: 6, speed: 1.4, zone: 0.14, window: 0.36, far: 0.45, when: ['night'], often: 3, w: 14, h: 9, body: '#6a5440', belly: '#8a7058', fin: '#3e3024', hint: 'seulement la nuit', desc: 'Une bouche immense et une petite lanterne sur la tête pour attirer les curieux.', tough: 0.42, drags: [0.6], fact: 'Sa lanterne est pleine de petites bactéries qui brillent. Les curieux s’approchent… et hop.' },
   raie: { name: 'Raie', kg: [3, 12], hp: 6, speed: 1.45, zone: 0.15, window: 0.38, far: 0.65, when: ['day'], often: 2, w: 16, h: 10, body: '#6a7a8a', belly: '#e8eef4', fin: '#4a5868', hint: 'très loin, de jour', desc: 'Elle vole sous l’eau comme un oiseau… et t’emmène faire un tour en barque.', tough: 0.46, drags: [0.7, 0.35], fact: 'Elle n’a pas d’os : son squelette est en cartilage, comme le bout de ton nez.' },
   thon: { name: 'Le Thon d’Or', kg: [40, 80], hp: 12, speed: 1.9, zone: 0.13, window: 0.55, far: 0.7, when: ['day', 'evening'], often: 0, w: 26, h: 9, body: '#e8b830', belly: '#fff0a8', fin: '#b88010', legend: true, hint: 'légendaire : un lancer parfait, au loin, de jour', desc: 'La légende des pêcheurs : il brille comme une pièce d’or et nage plus vite qu’un bateau.', tough: 0.55, drags: [0.7, 0.35], fact: 'Les vieux du port disent qu’il ne se montre qu’à ceux qui lancent parfaitement. Et ils ont raison.' },
-  nessie: { name: 'Nessie', kg: [300, 500], hp: 14, speed: 2.1, zone: 0.12, window: 0.55, far: 0.7, when: ['evening', 'night'], often: 0, w: 30, h: 8, body: '#e88a8a', belly: '#fff0dc', fin: '#c0606a', legend: true, hint: 'légendaire : un lancer parfait, au loin, le soir ou la nuit', desc: 'Le monstre de la grotte, rose corail. Timide… et très, très fort. On le relâche toujours.', tough: 0.6, drags: [0.7, 0.35], mouth: [19, -12], fact: 'Il chante doucement, la nuit, devant sa grotte. Si tu le prends, Roré le relâche toujours.' },
+  nessie: { name: 'Nessie', kg: [300, 500], hp: 14, speed: 2.1, zone: 0.12, window: 0.55, far: 0.7, when: ['evening', 'night'], often: 0, w: 30, h: 8, body: '#e88a8a', belly: '#fff0dc', fin: '#c0606a', legend: true, hint: 'légendaire : un lancer parfait au loin, le soir ou la nuit ; ou en barque, la nuit, devant sa grotte', desc: 'Le monstre de la grotte, rose corail. Timide… et très, très fort. On le relâche toujours.', tough: 0.6, drags: [0.7, 0.35], mouth: [19, -12], giant: 'tame', fact: 'Il chante doucement, la nuit, devant sa grotte. Si tu le prends, Roré le relâche toujours.' },
   espadon: { name: 'L’Espadon d’argent', kg: [80, 200], hp: 12, speed: 2.5, zone: 0.12, window: 0.45, far: 0.75, when: ['day'], often: 0, w: 40, h: 9, body: '#9fb0c8', belly: '#eef3fa', fin: '#4a6ad0', legend: true, hint: 'légendaire : un lancer parfait, très loin, de jour', desc: 'Le plus rapide de la mer : un rostre comme une épée, une grande voile bleue sur le dos. Il saute sans arrêt et le curseur file.', fact: 'Il dépasse les 100 km/h ; sa voile se replie quand il fonce.', tough: 0.5, drags: [0.6], jumpy: 0.8, mouth: [12, 0] },
   coelacanthe: { name: 'Le Cœlacanthe', kg: [40, 90], hp: 12, speed: 1.7, zone: 0.13, window: 0.5, far: 0.55, when: ['evening'], often: 0, w: 28, h: 12, body: '#2a4a7a', belly: '#3e6aa0', fin: '#1a3056', legend: true, hint: 'légendaire : un lancer parfait, au large, le soir', desc: 'Un poisson d’avant les dinosaures, bleu d’acier tacheté de blanc, avec des nageoires comme de petites pattes.', fact: 'On le croyait disparu depuis 66 millions d’années… jusqu’à ce qu’un pêcheur en remonte un, en 1938.', tough: 0.45, drags: [0.6], mouth: [14, 1] },
   requin: { name: 'Le Requin-baleine', kg: [2000, 9000], hp: 20, speed: 1.4, zone: 0.15, window: 0.6, far: 0.8, when: ['day'], often: 0, w: 42, h: 13, body: '#3a5a7a', belly: '#d8e2ea', fin: '#24405a', legend: true, hint: 'légendaire : un lancer parfait, très loin, de jour', desc: 'Le plus grand des poissons, doux comme un agneau : constellé de points blancs, une bouche immense pour avaler le plancton.', fact: 'Chaque requin-baleine a ses propres taches, comme une empreinte digitale.', tough: 0.55, drags: [0.7, 0.35], heavy: 1.3, mouth: [21, 2] },
   lune: { name: 'Le Poisson-lune', kg: [500, 1500], hp: 16, speed: 1.3, zone: 0.14, window: 0.6, far: 0.5, when: ['night'], often: 0, w: 22, h: 22, body: '#b8c0d0', belly: '#e8ecf4', fin: '#7a8498', legend: true, hint: 'légendaire : un lancer parfait, au large, la nuit', desc: 'Un géant rond et plat qui se laisse flotter sous la lune. Lent, mais si lourd que la ligne souffre à chaque raté.', fact: 'Le plus lourd des poissons osseux : plus d’une tonne… pour une toute petite bouche.', tough: 0.4, drags: [0.5], heavy: 1.6, mouth: [11, 1] },
-  kraken: { name: 'Le Kraken rouge', kg: [800, 2000], hp: 18, speed: 1.8, zone: 0.12, window: 0.55, far: 0.65, when: ['night'], often: 0, w: 32, h: 44, body: '#8e2e40', belly: '#b84a58', fin: '#5a1828', legend: true, hint: 'légendaire : un lancer parfait, au loin, la nuit', desc: 'Le Kraken des vieilles histoires : une pieuvre immense, rouge sombre, à l’œil doré. Il traîne la barque plus fort que tous les autres : tiens bon la ligne.', fact: 'Les marins d’autrefois le prenaient pour une île… jusqu’à ce que l’île se réveille.', tough: 0.68, drags: [0.75, 0.5, 0.25], mouth: [3, 6], deep: true, family: 'kraken', own: true, frames: 24, cycle: 2.2 },
-  abyssal: { name: 'Le Kraken abyssal', kg: [600, 1600], hp: 18, speed: 1.9, zone: 0.11, window: 0.55, far: 0.75, when: ['night'], often: 0, w: 32, h: 42, body: '#3a2160', belly: '#5a3488', fin: '#2a1848', legend: true, hint: 'légendaire : un lancer parfait, très loin, la nuit', desc: 'Une variante du Kraken, venue des grands fonds : violet nuit, une cape de peau entre les bras. Ses taches et ses yeux s’allument quand il respire ; sa zone verte flotte.', fact: 'Dans le noir des abysses, il s’enroule dans sa cape et ne montre que ses lumières.', tough: 0.66, drags: [0.7, 0.4], drift: 0.3, mouth: [-1, 6], deep: true, family: 'kraken', own: true, frames: 24, cycle: 2.2 },
-  geant: { name: 'Le Calamar géant', kg: [150, 500], hp: 16, speed: 2.2, zone: 0.12, window: 0.5, far: 0.7, when: ['evening', 'night'], often: 0, w: 66, h: 18, body: '#b4482e', belly: '#dc6c46', fin: '#6a2418', legend: true, hint: 'légendaire : un lancer parfait, au loin, le soir ou la nuit', desc: 'Une variante du Kraken : un calamar long comme la barque, des nageoires qui battent, deux longs tentacules à massue. Il file à reculons.', fact: 'Il a les plus grands yeux du monde animal : gros comme un ballon de foot.', tough: 0.6, drags: [0.65, 0.3], mouth: [-12, 0], deep: true, family: 'kraken', own: true, frames: 24, cycle: 2.2 },
+  kraken: { name: 'Le Kraken rouge', kg: [800, 2000], hp: 18, speed: 1.8, zone: 0.12, window: 0.55, far: 0.65, when: ['night'], often: 0, w: 32, h: 44, body: '#8e2e40', belly: '#b84a58', fin: '#5a1828', legend: true, hint: 'légendaire : un lancer parfait au loin, la nuit ; ou en barque, la nuit, au grand large', desc: 'Le Kraken des vieilles histoires : une pieuvre immense, rouge sombre, à l’œil doré. Il traîne la barque plus fort que tous les autres : tiens bon la ligne.', fact: 'Les marins d’autrefois le prenaient pour une île… jusqu’à ce que l’île se réveille.', tough: 0.68, drags: [0.75, 0.5, 0.25], mouth: [3, 6], deep: true, family: 'kraken', own: true, frames: 24, cycle: 2.2, giant: 'boss' },
+  abyssal: { name: 'Le Kraken abyssal', kg: [600, 1600], hp: 18, speed: 1.9, zone: 0.11, window: 0.55, far: 0.75, when: ['night'], often: 0, w: 32, h: 42, body: '#3a2160', belly: '#5a3488', fin: '#2a1848', legend: true, hint: 'légendaire : un lancer parfait, très loin, la nuit', desc: 'Une variante du Kraken, venue des grands fonds : violet nuit, une cape de peau entre les bras. Ses taches et ses yeux s’allument quand il respire ; sa zone verte flotte.', fact: 'Dans le noir des abysses, il s’enroule dans sa cape et ne montre que ses lumières.', tough: 0.66, drags: [0.7, 0.4], drift: 0.3, mouth: [-1, 6], deep: true, family: 'kraken', own: true, frames: 24, cycle: 2.2, giant: 'boss' },
+  geant: { name: 'Le Calamar géant', kg: [150, 500], hp: 16, speed: 2.2, zone: 0.12, window: 0.5, far: 0.7, when: ['evening', 'night'], often: 0, w: 66, h: 18, body: '#b4482e', belly: '#dc6c46', fin: '#6a2418', legend: true, hint: 'légendaire : un lancer parfait, au loin, le soir ou la nuit', desc: 'Une variante du Kraken : un calamar long comme la barque, des nageoires qui battent, deux longs tentacules à massue. Il file à reculons.', fact: 'Il a les plus grands yeux du monde animal : gros comme un ballon de foot.', tough: 0.6, drags: [0.65, 0.3], mouth: [-12, 0], deep: true, family: 'kraken', own: true, frames: 24, cycle: 2.2, giant: 'boss' },
   anguille: { name: 'L’Anguille-lumière', kg: [8, 25], hp: 11, speed: 2.0, zone: 0.11, window: 0.45, far: 0.7, when: ['night'], often: 0, w: 40, h: 6, body: '#26344e', belly: '#2a3a50', fin: '#8ff0ff', legend: true, hint: 'légendaire : un lancer parfait, très loin, la nuit', desc: 'Une longue anguille noire des abysses, zébrée de traits bleus qui s’allument en vagues. Elle se tortille : la zone verte bouge sans arrêt.', fact: 'Ses lumières viennent d’elle-même : elle s’en sert pour parler aux autres anguilles, dans le noir.', drift: 0.55, mouth: [21, 0] },
   botte: { name: 'Une vieille botte…', kg: [0.8, 0.8], hp: 1, speed: 0.6, zone: 0.4, window: 0.8, far: 0, often: 0, w: 8, h: 8, body: '#4a3a2c', belly: '#6b5440', fin: '#2e2418', junk: true, hint: '', desc: '' },
   algue: { name: 'Une algue, sur la tête', kg: [0.1, 0.1], hp: 1, speed: 0.6, zone: 0.4, window: 0.8, far: 0, often: 0, w: 8, h: 6, body: '#3f7a42', belly: '#5a9a52', fin: '#2f5e36', junk: true, hint: '', desc: '' },
@@ -505,11 +508,11 @@ const SKY = { day: ['#7cbaec', '#9bcdf1', '#bcdff5', '#dcedf7'], evening: ['#3a2
 const SEA = { day: ['#a6d2ea', '#5aa0cc', '#2a78b2', '#175a92'], evening: ['#f0a88a', '#8a5a88', '#4a3a72', '#2c2858'], night: ['#28335e', '#1a2850', '#0f1c40', '#0a1532'] };
 
 type SwimMode = 'pull' | 'dive' | 'rise' | 'thrash' | 'run';
-type Phase = 'ready' | 'boat' | 'aim' | 'cast' | 'wait' | 'warn' | 'bite' | 'fight' | 'drag' | 'catch' | 'fail';
+type Phase = 'boss' | 'tame' | 'ready' | 'boat' | 'aim' | 'cast' | 'wait' | 'warn' | 'bite' | 'fight' | 'drag' | 'catch' | 'fail';
 interface Bit { x: number; y: number; vx: number; vy: number; life: number; col: string }
 interface Card { title: string; sub: string; legend: boolean; junk: boolean; record: boolean }
 
-export function Fishing({ lucky = false }: { lucky?: boolean }) {
+export function Fishing({ lucky = false, meet }: { lucky?: boolean; meet?: 'kraken' | 'nessie' }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const keys = useKeys();
   const tod = timeOfDay(useOffice.getState().tod);
@@ -537,6 +540,8 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
     bubbles: [] as { x: number; y: number; t0: number }[],
     bits: [] as Bit[], confetti: [] as Bit[],
     msg: '', msgAt: -9,
+    // un géant : la rencontre en cours (le Kraken, Nessie)
+    giant: null as null | KrakenBoss | NessieMeet,
   });
   const [hud, setHud] = useState({ phase: 'ready' as Phase, card: null as Card | null, journal: { ...journal.current } });
   const [book, setBook] = useState(false);
@@ -561,6 +566,58 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
     st.shadow = null;
     st.nibbles = Math.floor(Math.random() * 4);
     st.nextEvent = st.t + 0.8 + Math.random() * 1.8;
+  };
+
+  /** Un géant surgit : le Kraken (une de ses trois variantes) se combat ; Nessie s'apprivoise. */
+  const startGiant = (kind: Kind) => {
+    const st = s.current, tame = FISH[kind].giant === 'tame';
+    st.kind = kind;
+    st.shadow = null;
+    st.giant = tame ? new NessieMeet(tod === 'night') : new KrakenBoss(kind as KrakenKind);
+    st.flashAt = st.t;
+    st.shake = tame ? 0 : 1;
+    set(tame ? 'tame' : 'boss');
+    say(tame ? 'CHUT... NESSIE SORT LA TETE' : 'LE KRAKEN SURGIT !');
+    sfx(tame ? 'open' : 'error');
+  };
+  const onGiant = (e: GiantEvent) => {
+    const st = s.current;
+    if (e === 'boil') sfx('tick', 0.6);
+    else if (e === 'rise') { st.shake = Math.max(st.shake, 0.25); sfx('send', 0.7); }
+    else if (e === 'hurt') { st.hitAt = st.t; sfx('check', 1.2); say('PAF !'); }
+    else if (e === 'hit') { st.shake = 0.8; st.sadUntil = st.t + 1.2; sfx('error'); say('AIE ! LA BARQUE TANGUE'); }
+    else if (e === 'whiff') sfx('no', 0.8);
+    else if (e === 'toss') { st.pressAt = st.t; sfx('send'); }
+    else if (e === 'catch') { sfx('check', 1.3); say('MIAM !'); }
+    else if (e === 'startle') { sfx('no'); say('PLOUF... IL A EU PEUR'); }
+    else if (e === 'win') winGiant();
+    else if (e === 'lose') loseGiant();
+  };
+  const winGiant = () => {
+    const st = s.current, sp = spec(), tame = sp.giant === 'tame';
+    const prev = journal.current[st.kind];
+    journal.current = { ...journal.current, [st.kind]: { n: (prev?.n ?? 0) + 1, kg: prev?.kg ?? 0 } };
+    const sc = loadScores();
+    sc.fish = { journal: journal.current };
+    saveScores(sc);
+    st.catchAt = st.t;
+    st.until = st.t + 4.5;
+    confetti(90);
+    sfx('done');
+    outside.fx.floatIcon(outside.rore.x, outside.rore.y - 26, 'heart');
+    const n = journal.current[st.kind].n;
+    set('catch', tame
+      ? { title: 'Nessie t’a adopté !', sub: prev ? `Apprivoisé ${n} fois.` : 'Nouveau dans le bestiaire.', legend: true, junk: false, record: false }
+      : { title: `${sp.name} repart au fond !`, sub: prev ? `Repoussé ${n} fois.` : 'Nouveau dans le bestiaire.', legend: true, junk: false, record: false });
+  };
+  const loseGiant = () => {
+    const st = s.current, tame = spec().giant === 'tame';
+    // (Roré tombe à la renverse seulement face au Kraken)
+    st.failAt = tame ? Infinity : st.t;
+    st.until = st.t + 3;
+    set('fail', tame
+      ? { title: 'Nessie est reparti…', sub: 'Il a eu peur. Il reviendra, si tu es patient.', legend: false, junk: true, record: false }
+      : { title: 'Le Kraken a gagné…', sub: 'La barque est repoussée au loin. Il reviendra.', legend: false, junk: true, record: false });
   };
 
   const action = () => {
@@ -596,6 +653,7 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
         return;
       }
       case 'fight': strike(); return;
+      case 'tame': if (st.giant instanceof NessieMeet) st.giant.toss(BOAT_X + Math.round(st.towX) + 24, SURFACE - 24); return;
       case 'drag':
         // le bras de fer : chaque coup d'Espace ramène un peu la corde vers Roré
         st.rope = Math.min(1, st.rope + 0.08);
@@ -798,7 +856,10 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
 
   const step = (dt: number) => {
     const st = s.current;
-    for (const k of keys.take()) if (k === ' ' || k === 'enter') action();
+    for (const k of keys.take()) {
+      if (st.phase === 'boss' && st.giant instanceof KrakenBoss) st.giant.press(k);
+      else if (k === ' ' || k === 'enter') action();
+    }
     st.t += dt;
     const t = st.t;
     {
@@ -818,7 +879,8 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
     st.rings = st.rings.filter((r) => t - r.t0 < 1.2);
     if (st.gull) { st.gull.t += dt; if (st.gull.t > 3) st.gull = null; }
     // la barque traînée revient doucement à sa place ; l'eau ralentit
-    if (st.phase !== 'drag') { st.towX += (0 - st.towX) * Math.min(1, dt * 1.5); st.scroll += dt * 4; }
+    // (face au Kraken, la barque glisse au milieu, entre ses tentacules)
+    if (st.phase !== 'drag') { st.towX += ((st.giant instanceof KrakenBoss ? 80 : 0) - st.towX) * Math.min(1, dt * 1.5); st.scroll += dt * 4; }
     switch (st.phase) {
       case 'aim':
         st.power += st.powDir * 1.25 * dt;
@@ -848,6 +910,7 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
           sh.y += (SURFACE + 10 - sh.y) * dt * 0.8;
           if (Math.abs(dx) <= 3 && t > st.nextNibble) {
             if (st.nibbles > 0) { st.nibbles--; st.dip = 0.45; st.nextNibble = t + 0.6 + Math.random() * 0.9; sfx('tick', 1.6); }
+            else if (spec().giant === 'tame') startGiant(st.kind);
             else if (spec().legend) { st.until = t + 1.3; st.flashAt = t; st.shake = 1.3; set('warn'); sfx('error'); }
             else { st.until = t + spec().window; st.dip = 1; set('bite'); sfx('ask'); }
           }
@@ -855,7 +918,8 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
         break;
       }
       case 'warn':
-        if (t > st.until) { st.until = t + spec().window; st.dip = 1; set('bite'); sfx('ask'); }
+        if (t > st.until && spec().giant) startGiant(st.kind);
+        else if (t > st.until) { st.until = t + spec().window; st.dip = 1; set('bite'); sfx('ask'); }
         break;
       case 'bite':
         st.dip = 1;
@@ -890,8 +954,12 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
         else if (st.rope <= 0) snap();
         break;
       }
+      case 'boss': case 'tame':
+        for (const e of st.giant!.update(dt)) onGiant(e);
+        break;
       case 'catch': case 'fail':
-        if (t > st.until) { st.bobX = TIP.x; st.bobY = TIP.y; set('boat'); }
+        st.giant?.update(dt);
+        if (t > st.until) { st.bobX = TIP.x; st.bobY = TIP.y; st.giant = null; set('boat'); }
         break;
     }
     // la barre de vie suit en douceur ; la traînée claire la rattrape plus lentement (comme pour un boss)
@@ -1020,6 +1088,8 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
       for (let k = 0; k < 5; k++) r(fx - k, SURFACE - 5 + k, 1 + k, 1, sp.fin);
       for (let k = 0; k < 4; k++) { const q = (t * 3 + k / 4) % 1; r(fx + 6 + q * 8, SURFACE - 2 - Math.sin(q * Math.PI) * 6, 1, 1, '#ffffff'); }
     }
+    // le Kraken : la mer s'assombrit, son ombre immense sous la barque
+    if (st.giant instanceof KrakenBoss) { g.fillStyle = 'rgba(6,4,18,0.28)'; g.fillRect(0, 0, W, H); st.giant.drawUnder(g, BX); }
     // la surface et ses vagues (elles défilent quand la barque est traînée)
     const wave = (x: number) => SURFACE + Math.sin((x + sc) * 0.08 + t * 2.2) * 1.2 + Math.sin((x + sc) * 0.21 - t * 1.4) * 0.6;
     for (let x = 0; x < W; x++) { const y = wave(x); r(x, y - 1, 1, 2, sea[1]); r(x, y + 1, 1, 1, 'rgba(255,255,255,0.35)'); if (Math.sin((x + sc) * 0.3 + t * 3) > 0.92) r(x, y - 1, 1, 1, '#ffffff'); }
@@ -1033,8 +1103,10 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
     // la même barque qu'en mer (boat.ts), la proue vers la droite, du côté de la canne et de la ligne
     const boat = paintBoat(22, 1, tilt, 3, night || tod === 'evening');
     const bdx = BX + 22 - boat.ox, bdy = Math.round(by + 6) - boat.oy;
+    if (st.giant instanceof KrakenBoss) { st.giant.drawSurface(g, BX); st.giant.drawBack(g, BX); }
+    else if (st.giant) st.giant.draw(g);
     g.drawImage(boat.back, bdx, bdy);
-    const pose = st.phase === 'aim' ? 'raise' : st.phase === 'cast' ? 'cheer' : dragging ? (t - st.pressAt < 0.12 ? 'cheer' : 'raise') : st.phase === 'fight' ? (t - st.hitAt < 0.2 ? 'cheer' : Math.floor(t * 5) % 2 ? 'raise' : 'type') : st.phase === 'bite' ? 'raise' : st.phase === 'catch' && !sp.junk ? 'cheer' : 'sit';
+    const pose = st.phase === 'boss' ? (t - st.hitAt < 0.25 ? 'cheer' : 'raise') : st.phase === 'tame' ? (t - st.pressAt < 0.3 ? 'cheer' : 'sit') : st.phase === 'aim' ? 'raise' : st.phase === 'cast' ? 'cheer' : dragging ? (t - st.pressAt < 0.12 ? 'cheer' : 'raise') : st.phase === 'fight' ? (t - st.hitAt < 0.2 ? 'cheer' : Math.floor(t * 5) % 2 ? 'raise' : 'type') : st.phase === 'bite' ? 'raise' : st.phase === 'catch' && !sp.junk ? 'cheer' : 'sit';
     const eyes = st.sadUntil > t ? 'down' : dragging ? 'open' : st.phase === 'catch' || st.phase === 'bite' || st.phase === 'warn' ? 'happy' : 'open';
     const sprite = robotSprite(outside.rore.id, pose, 'right', Math.floor(t * 6) % 2, eyes);
     if (st.phase === 'fail' && fall >= 0) {
@@ -1053,8 +1125,10 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
     // ce qui est sous l'eau prend sa couleur
     g.fillStyle = 'rgba(20,60,110,0.45)';
     for (let i = -22; i <= 22; i++) { const wl = Math.round(wave(BX + 22 + i)) + 1, bot = boat.ky(i) + bdy + 1; if (wl < bot) g.fillRect(BX + 22 + i, wl, 1, bot - wl); }
+    if (st.giant instanceof KrakenBoss) st.giant.drawFront(g, BX, BX + 24, by - 16);
+    else if (st.giant) st.giant.drawFront(g);
     // la canne : le manche en liège, le moulinet qui tourne, le scion qui plie avec la tension
-    if (st.phase !== 'fail') {
+    if (st.phase !== 'fail' && !st.giant) {
       const bend = st.phase === 'fight' || dragging ? 3 + st.tension * 6 + st.swim.strain * 5 + (t - st.missAt < 0.2 ? 3 : 0) : st.phase === 'bite' ? 4 : 1;
       for (let k = 0; k <= 18; k++) {
         const u = k / 18;
@@ -1082,7 +1156,7 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
     }
     const bx = st.bobX, byb = st.bobY + (st.phase === 'wait' || st.phase === 'bite' || st.phase === 'fight' || st.phase === 'warn' ? Math.sin(t * 2.4) * 0.8 + st.dip * 3 : dragging ? 1 : 0);
     if (mouth) { /* la ligne est déjà tirée jusqu'au poisson */ }
-    else if (st.phase !== 'ready' && st.phase !== 'boat' && st.phase !== 'aim' && st.phase !== 'fail') {
+    else if (st.phase !== 'ready' && st.phase !== 'boat' && st.phase !== 'aim' && st.phase !== 'fail' && !st.giant) {
       const taut = st.phase === 'fight' || dragging;
       g.fillStyle = taut && st.tension > 0.66 ? 'rgba(255,120,110,0.95)' : 'rgba(235,240,250,0.8)';
       const n = Math.max(8, Math.round(Math.hypot(bx - tipX, byb - tipY)));
@@ -1090,7 +1164,7 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
       if (st.phase !== 'cast' && st.dip < 0.9) { r(bx - 1, byb - 2, 3, 2, '#e5484d'); r(bx, byb - 3, 1, 1, '#ffffff'); }
       else if (st.phase === 'cast') { r(bx - 1, byb - 1, 3, 2, '#e5484d'); }
       if (st.phase === 'bite' || st.phase === 'fight') for (let i = 0; i < 2; i++) { const k = (t * 1.6 + i * 0.5) % 1; g.fillStyle = `rgba(255,255,255,${0.5 * (1 - k)})`; g.fillRect(Math.round(bx - 2 - k * 8), Math.round(SURFACE + 1), Math.round(5 + k * 16), 1); }
-    } else if (st.phase === 'fail') {
+    } else if (st.phase === 'fail' && !st.giant) {
       // le bout de ligne cassé qui retombe
       g.fillStyle = 'rgba(235,240,250,0.8)';
       for (let k = 0; k < 14; k++) g.fillRect(BX + 30 + k, Math.round(by - 14 + k * 0.6 + Math.sin(t * 8 + k) * 1), 1, 1);
@@ -1109,7 +1183,7 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
       r(gx - 3, gy - 3, 6, 3, '#f6f6fa'); r(gx + 2, gy - 5, 3, 3, '#f6f6fa'); r(gx + 5, gy - 4, 2, 1, '#ffb02e'); r(gx - 4, gy - 3 - (up ? 2 : 0), 3, 1, '#a8acb8'); r(gx + 1, gy - 3 - (up ? 2 : 0), 1, 1, '#a8acb8');
     }
     // le poisson qui s'envole au-dessus de Roré, pour la photo
-    if (st.phase === 'catch' && caught >= 0) {
+    if (st.phase === 'catch' && caught >= 0 && !sp.giant) {
       const u = Math.min(1, caught);
       const cx = Math.round(st.bobX + (BX + 20 - st.bobX) * u), cy = Math.round(SURFACE - Math.sin(u * Math.PI * 0.5) * 40 - (u >= 1 ? Math.sin(t * 4) * 2 : 0));
       const k = sp.w > 30 ? 1 : 2;
@@ -1128,6 +1202,8 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
     g.restore();
 
     // ── l'interface par-dessus ──
+    if (st.phase === 'boss' && st.giant instanceof KrakenBoss) st.giant.drawHud(g, BX);
+    if (st.phase === 'tame' && st.giant instanceof NessieMeet) st.giant.drawHud(g);
     const frame = (x: number, y: number, w: number, h: number) => { r(x - 2, y - 2, w + 4, h + 4, '#15121d'); r(x - 1, y - 1, w + 2, h + 2, '#4a4458'); r(x, y, w, h, '#2a2636'); };
     // la jauge du lancer
     if (st.phase === 'aim') {
@@ -1231,6 +1307,13 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
     }
   };
 
+  // en mer, on va à sa rencontre : la rencontre commence tout de suite (le Kraken : une variante qui sort à cette heure-ci)
+  useEffect(() => {
+    if (!meet) return;
+    const ks = (['kraken', 'abyssal', 'geant'] as Kind[]).filter((k) => FISH[k].when!.includes(tod));
+    startGiant(meet === 'nessie' ? 'nessie' : ks.length ? ks[Math.floor(Math.random() * ks.length)] : 'kraken');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useLoop(step, draw, []);
 
   const tip: Record<Phase, string> = {
@@ -1245,6 +1328,8 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
     drag: 'Il t’emmène ! Tape sur Espace très vite pour tenir la ligne et le fatiguer.',
     catch: '',
     fail: '',
+    boss: '← ↑ → (ou Q Z D) : frappe le tentacule qui se dresse, avant qu’il ne s’abatte sur la barque. Trois coups et c’est fini !',
+    tame: 'Espace quand Nessie te regarde (un cœur au-dessus de lui) : il attrape la sardine et s’approche. S’il regarde ailleurs, il prend peur.',
   };
 
   const caught = SPECIES.filter((k) => hud.journal[k]);
@@ -1342,7 +1427,7 @@ function BestiarySheet({ kind, entry }: { kind: Kind; entry?: { n: number; kg: n
         <span className="bestiary-stars" title="Rareté">{'★'.repeat(stars)}<i className="dim">{'★'.repeat(5 - stars)}</i>{sp.legend ? ' légendaire' : ''}</span>
         <p className="small muted">{when} · {where}{known ? ` · ${fmtKg(sp.kg[0])} à ${fmtKg(sp.kg[1])}` : ''}{sp.tough ? ' · traîne la barque' : ''}</p>
         {known ? <p className="small">{sp.desc}{sp.fact ? <> <span className="bestiary-fact">{sp.fact}</span></> : null}</p> : <p className="small muted">Indice : {sp.hint}.</p>}
-        {known && <p className="small muted">Ta pêche : {entry.n} {entry.n > 1 ? 'prises' : 'prise'}, record {fmtKg(entry.kg)}.</p>}
+        {known && (sp.giant ? <p className="small muted">{sp.giant === 'boss' ? 'Repoussé' : 'Apprivoisé'} {entry.n} fois.</p> : <p className="small muted">Ta pêche : {entry.n} {entry.n > 1 ? 'prises' : 'prise'}, record {fmtKg(entry.kg)}.</p>)}
       </div>
     </div>
   );

@@ -132,6 +132,13 @@ export function interactSea() {
   if (!n) return;
   if (n.kind === 'dock') { goRoom('outside'); return; }
   sfx('open');
+  // les géants : on va à leur rencontre (le Kraken repart ensuite un moment ; Nessie replonge)
+  if (n.kind === 'nessie' || n.kind === 'kraken') {
+    if (n.kind === 'kraken') sea.krakenRest = sea.time + 90;
+    else { sea.serpent.phase = 'dive'; sea.serpent.t = 0; }
+    useOffice.setState({ modal: { kind: 'game', game: 'fishing', meet: n.kind } });
+    return;
+  }
   sea.rest(n.spot);
   useOffice.setState({ modal: { kind: 'game', game: 'fishing', lucky: n.spot.lucky } });
 }

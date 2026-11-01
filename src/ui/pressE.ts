@@ -22,7 +22,8 @@ export function nearRore(): Near | null {
   if (room === 'sea') {
     const n = sea.near();
     if (!n) return null;
-    return { verb: n.kind === 'dock' ? 'Accoster au ponton' : `Pêcher ici : ${n.spot.name.toLowerCase()}`, act: interactSea };
+    const verb = n.kind === 'dock' ? 'Accoster au ponton' : n.kind === 'nessie' ? 'Approcher Nessie' : n.kind === 'kraken' ? 'Défier le Kraken' : `Pêcher ici : ${n.spot.name.toLowerCase()}`;
+    return { verb, act: interactSea };
   }
   const inAnnex = room === 'annex';
   const me = roreHere();

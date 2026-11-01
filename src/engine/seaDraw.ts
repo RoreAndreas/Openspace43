@@ -10,6 +10,7 @@ import { pixelText, textWidth } from './font.ts';
 import { H, WIDE } from './layout.ts';
 import { g2d, hline, makeCanvas, mix, outline, P, px, rect, rgba, vline, type G } from './pixels.ts';
 import { paintBoat } from './boat.ts';
+import { paintNessie } from './nessie.ts';
 import { ANCHOR_X, ANCHOR_Y, robotSprite, type Dir, type Pose } from './robots.ts';
 import type { TimeOfDay } from './room.ts';
 import { angleDiff, LANDMARKS, OFFSHORE, SPOTS, type Sea } from './sea.ts';
@@ -35,9 +36,6 @@ const STRATA = ['#c2b6a0', '#b0a48e', '#9c917f', '#8a806f', '#776e60'];
  *  corail, le ventre crème, des branchies en plumeau de chaque côté de la tête (comme un axolotl) ; un long cou, une petite
  *  tête ronde aux yeux doux ; deux bosses tachetées qui ondulent dans l'eau, le bout de la queue qui frétille, des
  *  nageoires qui pagaient (en vol, elles battent comme des ailes). */
-const NESSIE = { body: '#e88a8a', dark: '#c0606a', hi: '#ffb0a8', belly: '#fff0dc', spot: '#ffc8b8', gill: '#ff6a9a', gillHi: '#ffb0d0', eye: '#141a28', blush: '#ff6a8a' };
-type Palette = typeof NESSIE;
-const NESSIE_NIGHT: Palette = Object.fromEntries(Object.entries(NESSIE).map(([k, c]) => [k, k === 'eye' ? c : mix(c, '#0b1230', 0.32)])) as Palette;
 /** Son petit canevas (il y est dessiné à l'échelle 1) et sa ligne d'eau dedans. */
 const MON_W = 128, MON_H = 104, MON_X = 64, MON_Y = 64;
 /** Ses yeux, la nuit, accrochent la moindre lueur. */
@@ -291,6 +289,8 @@ export class SeaRenderer {
     if (pav.front > 0.45 && pav.x > -60 && pav.x < W + 60) this.jetty(g, pav.x + Math.round(8 * pav.front * v.z), sea, v, t);
     this.boat(g, sea, roreKey, t, tod);
     if (tod !== 'day') this.glows(g, sea, tod);
+    // (après la nuit : ses tentacules se détachent dans le noir)
+    if (sea.krakenHere()) this.krakenTips(g, t);
     this.minimap(g, sea);
   }
 
@@ -608,90 +608,13 @@ export class SeaRenderer {
     const tq = Math.floor(o.t * 10) / 10;
     const mg = this.monG;
     mg.clearRect(0, 0, MON_W, MON_H);
-    const eye = this.nessie(mg, MON_X, MON_Y, o.look, tq, o);
+    const eye = paintNessie(mg, MON_X, MON_Y, o.look, tq, o);
     if (!eye) return null;
     outline(this.monCan, o.night ? '#070a18' : '#10202e', { skipBottom: true });
     const dx = Math.round(x) - MON_X * o.sc, dy = Math.round(y) - MON_Y * o.sc;
     g.imageSmoothingEnabled = false;
     g.drawImage(this.monCan, dx, dy, MON_W * o.sc, MON_H * o.sc);
     return { x: dx + eye.x * o.sc, y: dy + eye.y * o.sc };
-  }
-
-  /** Nessie, à l'échelle 1, sa ligne d'eau en (x, wl) : deux bosses qui ondulent et le bout de la queue qui frétille,
-   *  derrière ; la nageoire qui pagaie ; le long cou en S, qui se tend vers la barque quand il est curieux ; la tête ronde,
-   *  le museau, la mâchoire crème, l'œil doux, les branchies en plumeau. `sub` : combien il est encore sous l'eau (0 : sorti).
-   *  Il reste toujours dans l'eau. */
-  private nessie(g: G, x: number, wl: number, look: number, t: number, o: { night: boolean; sub: number; flap: number; curious?: number }) {
-    const c = o.night ? NESSIE_NIGHT : NESSIE;
-    // il remonte : tout est décalé vers le bas, et ce qui est sous la ligne d'eau ne se dessine pas
-    const sink = Math.round(clamp(o.sub, 0, 1) * 34);
-    const fill = (x0: number, y0: number, w: number, hh: number, col: string) => {
-      const ya = Math.round(y0 + sink), yb = Math.min(Math.round(y0 + sink + hh), wl + 1);
-      if (yb > ya && w > 0) rect(g, x0, ya, w, yb - ya, col);
-    };
-    const dot = (x0: number, y0: number, col: string) => fill(x0, y0, 1, 1, col);
-    const breath = Math.round(Math.sin(t * 1.1) * 0.6);
-    const base = wl + breath;
-    const curious = o.curious ?? 0;
-    // un dôme (une bosse) : le dessus plus clair, des taches
-    const dome = (cx: number, r: number, h: number) => {
-      for (let k = -r; k <= r; k++) {
-        const hh = Math.round(h * Math.sqrt(Math.max(0, 1 - (k / (r + 0.5)) ** 2)));
-        if (hh <= 0) continue;
-        fill(cx + k, base - hh + 1, 1, hh, k * look > 0 ? c.body : c.dark);
-        dot(cx + k, base - hh + 1, c.hi);
-        if ((k + 40) % 4 === 1 && hh > 3) dot(cx + k, base - hh + 3, c.spot);
-      }
-    };
-    // deux bosses qui ondulent l'une après l'autre, et le bout de la queue qui frétille
-    dome(x - look * 10, 7, 6 + Math.round(Math.sin(t * 1.6) * 1.5));
-    dome(x - look * 23, 6, 5 + Math.round(Math.sin(t * 1.6 - 1.3) * 1.5));
-    const tw = Math.round(Math.sin(t * 3) * 1.5);
-    for (let i = 0; i < 5; i++) fill(x - look * (32 + i), base - i - 1 + (i > 2 ? tw : 0), 2, 1, i < 3 ? c.dark : c.body);
-    // le cou : épais à la base, il monte en S ; il se tend vers la barque quand Nessie est curieux
-    const nx0 = x + look * 3, ny0 = base;
-    const N = 28, lean = 3 + curious * 5;
-    let hx = nx0, hy = ny0;
-    for (let i = 0; i <= N; i++) {
-      const u = i / N;
-      const nx = nx0 + look * (Math.sin(u * Math.PI * 0.85) * 3 + u * u * lean) + Math.round(Math.sin(t * 1.1 + u * 2.4) * 0.8 * u);
-      const ny = ny0 - i + Math.round(u * u * curious * 3);
-      const w = Math.round(5.5 * (1 - u * 0.45));
-      fill(nx - w / 2, ny, w, 1, c.body);
-      fill(look > 0 ? nx + w * 0.05 : nx - w * 0.45, ny, Math.max(1, Math.round(w * 0.4)), 1, c.belly);
-      dot(look > 0 ? nx - w / 2 : nx + w / 2 - 1, ny, c.dark);
-      hx = nx; hy = ny;
-    }
-    // la nageoire de devant, qui pagaie à la surface
-    {
-      const rx = x + look * 3, ry = base, len = 7, ang = -0.2 + 0.15 * o.flap;
-      const tx = rx - look * len * 0.55 * Math.cos(ang), ty = ry - len * Math.sin(ang) + 2;
-      for (let k = 0; k <= len; k++) {
-        const q = k / len, w = Math.max(1, Math.round(2.5 * Math.sin(q * Math.PI)));
-        fill(rx + (tx - rx) * q, ry + (ty - ry) * q - w / 2, w, w, k < 2 ? c.dark : c.body);
-      }
-    }
-    // la tête : ronde, le museau vers la barque, la mâchoire crème, l'œil doux, les branchies ; elle se penche
-    const tilt = Math.round(Math.sin(t * 0.5) * 0.8 + curious);
-    const cx = hx + look * 2, cy = hy - 2 + tilt;
-    for (let dy = -3; dy <= 3; dy++) { const w = Math.round(4.5 * Math.sqrt(Math.max(0, 1 - (dy / 3.3) ** 2))); fill(cx - w, cy + dy, w * 2 + 1, 1, c.body); }
-    const sn = cx + look * 3;
-    for (let dy = -2; dy <= 1; dy++) { const w = Math.round(2.8 * Math.sqrt(Math.max(0, 1 - (dy / 2.2) ** 2))); fill(look > 0 ? sn : sn - w, cy + dy + 1, w, 1, dy > 0 ? c.belly : c.body); }
-    fill(look > 0 ? cx - 1 : cx - 4, cy + 2, 6, 1, c.belly);
-    dot(look > 0 ? sn + 2 : sn - 3, cy + 1, c.dark);
-    dot(cx - look, cy + 1, c.blush);
-    // les branchies en plumeau, derrière la tête : trois de chaque côté, qui ondulent (celles d'en face, plus sombres)
-    for (const [far, dx0] of [[true, 1], [false, 0]] as [boolean, number][]) {
-      [[-3, 0], [-1, 1], [1, 2]].forEach(([gy, ph]) => {
-        const wig = Math.round(Math.sin(t * 3 + ph) * 0.6);
-        for (let k = 0; k < 3; k++) dot(cx - look * (4 + k + dx0), cy + gy - Math.round(k * 0.6) + (far ? -1 : 0) + (k === 2 ? wig : 0), far ? c.dark : c.gill);
-        dot(cx - look * (7 + dx0), cy + gy - 2 + (far ? -1 : 0) + wig, far ? c.gill : c.gillHi);
-      });
-    }
-    const ex = Math.round(cx + look * 1.5), ey = Math.round(cy - 1);
-    if ((t % 4.6) < 0.14) fill(ex - 1, ey, 2, 1, c.eye);
-    else { fill(ex - 1, ey - 1, 2, 2, c.eye); dot(ex - 1, ey - 1, '#ffffff'); }
-    return { x: ex, y: ey + sink };
   }
 
   /** La nuit, Nessie quitte sa grotte et nage au large : où il en est (ou null s'il est chez lui). */
@@ -906,6 +829,41 @@ export class SeaRenderer {
         for (let q = 0; q < Math.PI * 2; q += 0.3) g.fillRect(Math.round(x0 + dir * 8 * s + Math.cos(q) * rx), Math.round(y0 + Math.sin(q) * ry), 1, 1);
         if (u < 0.25) for (let d = -1; d <= 1; d++) px(g, x0 + dir * 8 * s + d * 2, y0 - 3 + u * 12 - Math.abs(d), '#ffffff');
       }
+    }
+  }
+
+  /** La nuit, tout au large : le Kraken rôde sous la barque. Le bout de ses tentacules sort de l'eau autour d'elle, l'un
+   *  après l'autre, s'enroule et replonge ; l'eau tourne. (E · Défier le Kraken.) */
+  private krakenTips(g: G, t: number) {
+    const tips: [number, number, number][] = [[-62, 3, 0], [60, 4, 2.4]];
+    for (const [dx, dy, ph] of tips) {
+      const k = Math.sin(t * 0.45 + ph);
+      if (k < 0.08) continue;
+      const far = dy < 0 ? 0.7 : 1, side = dx > 0 ? -1 : 1;
+      const x0 = CX + dx, y0 = BOAT_Y + 6 + dy;
+      // l'eau qui tourne autour de la base
+      const ring = (t * 0.8 + ph) % 1;
+      g.fillStyle = crgba('#ffffff', 0.4 * (1 - ring) * k);
+      for (let q = 0; q < Math.PI * 2; q += 0.35) g.fillRect(Math.round(x0 + Math.cos(q) * (4 + ring * 9) * far), Math.round(y0 + Math.sin(q) * (1 + ring * 2) * far), 1, 1);
+      const len = 32 * Math.min(1, k * 1.3) * far;
+      // le tentacule : un trait épais et cerné de sombre, la face claire et ses ventouses vers la barque
+      const pts: [number, number, number][] = [];
+      let x = x0, y = y0;
+      for (let s = 0; s <= len; s += 0.5) {
+        const u = s / (32 * far);
+        const a = -Math.PI / 2 + 0.3 * Math.sin(t * 1.3 - u * 3 + ph) * u + side * 2.8 * u ** 3;
+        x += Math.cos(a) * 0.5; y += Math.sin(a) * 0.5;
+        pts.push([x, y, Math.max(1, Math.round((6 * (1 - u) + 1.2) * far))]);
+      }
+      for (const [x1, y1, th] of pts) { g.fillStyle = '#12060c'; g.fillRect(Math.round(x1 - th / 2) - 1, Math.round(y1 - th / 2) - 1, th + 2, th + 2); }
+      pts.forEach(([x1, y1, th], i) => {
+        g.fillStyle = far < 1 ? '#5a2034' : '#8a2e44';
+        g.fillRect(Math.round(x1 - th / 2), Math.round(y1 - th / 2), th, th);
+        if (th >= 3) { g.fillStyle = '#b84c62'; g.fillRect(Math.round(x1 + side * (th / 2 - 1)), Math.round(y1), 1, 1); }
+        if (th >= 3 && i % 8 === 0) { g.fillStyle = '#f0b8c0'; g.fillRect(Math.round(x1 + side * (th / 2 - 1)), Math.round(y1), 1, 1); }
+      });
+      g.fillStyle = crgba('#ffffff', 0.7);
+      for (let i = -2; i <= 2; i++) g.fillRect(Math.round(x0 + i * 2 * far), Math.round(y0 + (i % 2 ? 0 : 1)), 1, 1);
     }
   }
 
