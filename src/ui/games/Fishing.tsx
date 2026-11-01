@@ -31,7 +31,7 @@ const PERFECT: [number, number] = [0.87, 0.93];
 const BAR = { x: 48, y: 126, w: 160, h: 7 };
 
 // ── Les prises ──
-type Kind = 'sardine' | 'maquereau' | 'rouget' | 'poulpe' | 'dorade' | 'calamar' | 'bar' | 'lotte' | 'raie' | 'thon' | 'espadon' | 'coelacanthe' | 'requin' | 'nessie' | 'lune' | 'kraken' | 'anguille' | 'botte' | 'algue';
+type Kind = 'sardine' | 'maquereau' | 'rouget' | 'poulpe' | 'dorade' | 'calamar' | 'bar' | 'lotte' | 'raie' | 'thon' | 'espadon' | 'coelacanthe' | 'requin' | 'nessie' | 'lune' | 'kraken' | 'abyssal' | 'geant' | 'anguille' | 'botte' | 'algue';
 interface Spec {
   name: string; kg: [number, number]; hp: number;
   /** la vitesse du curseur, la largeur de la zone verte, le temps pour ferrer (s) */
@@ -52,6 +52,11 @@ interface Spec {
   drift?: number; heavy?: number; jumpy?: number;
   /** il vit au fond : il ne saute jamais, nage lentement, et reste en bas même quand il traîne la barque */
   deep?: boolean;
+  /** une variante d'une même légende (le Kraken) : elles se partagent une seule place parmi les légendes */
+  family?: string;
+  /** un sprite qui a son propre ombrage (pas l'éclairage par colonne), et son propre rythme : tant d'images pour un cycle de
+   *  tant de secondes (les pieuvres et le calamar battent lentement, comme un jet) */
+  own?: boolean; frames?: number; cycle?: number;
 }
 const FISH: Record<Kind, Spec> = {
   sardine: { name: 'Sardine', kg: [0.05, 0.1], hp: 2, speed: 0.9, zone: 0.26, window: 0.6, far: 0, often: 10, w: 7, h: 3, body: '#9fb4c8', belly: '#e4edf5', fin: '#6f8aa4', hint: 'près de la barque, à toute heure', desc: 'Elle file en bancs argentés juste sous la barque. La première prise de tout pêcheur.', fact: 'Un banc peut compter des millions de sardines : elles tournent toutes ensemble, comme un seul grand poisson.' },
@@ -69,7 +74,9 @@ const FISH: Record<Kind, Spec> = {
   coelacanthe: { name: 'Le Cœlacanthe', kg: [40, 90], hp: 12, speed: 1.7, zone: 0.13, window: 0.5, far: 0.55, when: ['evening'], often: 0, w: 28, h: 12, body: '#2a4a7a', belly: '#3e6aa0', fin: '#1a3056', legend: true, hint: 'légendaire : un lancer parfait, au large, le soir', desc: 'Un poisson d’avant les dinosaures, bleu d’acier tacheté de blanc, avec des nageoires comme de petites pattes.', fact: 'On le croyait disparu depuis 66 millions d’années… jusqu’à ce qu’un pêcheur en remonte un, en 1938.', tough: 0.45, drags: [0.6], mouth: [14, 1] },
   requin: { name: 'Le Requin-baleine', kg: [2000, 9000], hp: 20, speed: 1.4, zone: 0.15, window: 0.6, far: 0.8, when: ['day'], often: 0, w: 42, h: 13, body: '#3a5a7a', belly: '#d8e2ea', fin: '#24405a', legend: true, hint: 'légendaire : un lancer parfait, très loin, de jour', desc: 'Le plus grand des poissons, doux comme un agneau : constellé de points blancs, une bouche immense pour avaler le plancton.', fact: 'Chaque requin-baleine a ses propres taches, comme une empreinte digitale.', tough: 0.55, drags: [0.7, 0.35], heavy: 1.3, mouth: [21, 2] },
   lune: { name: 'Le Poisson-lune', kg: [500, 1500], hp: 16, speed: 1.3, zone: 0.14, window: 0.6, far: 0.5, when: ['night'], often: 0, w: 22, h: 22, body: '#b8c0d0', belly: '#e8ecf4', fin: '#7a8498', legend: true, hint: 'légendaire : un lancer parfait, au large, la nuit', desc: 'Un géant rond et plat qui se laisse flotter sous la lune. Lent, mais si lourd que la ligne souffre à chaque raté.', fact: 'Le plus lourd des poissons osseux : plus d’une tonne… pour une toute petite bouche.', tough: 0.4, drags: [0.5], heavy: 1.6, mouth: [11, 1] },
-  kraken: { name: 'Le Kraken', kg: [800, 2000], hp: 18, speed: 1.8, zone: 0.12, window: 0.55, far: 0.65, when: ['night'], often: 0, w: 28, h: 24, body: '#a83a4a', belly: '#c85a68', fin: '#6a2030', legend: true, hint: 'légendaire : un lancer parfait, au loin, la nuit', desc: 'Une pieuvre immense, rouge sombre. Il traîne la barque plus fort que tous les autres : tiens bon la ligne.', fact: 'Les marins d’autrefois le prenaient pour une île… jusqu’à ce que l’île se réveille.', tough: 0.68, drags: [0.75, 0.5, 0.25], mouth: [2, 4], deep: true },
+  kraken: { name: 'Le Kraken rouge', kg: [800, 2000], hp: 18, speed: 1.8, zone: 0.12, window: 0.55, far: 0.65, when: ['night'], often: 0, w: 32, h: 44, body: '#8e2e40', belly: '#b84a58', fin: '#5a1828', legend: true, hint: 'légendaire : un lancer parfait, au loin, la nuit', desc: 'Le Kraken des vieilles histoires : une pieuvre immense, rouge sombre, à l’œil doré. Il traîne la barque plus fort que tous les autres : tiens bon la ligne.', fact: 'Les marins d’autrefois le prenaient pour une île… jusqu’à ce que l’île se réveille.', tough: 0.68, drags: [0.75, 0.5, 0.25], mouth: [3, 6], deep: true, family: 'kraken', own: true, frames: 16, cycle: 2.2 },
+  abyssal: { name: 'Le Kraken abyssal', kg: [600, 1600], hp: 18, speed: 1.9, zone: 0.11, window: 0.55, far: 0.75, when: ['night'], often: 0, w: 32, h: 42, body: '#3a2160', belly: '#5a3488', fin: '#2a1848', legend: true, hint: 'légendaire : un lancer parfait, très loin, la nuit', desc: 'Une variante du Kraken, venue des grands fonds : violet nuit, une cape de peau entre les bras. Ses taches et ses yeux s’allument quand il respire ; sa zone verte flotte.', fact: 'Dans le noir des abysses, il s’enroule dans sa cape et ne montre que ses lumières.', tough: 0.66, drags: [0.7, 0.4], drift: 0.3, mouth: [-1, 6], deep: true, family: 'kraken', own: true, frames: 16, cycle: 2.2 },
+  geant: { name: 'Le Calamar géant', kg: [150, 500], hp: 16, speed: 2.2, zone: 0.12, window: 0.5, far: 0.7, when: ['evening', 'night'], often: 0, w: 66, h: 18, body: '#b4482e', belly: '#dc6c46', fin: '#6a2418', legend: true, hint: 'légendaire : un lancer parfait, au loin, le soir ou la nuit', desc: 'Une variante du Kraken : un calamar long comme la barque, des nageoires qui battent, deux longs tentacules à massue. Il file à reculons.', fact: 'Il a les plus grands yeux du monde animal : gros comme un ballon de foot.', tough: 0.6, drags: [0.65, 0.3], mouth: [-12, 0], deep: true, family: 'kraken', own: true, frames: 16, cycle: 2.2 },
   anguille: { name: 'L’Anguille-lumière', kg: [8, 25], hp: 11, speed: 2.0, zone: 0.11, window: 0.45, far: 0.7, when: ['night'], often: 0, w: 40, h: 6, body: '#26344e', belly: '#2a3a50', fin: '#8ff0ff', legend: true, hint: 'légendaire : un lancer parfait, très loin, la nuit', desc: 'Une longue anguille noire des abysses, zébrée de traits bleus qui s’allument en vagues. Elle se tortille : la zone verte bouge sans arrêt.', fact: 'Ses lumières viennent d’elle-même : elle s’en sert pour parler aux autres anguilles, dans le noir.', drift: 0.55, mouth: [21, 0] },
   botte: { name: 'Une vieille botte…', kg: [0.8, 0.8], hp: 1, speed: 0.6, zone: 0.4, window: 0.8, far: 0, often: 0, w: 8, h: 8, body: '#4a3a2c', belly: '#6b5440', fin: '#2e2418', junk: true, hint: '', desc: '' },
   algue: { name: 'Une algue, sur la tête', kg: [0.1, 0.1], hp: 1, speed: 0.6, zone: 0.4, window: 0.8, far: 0, often: 0, w: 8, h: 6, body: '#3f7a42', belly: '#5a9a52', fin: '#2f5e36', junk: true, hint: '', desc: '' },
@@ -84,7 +91,13 @@ function pickCatch(power: number, perfect: boolean, tod: TimeOfDay, lucky = fals
   if (r < 0.05) return 'botte';
   if (r < 0.08) return 'algue';
   const legends = SPECIES.filter((k) => FISH[k].legend).filter((k) => FISH[k].when!.includes(tod) && power >= FISH[k].far);
-  if (legends.length && Math.random() < (perfect ? 0.12 : 0.02) * (lucky ? 2.5 : 1)) return legends[Math.floor(Math.random() * legends.length)];
+  if (legends.length && Math.random() < (perfect ? 0.12 : 0.02) * (lucky ? 2.5 : 1)) {
+    // les variantes d'une même légende (le Kraken rouge, l'abyssal, le calamar géant) ne comptent que pour une
+    const slots = [...new Set(legends.map((k) => FISH[k].family ?? k))];
+    const slot = slots[Math.floor(Math.random() * slots.length)];
+    const pick = legends.filter((k) => (FISH[k].family ?? k) === slot);
+    return pick[Math.floor(Math.random() * pick.length)];
+  }
   const pool = SPECIES.filter((k) => !FISH[k].legend && power >= FISH[k].far && (!FISH[k].when || FISH[k].when!.includes(tod)));
   const weight = (k: Kind) => FISH[k].often * (k === 'maquereau' && tod === 'evening' ? 3 : 1) * (perfect && FISH[k].far >= 0.4 ? 2 : 1);
   let x = Math.random() * pool.reduce((s, k) => s + weight(k), 0);
@@ -211,28 +224,20 @@ function drawFish(g: CanvasRenderingContext2D, kind: Kind, t: number, flash = fa
     r(10, 0, 1, 2, '#4a5468'); r(-4, Math.round(sw), 3, 1, s.fin);
     return;
   }
-  if (kind === 'kraken' || kind === 'poulpe') {
-    // la tête qui se gonfle et se dégonfle ; les bras qui ondulent, chacun à son tour, et s'enroulent au bout ; les ventouses
-    const big = kind === 'kraken';
-    const n = big ? 6 : 4, len = big ? 13 : 8, sp = big ? 2.6 : 2.4, x0 = big ? -6 : -6;
-    for (let a = 0; a < n; a++) {
-      const side = a < n / 2 ? -1 : 1;
-      for (let i = 0; i < len; i++) {
-        const q = i / len;
-        const x = x0 + a * sp + Math.sin(A + a * 0.9 - i * 0.45) * (0.5 + i * (big ? 0.35 : 0.3)) + side * i * (big ? 0.6 : 0.35) + (q > 0.7 ? side * (1 + Math.sin(A + a)) * (big ? 2 : 1.5) : 0);
-        const y = (big ? 2 : 3) + i * (big ? 0.85 : 0.95) - (big && q > 0.8 ? (q - 0.8) * 10 * (0.6 + 0.4 * Math.sin(A * 1.3 + a)) : 0);
-        r(x, y, i < len / 2 ? 2 : 1, 1, s.body); if (i % 3 === 1) r(x + 1, y, 1, 1, big ? '#f0b8c0' : s.belly);
+  if (kind === 'kraken' || kind === 'abyssal' || kind === 'geant') { drawKraken(g, kind, t, r); return; }
+  if (kind === 'poulpe') {
+    // la tête qui se gonfle et se dégonfle ; les bras qui ondulent, chacun à son tour, et s'enroulent au bout
+    for (let a = 0; a < 4; a++) {
+      const side = a < 2 ? -1 : 1;
+      for (let i = 0; i < 8; i++) {
+        const q = i / 8;
+        const x = -6 + a * 2.4 + Math.sin(A + a * 0.9 - i * 0.45) * (0.5 + i * 0.3) + side * i * 0.35 + (q > 0.7 ? side * (1 + Math.sin(A + a)) * 1.5 : 0);
+        r(x, 3 + i * 0.95, i < 4 ? 2 : 1, 1, s.body); if (i % 3 === 1) r(x + 1, 3 + i * 0.95, 1, 1, s.belly);
       }
     }
     const pulse = Math.sin(A) * 0.7;
-    if (big) {
-      for (let dy = -11; dy <= 3; dy++) { const w = Math.round((8 + pulse) * Math.sqrt(Math.max(0, 1 - ((dy + 4) / 7.6) ** 2))); r(-w, dy, w * 2 + 1, 1, dy < -6 ? s.belly : s.body); }
-      for (const [x, y] of [[-4, -8], [2, -9], [-1, -5], [5, -6]]) r(x, y, 1, 1, s.fin);
-      r(1, -4, 4, 1, s.fin); r(1, -3, 4, 2, '#ffe08a'); r(2, -2, 3, 1, '#15121d'); r(4, -3, 1, 1, '#fff6d0');
-    } else {
-      for (let dy = -4; dy <= 2; dy++) { const w = Math.round((4 + pulse * 0.6) * Math.sqrt(Math.max(0, 1 - ((dy + 1) / 3.6) ** 2))); r(-3 - w, dy, w * 2 + 1, 1, dy > 0 ? s.belly : s.body); }
-      eye(-1, -1); eye(-5, -1);
-    }
+    for (let dy = -4; dy <= 2; dy++) { const w = Math.round((4 + pulse * 0.6) * Math.sqrt(Math.max(0, 1 - ((dy + 1) / 3.6) ** 2))); r(-3 - w, dy, w * 2 + 1, 1, dy > 0 ? s.belly : s.body); }
+    eye(-1, -1); eye(-5, -1);
     return;
   }
   if (kind === 'calamar') {
@@ -293,6 +298,130 @@ function drawFish(g: CanvasRenderingContext2D, kind: Kind, t: number, flash = fa
 // en développement seulement : le dessin des poissons, pour les planches d'essai
 if (import.meta.env.DEV) (window as unknown as { __fishDraw?: unknown }).__fishDraw = { drawFish, FISH };
 
+type Px = (x: number, y: number, w: number, h: number, c: string) => void;
+/** le battement d'une pieuvre : elle se serre vite (le jet), puis s'ouvre lentement (0 : fermée, 1 : ouverte) */
+const smooth = (x: number) => { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); };
+const openness = (c: number) => (c < 0.28 ? 1 - smooth(c / 0.28) : smooth((c - 0.28) / 0.72));
+/** un bruit fixe par pixel (les taches de la peau, toujours aux mêmes endroits) */
+const speck = (x: number, y: number) => { let h = (x * 374761393 + y * 668265263) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) % 1000; };
+const mixHex = (a: string, b: string, k: number) => {
+  const A = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16)), B = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
+  return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * k).toString(16).padStart(2, '0')).join('');
+};
+interface ArmPt { x: number; y: number; a: number; th: number; s: number; u: number }
+/** un bras : une onde descend le long du bras et le bout s'enroule ; épais à la base, fin au bout (une massue au bout pour
+ *  les tentacules du calamar) */
+function armPts(bx: number, by: number, ang: number, len: number, th0: number, A: number, ph: number, amp: number, tip: number, club = false): ArmPt[] {
+  let x = bx, y = by;
+  const pts: ArmPt[] = [], step = 0.35;
+  for (let s = 0; s <= len; s += step) {
+    const u = s / len;
+    const a = ang + amp * Math.sin(A - u * 3.4 + ph) * u + tip * u * u * (1 + 0.4 * Math.sin(A + ph));
+    x += Math.cos(a) * step; y += Math.sin(a) * step;
+    let th = Math.max(1, th0 * Math.pow(1 - u, 0.7));
+    if (club && u > 0.8) th = Math.max(th, 3 * Math.sin((Math.PI * (u - 0.8)) / 0.2) + 1);
+    pts.push({ x, y, a, th, s, u });
+  }
+  return pts;
+}
+interface ArmCol { arm: string; hi: string; sucker?: string; glow?: string }
+function drawArm(r: Px, pts: ArmPt[], c: ArmCol) {
+  for (const q of pts) { const t2 = Math.round(q.th); r(q.x - t2 / 2, q.y - t2 / 2, t2, t2, c.arm); }
+  let last = -1;
+  for (const q of pts) {
+    const t2 = Math.round(q.th), nx = -Math.sin(q.a), ny = Math.cos(q.a);
+    // le dessus du bras, plus clair ; les ventouses dessous ; le bout qui luit
+    if (t2 >= 3) r(q.x - nx * (t2 / 2 - 0.5) - 0.5, q.y - ny * (t2 / 2 - 0.5) - 0.5, 1, 1, c.hi);
+    const k = Math.floor(q.s / 3.6);
+    if (c.sucker && t2 >= 2 && k !== last && q.u > 0.08) { last = k; r(q.x + nx * (t2 / 2 - 1) - 0.5, q.y + ny * (t2 / 2 - 1), 1, 1, c.sucker); }
+    if (c.glow && q.u > 0.88) r(q.x - 0.5, q.y - 0.5, 1, 1, c.glow);
+  }
+}
+interface Tones { dark: string; body: string; light: string; hi: string }
+/** un ovale penché, ombré au pixel en quatre tons (la lumière vient d'en haut à gauche) ; `spot` peut peindre une tache */
+function blob(r: Px, cx: number, cy: number, rx: number, ry: number, rot: number, T: Tones, spot?: (x: number, y: number, l: number) => string | null) {
+  const cs = Math.cos(rot), sn = Math.sin(rot), R = Math.ceil(Math.max(rx, ry)) + 1;
+  for (let y = -R; y <= R; y++) for (let x = -R; x <= R; x++) {
+    const X = x + 0.5, Y = y + 0.5;
+    const u = (X * cs + Y * sn) / rx, v = (-X * sn + Y * cs) / ry, d = u * u + v * v;
+    if (d > 1) continue;
+    const nx = u * cs - v * sn, ny = u * sn + v * cs;
+    const l = -0.55 * nx - 0.7 * ny + 0.45 * Math.sqrt(1 - d);
+    const px = Math.round(cx + x), py = Math.round(cy + y);
+    r(px, py, 1, 1, spot?.(px, py, l) ?? (l > 0.72 ? T.hi : l > 0.35 ? T.light : l > -0.15 ? T.body : T.dark));
+  }
+}
+const KR = { dark: '#5a1828', body: '#8e2e40', light: '#b84a58', hi: '#e07a80' };
+const KB = { dark: '#1e1236', body: '#3a2160', light: '#5a3488', hi: '#8a5ab8' };
+const KC = { dark: '#6a2418', body: '#b4482e', light: '#dc6c46', hi: '#f8a070' };
+/** Les trois variantes du Kraken, qui nagent comme les pieuvres : elles se serrent (le jet, le corps monte un peu) puis
+ *  s'ouvrent lentement, les bras ondulent chacun à son tour. Le rouge (les ventouses, l'œil doré), l'abyssal (la cape entre
+ *  les bras, les taches qui luisent), le calamar géant (long manteau, nageoires, deux tentacules à massue). */
+function drawKraken(g: CanvasRenderingContext2D, kind: Kind, t: number, r: Px) {
+  const A = (t / 2.2) * Math.PI * 2, o = openness(((t / 2.2) % 1 + 1) % 1);
+  if (kind === 'kraken') {
+    const lift = -2 * (1 - o);
+    for (let i = 0; i < 4; i++) drawArm(r, armPts(-6 + i * 4, 3 + lift, Math.PI / 2 + 0.15 + (i - 1.5) * (0.2 + 0.42 * o), 21 + (i % 2) * 3, 3, A, i * 1.3 + 2, 0.75, (i < 2 ? 1 : -1) * 1.6), { arm: '#6a2030', hi: '#86303e' });
+    blob(r, 0, -7 + lift, 10 * (0.93 + 0.07 * o), 12.5 * (1.04 - 0.04 * o), -0.28, KR, (x, y, l) => (speck(x, y) < 70 && l > -0.1 && l < 0.7 ? '#6e2232' : null));
+    blob(r, 6, 1 + lift, 3.5, 3, 0, KR);
+    for (let i = 0; i < 4; i++) drawArm(r, armPts(-5 + i * 3.6, 5 + lift, Math.PI / 2 + 0.05 + (i - 1.5) * (0.12 + 0.3 * o), 23 + ((i + 1) % 2) * 3, 4.2, A, i * 1.1, 0.8, (i < 2 ? 1 : -1) * 1.8), { arm: '#9a3446', hi: '#c8606a', sucker: '#f2c4b4' });
+    const ey = Math.round(1 + lift);
+    r(4, ey - 3, 5, 1, KR.dark);
+    r(5, ey - 2, 3, 1, '#ffd45a'); r(4, ey - 1, 5, 2, '#ffd45a'); r(5, ey + 1, 3, 1, '#e0a838');
+    r(5, ey - 1, 3, 1, '#15121d'); r(5, ey - 2, 1, 1, '#ffffff');
+    return;
+  }
+  if (kind === 'abyssal') {
+    const lift = -2.5 * (1 - o), spread = 0.09 + 0.2 * o;
+    const glow = 0.5 + 0.5 * Math.sin(A * 2), lit = mixHex('#2a6a8a', '#9ff8ff', glow);
+    // les bras d'abord (pour savoir où ils passent), puis la cape entre eux jusqu'au tiers, festonnée, puis les bras
+    const arms: ArmPt[][] = [];
+    for (let i = 0; i < 7; i++) arms.push(armPts(-1 + (i - 3) * 2.4, 5 + lift, Math.PI / 2 + (i - 3) * spread, 23, 3.2, A, i * 0.9, 0.65, (i - 3) * -0.3));
+    const J = Math.floor(arms[0].length * 0.4);
+    for (let i = 0; i < 6; i++) for (let j = 0; j <= J; j += 1) {
+      const p = arms[i][j], q = arms[i + 1][j], n = Math.ceil(Math.hypot(q.x - p.x, q.y - p.y)) + 1;
+      const edge = J - j < 4 ? (4 - (J - j)) * 0.12 : 0;
+      for (let k = 0; k <= n; k++) { const f = k / n; if (f < edge || f > 1 - edge || edge === 0) r(p.x + (q.x - p.x) * f, p.y + (q.y - p.y) * f, 1, 1, '#2c1a4c'); }
+    }
+    arms.forEach((p) => drawArm(r, p, { arm: '#3e2466', hi: '#6a44a0', glow: lit }));
+    blob(r, -1, -8 + lift, 9.5 * (0.92 + 0.08 * o), 12 * (1.04 - 0.04 * o), -0.15, KB, (x, y) => {
+      const k = speck(x, y);
+      return k < 40 ? lit : k < 75 ? mixHex('#2a5a7a', '#7fd8ff', 1 - glow) : null;
+    });
+    // deux nageoires-oreilles en haut du manteau, qui battent
+    const f = Math.round(Math.sin(A * 2) * 1.5), ly = Math.round(lift);
+    r(-12, -16 + ly - f, 4, 2, KB.light); r(-13, -17 + ly - f, 2, 1, KB.hi);
+    r(7, -16 + ly + f, 4, 2, KB.light); r(9, -17 + ly + f, 2, 1, KB.hi);
+    const ey = Math.round(1 + lift), eye = mixHex('#3ab0d0', '#d8ffff', glow);
+    r(3, ey - 1, 5, 4, '#0a0618'); r(4, ey, 3, 2, eye); r(4, ey, 1, 1, '#ffffff');
+    r(-7, ey, 3, 3, '#0a0618'); r(-6, ey + 1, 1, 1, eye);
+    return;
+  }
+  // le calamar géant : il file à reculons, la pointe du manteau devant
+  const push = Math.round(2.5 * (1 - o));
+  for (const [i, k] of [[0, -1], [1, 1]]) drawArm(r, armPts(-13 - push, 1 + k * 2, Math.PI - 0.12 * k + 0.12 * Math.sin(A + i), 26, 2, A, i * 1.7, 0.55, 0.45 * k, true), { arm: '#a8452e', hi: '#c8603e', sucker: '#ffd8b8' });
+  for (let i = 0; i < 6; i++) drawArm(r, armPts(-12 - push, -4 + i * 1.7, Math.PI + (i - 2.5) * (0.05 + 0.11 * o), 14 + (i % 3) * 2, 3.2, A, i * 0.9, 0.45, (i - 2.5) * 0.28), { arm: '#c0553a', hi: '#ec8a5e', sucker: '#ffd8b8' });
+  blob(r, -8 - push, 0, 7.5, 6, 0, KC);
+  const sq = 0.9 + 0.1 * o;
+  for (let x = -3; x <= 30; x++) {
+    const u = (x + 3) / 33;
+    const hh = Math.max(1, Math.round(16 * sq * Math.pow(1 - u, 0.75) * (u < 0.1 ? 0.85 + u * 1.5 : 1)));
+    for (let y = 0; y < hh; y++) {
+      const v = y / Math.max(1, hh - 1);
+      const col = v < 0.1 ? KC.hi : v < 0.38 ? KC.light : v < 0.78 ? KC.body : KC.dark;
+      r(x - push, Math.round(-hh / 2) + y, 1, 1, speck(x, y) < 80 && v > 0.2 && v < 0.78 ? KC.dark : col);
+    }
+  }
+  // les nageoires en losange, au bout, qui battent
+  const fl = Math.sin(A * 2);
+  for (let k = 0; k < 10; k++) {
+    const b = k < 5 ? k : 9 - k, up = Math.round(b * (1.1 + 0.5 * fl)), dn = Math.round(b * (1.1 - 0.5 * fl));
+    r(20 + k - push, -2 - up, 1, up + 1, KC.light); r(20 + k - push, 1, 1, dn + 1, KC.body);
+  }
+  r(-12 - push, -4, 7, 7, '#2a0e08'); r(-11 - push, -3, 5, 5, '#ffe2a0'); r(-10 - push, -2, 3, 3, '#15121d'); r(-11 - push, -3, 1, 1, '#ffffff');
+  void g;
+}
+
 /** Les sprites des poissons, comme dans un vieux jeu : chaque espèce en huit images de nage (un battement complet), tournée par crans de
  *  22,5° au pixel près (sans lissage, chaque pixel reste un pixel), vers la droite ou vers la gauche. Gardés en mémoire. */
 const SPR = 96, SPC = 48;
@@ -304,8 +433,9 @@ function fishSprite(kind: Kind, frame: number, step: number, face: number, flash
   const base = document.createElement('canvas'); base.width = base.height = SPR;
   const bg = base.getContext('2d')!;
   bg.imageSmoothingEnabled = false;
-  bg.save(); bg.translate(SPC, SPC); drawFish(bg, kind, frame / (FRAMES * SWIM_HZ), flash); bg.restore();
-  if (!flash) shade(bg);
+  const sp = FISH[kind];
+  bg.save(); bg.translate(SPC, SPC); drawFish(bg, kind, (frame / (sp.frames ?? FRAMES)) * (sp.cycle ?? 1 / SWIM_HZ), flash); bg.restore();
+  if (!flash) shade(bg, !sp.own);
   let out = base;
   if (step % 16 !== 0) {
     // la rotation au plus proche voisin : chaque pixel d'arrivée va chercher le pixel de départ qui tombe dessus
@@ -338,10 +468,10 @@ function fishSprite(kind: Kind, frame: number, step: number, face: number, flash
 
 /** Du relief, comme dans le pixel art soigné : chaque colonne du poisson s'éclaire en haut (un liseré de lumière sur le
  *  dos) et s'assombrit en bas ; puis un contour, plus sombre que la couleur qu'il borde (pas un trait noir partout). */
-function shade(g: CanvasRenderingContext2D) {
+function shade(g: CanvasRenderingContext2D, light = true) {
   const img = g.getImageData(0, 0, SPR, SPR), d = img.data;
   const on = (x: number, y: number) => x >= 0 && y >= 0 && x < SPR && y < SPR && d[(y * SPR + x) * 4 + 3] > 40;
-  for (let x = 0; x < SPR; x++) {
+  for (let x = 0; x < SPR && light; x++) {
     let top = -1, bot = -1;
     for (let y = 0; y < SPR; y++) if (on(x, y)) { if (top < 0) top = y; bot = y; }
     if (top < 0) continue;
@@ -580,7 +710,7 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
         sw.next = t + 0.5 + Math.random() * 0.9;
         sw.dart = Math.random() < 0.35;
         sw.tx = Math.max(BOAT_X + 70, Math.min(W - 16, anchor + (Math.random() - 0.5) * 80));
-        sw.ty = sp.deep ? SURFACE + 22 + Math.random() * 8 - tired * 4 : SURFACE + 9 + Math.random() * (34 - tired * 18);
+        sw.ty = sp.deep ? SURFACE + 24 + Math.random() * 5 - tired * 3 : SURFACE + 9 + Math.random() * (34 - tired * 18);
         if (sp.deep) { sw.dart = false; sw.tx = anchor + (Math.random() - 0.5) * 40; }
       }
       const spd = (sw.dart ? 72 : 30) * (st.rage ? 1.3 : 1) * (sp.deep ? 0.35 : 1);
@@ -675,7 +805,7 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
         break;
       }
       case 'drag': {
-        Object.assign(st.swim, { x: st.bobX + 6, y: spec().deep ? SURFACE + 24 : SURFACE + 5, vx: spec().deep ? 18 : 60, vy: 0, face: 1, jump: null });
+        Object.assign(st.swim, { x: st.bobX + 6, y: spec().deep ? SURFACE + 25 : SURFACE + 5, vx: spec().deep ? 18 : 60, vy: 0, face: 1, jump: null });
         // il tire par à-coups, plus fort quand il enrage ; la barque est traînée, l'eau défile
         const sp = spec();
         // il tire par à-coups ; la première demi-seconde, Roré a le temps de réagir
@@ -762,7 +892,7 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
     if (st.shadow && (st.phase === 'wait' || st.phase === 'warn' || st.phase === 'bite')) {
       const k = sp.legend ? 2.2 : 1;
       g.fillStyle = 'rgba(5,10,30,0.45)';
-      g.beginPath(); g.ellipse(st.shadow.x, st.shadow.y, (sp.w / 2 + 3) * k, (sp.h / 2 + 1) * k, 0, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.ellipse(st.shadow.x, st.shadow.y, Math.min(60, (sp.w / 2 + 3) * k), Math.min(18, (sp.h / 2 + 1) * k), 0, 0, Math.PI * 2); g.fill();
     }
     // le poisson accroché, en sprites : il nage (sa queue bat plus vite quand il fonce), se retourne en une image écrasée,
     // secoue la tête quand on le touche, saute en suivant son arc (par crans de 22,5°) ; sa pose sert aussi à accrocher la
@@ -775,17 +905,20 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
       // l'angle : selon sa vitesse (vers le haut, vers le bas), un peu en nageant, beaucoup en sautant
       let th = Math.atan2(sw.vy, Math.abs(sw.vx) + 0.01);
       if (!sw.jump) th = Math.max(-0.45, Math.min(0.45, th * 0.6));
-      if (t - st.hitAt < 0.35) th += (Math.floor(t * 18) % 2 ? 1 : -1) * 0.4;
-      fish = { x: sw.x, y: sw.y, th, face };
+      // touché : il secoue la tête ; les pieuvres restent droites et tremblent
+      const hit = t - st.hitAt < 0.35 ? (Math.floor(t * 18) % 2 ? 1 : -1) : 0;
+      if (sp.own) th = 0; else th += hit * 0.4;
+      fish = { x: sw.x + (sp.own ? hit : 0), y: sw.y, th, face };
       const stepI = Math.max(-4, Math.min(4, Math.round(th / (Math.PI / 8))));
       const speed = Math.hypot(sw.vx, sw.vy);
       // la queue bat plus vite quand il fonce, et quand il se débat
-      const frame = Math.floor(t * FRAMES * SWIM_HZ * (0.8 + speed / 45 + st.tension * 0.6)) % FRAMES;
+      const nF = sp.frames ?? FRAMES;
+      const frame = Math.floor((t / (sp.cycle ?? 1 / SWIM_HZ)) * nF * (sp.cycle ? 1 + st.tension * 0.4 : 0.8 + speed / 45 + st.tension * 0.6)) % nF;
       const depth = sw.y > SURFACE + 4 ? Math.max(0, Math.min(3, Math.round((sw.y - SURFACE) / 15))) : 0;
       const spr = fishSprite(st.kind, frame, stepI, face, t - st.hitAt < 0.08, depth);
       const turning = t - sw.turnAt < 0.12;
       const wq = turning ? Math.round(SPR * fk * 0.5) : SPR * fk;
-      g.drawImage(spr, Math.round(sw.x - wq / 2), Math.round(sw.y - SPC * fk), wq, SPR * fk);
+      g.drawImage(spr, Math.round(fish.x - wq / 2), Math.round(sw.y - SPC * fk), wq, SPR * fk);
     }
     const mouth = (() => {
       if (!fish) return null;
@@ -903,7 +1036,7 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
       const u = Math.min(1, caught);
       const cx = Math.round(st.bobX + (BX + 20 - st.bobX) * u), cy = Math.round(SURFACE - Math.sin(u * Math.PI * 0.5) * 40 - (u >= 1 ? Math.sin(t * 4) * 2 : 0));
       const k = sp.w > 30 ? 1 : 2;
-      const spr = fishSprite(st.kind, Math.floor(t * FRAMES * SWIM_HZ) % FRAMES, u < 1 ? Math.round(u * 32) % 16 : 0, 1, false);
+      const spr = fishSprite(st.kind, Math.floor((t / (sp.cycle ?? 1 / SWIM_HZ)) * (sp.frames ?? FRAMES)) % (sp.frames ?? FRAMES), u < 1 ? Math.round(u * 32) % 16 : 0, 1, false);
       g.drawImage(spr, cx - SPC * k, cy - SPC * k, SPR * k, SPR * k);
     }
     // les éclaboussures, les confettis
@@ -960,7 +1093,10 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
       r(mid - 1, BAR.y - 4, 3, BAR.h + 8, '#ffffff');
       // Roré à gauche, le poisson à droite
       r(BAR.x - 12, BAR.y - 1, 8, 8, '#3a3a48'); r(BAR.x - 11, BAR.y + 1, 6, 3, '#15121d'); r(BAR.x - 10, BAR.y + 2, 1, 1, '#ff8a3d'); r(BAR.x - 7, BAR.y + 2, 1, 1, '#ff8a3d');
-      g.save(); g.translate(BAR.x + BAR.w + 12, BAR.y + 3); drawFish(g, st.kind, t); g.restore();
+      // (les grands, réduits pour tenir à côté de la barre)
+      const ik = Math.min(1, 24 / (sp.w + 4), 18 / (sp.h + 4));
+      if (ik >= 1) { g.save(); g.translate(BAR.x + BAR.w + 12, BAR.y + 3); drawFish(g, st.kind, t); g.restore(); }
+      else { const iw = Math.round(SPR * ik); g.drawImage(fishSprite(st.kind, Math.floor((t / (sp.cycle ?? 1 / SWIM_HZ)) * (sp.frames ?? FRAMES)) % (sp.frames ?? FRAMES), 0, 1, false), Math.round(BAR.x + BAR.w + 14 - iw / 2), Math.round(BAR.y + 1 - iw / 2), iw, iw); }
       // la touche Espace, qui s'enfonce à chaque coup
       const pressed = t - st.pressAt < 0.08;
       const kx = W / 2 - 22, ky = BAR.y - 16 + (pressed ? 1 : 0);
@@ -1065,54 +1201,72 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
   );
 }
 
-/** Le bestiaire : une fiche par espèce. Prise : son dessin, sa rareté, ce qu'on en dit, combien de fois, le record.
- *  Pas encore prise : une silhouette, la rareté, et un indice pour la trouver. */
+/** Le bestiaire : une grille de vignettes (le dessin, ou une silhouette ; le nom, ou « ??? »), et la fiche de celle qu'on
+ *  choisit : sa rareté, où et quand, son poids, ce qu'on en dit, et ta pêche (ou un indice pour la trouver). */
 function Bestiary({ journal }: { journal: FishSave['journal'] }) {
+  const [pick, setPick] = useState<Kind>(() => SPECIES.find((k) => journal[k]) ?? SPECIES[0]);
   return (
     <div className="bestiary">
-      {SPECIES.map((k) => <BestiaryCard key={k} kind={k} entry={journal[k]} />)}
+      <BestiarySheet kind={pick} entry={journal[pick]} />
+      <div className="bestiary-grid">
+        {SPECIES.map((k) => (
+          <button key={k} className={`bestiary-tile ${FISH[k].legend ? 'is-legend' : ''} ${journal[k] ? '' : 'unknown'} ${k === pick ? 'on' : ''}`} onClick={() => setPick(k)} title={journal[k] ? FISH[k].name : '???'}>
+            <FishPic kind={k} known={!!journal[k]} w={48} h={28} />
+            <span>{journal[k] ? FISH[k].name : '???'}</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
 
-function BestiaryCard({ kind, entry }: { kind: Kind; entry?: { n: number; kg: number } }) {
+/** Le dessin d'une espèce, cadré sur ce qu'il occupe vraiment, à l'échelle entière qui tient dans le cadre (ou réduit
+ *  s'il est trop grand) ; une silhouette si on ne l'a pas encore prise. */
+function FishPic({ kind, known, w, h }: { kind: Kind; known: boolean; w: number; h: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
-  const sp = FISH[kind];
-  const known = !!entry;
   useEffect(() => {
     const c = ref.current;
     if (!c) return;
+    let src: HTMLCanvasElement;
+    if (known) src = fishSprite(kind, 0, 0, 1, false);
+    else {
+      src = document.createElement('canvas'); src.width = src.height = SPR;
+      const sg = src.getContext('2d')!;
+      sg.translate(SPC, SPC); drawFish(sg, kind, 0.3, false, '#2c2a3a');
+    }
+    // la boîte qu'il occupe
+    const d = src.getContext('2d')!.getImageData(0, 0, SPR, SPR).data;
+    let x0 = SPR, y0 = SPR, x1 = -1, y1 = -1;
+    for (let y = 0; y < SPR; y++) for (let x = 0; x < SPR; x++) if (d[(y * SPR + x) * 4 + 3] > 40) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
     const g = c.getContext('2d')!;
     g.imageSmoothingEnabled = false;
     g.clearRect(0, 0, c.width, c.height);
-    const tall = kind === 'nessie' ? 18 : 0;
-    const k = Math.max(1, Math.floor(Math.min(56 / (sp.w + 10), 30 / (sp.h + 6 + tall))));
-    g.save();
-    g.translate(c.width / 2, c.height / 2 + (kind === 'nessie' ? 5 : 0));
-    g.scale(k, k);
-    if (known) { g.translate(-SPC, -SPC); g.drawImage(fishSprite(kind, 0, 0, 1, false), 0, 0); }
-    else drawFish(g, kind, 0.3, false, '#2c2a3a');
-    g.restore();
-  }, [kind, known, sp]);
+    if (x1 < 0) return;
+    const bw = x1 - x0 + 1, bh = y1 - y0 + 1;
+    const fit = Math.min((w - 4) / bw, (h - 4) / bh);
+    const k = fit >= 1 ? Math.floor(fit) : fit;
+    const dw = Math.round(bw * k), dh = Math.round(bh * k);
+    g.drawImage(src, x0, y0, bw, bh, Math.round((w - dw) / 2), Math.round((h - dh) / 2), dw, dh);
+  }, [kind, known, w, h]);
+  return <canvas ref={ref} width={w} height={h} />;
+}
+
+function BestiarySheet({ kind, entry }: { kind: Kind; entry?: { n: number; kg: number } }) {
+  const sp = FISH[kind];
+  const known = !!entry;
   const stars = rarity(kind);
-  // où (selon la longueur du lancer), quand, combien il pèse, sa force au combat
   const where = sp.far >= 0.6 ? 'très loin' : sp.far >= 0.3 ? 'au large' : 'près de la barque';
-  const when = !sp.when ? '☀️ 🌅 🌙 à toute heure' : sp.when.map((w) => (w === 'day' ? '☀️ le jour' : w === 'evening' ? '🌅 le soir' : '🌙 la nuit')).join(' · ');
-  const force = Math.min(5, Math.max(1, Math.round(sp.hp / 2.4)));
+  const when = !sp.when ? 'à toute heure' : sp.when.map((w) => (w === 'day' ? '☀️ le jour' : w === 'evening' ? '🌅 le soir' : '🌙 la nuit')).join(', ');
   return (
-    <div className={`bestiary-card ${sp.legend ? 'is-legend' : ''} ${known ? '' : 'unknown'}`}>
-      <canvas ref={ref} width={64} height={36} />
-      <b>{known ? sp.name : '???'}</b>
-      <span className="bestiary-stars" title="Rareté">{'★'.repeat(stars)}<i className="dim">{'★'.repeat(5 - stars)}</i>{sp.legend ? ' légendaire' : ''}</span>
-      <dl className="bestiary-facts">
-        <dt>Où</dt><dd>{where}</dd>
-        <dt>Quand</dt><dd>{when}</dd>
-        <dt>Poids</dt><dd>{known ? `${fmtKg(sp.kg[0])} à ${fmtKg(sp.kg[1])}` : '?'}</dd>
-        <dt>Force</dt><dd>{'●'.repeat(force)}<i className="dim">{'●'.repeat(5 - force)}</i>{sp.tough ? ' · traîne la barque' : ''}</dd>
-      </dl>
-      {known ? <span className="small">{sp.desc}</span> : <span className="small muted">Indice : {sp.hint}.</span>}
-      {known && sp.fact && <span className="small bestiary-fact">💡 {sp.fact}</span>}
-      {known && <span className="small muted">Ta pêche : {entry.n} {entry.n > 1 ? 'prises' : 'prise'} · record {fmtKg(entry.kg)}</span>}
+    <div className={`bestiary-sheet ${sp.legend ? 'is-legend' : ''} ${known ? '' : 'unknown'}`}>
+      <FishPic kind={kind} known={known} w={96} h={56} />
+      <div>
+        <b>{known ? sp.name : '???'}</b>
+        <span className="bestiary-stars" title="Rareté">{'★'.repeat(stars)}<i className="dim">{'★'.repeat(5 - stars)}</i>{sp.legend ? ' légendaire' : ''}</span>
+        <p className="small muted">{when} · {where}{known ? ` · ${fmtKg(sp.kg[0])} à ${fmtKg(sp.kg[1])}` : ''}{sp.tough ? ' · traîne la barque' : ''}</p>
+        {known ? <p className="small">{sp.desc}{sp.fact ? <> <span className="bestiary-fact">{sp.fact}</span></> : null}</p> : <p className="small muted">Indice : {sp.hint}.</p>}
+        {known && <p className="small muted">Ta pêche : {entry.n} {entry.n > 1 ? 'prises' : 'prise'}, record {fmtKg(entry.kg)}.</p>}
+      </div>
     </div>
   );
 }
