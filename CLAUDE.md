@@ -67,7 +67,10 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
   (`outside.onFish`) mène en mer. La pêche est la fenêtre `game` « fishing » (`ui/games/Fishing.tsx`, au timing : lancer, touche, combat ;
   les poissons coriaces (`tough`, `drags`) traînent la barque : bras de fer `drag`, Espace très vite (`rope`) ; légendaires
   en boss avec barre de vie (le Thon d'Or, l'Espadon, le Cœlacanthe, le Requin-baleine, Nessie, le Poisson-lune, le Kraken,
-  l'Anguille-lumière ; `drift`, `heavy`, `jumpy`) ; la zone du lancer parfait `PERFECT` ; au combat, la ligne va à la bouche
+  l'Anguille-lumière ; `drift`, `heavy`, `jumpy`, `deep` : le Kraken reste au fond, ne saute pas) ; les poissons sont des sprites
+  animés (`drawFish` : phase `SWIM_HZ`, `FRAMES` poses, queue `tailFin`, corps `wave`, bras qui ondulent) passés par `fishSprite`
+  (ombrage `shade` : dos clair, ventre sombre, contour ; rotation, miroir, teinte bleue selon la profondeur ; en cache) ; la nage `this_swim`
+  (cibles, virages, sauts, ronds et bulles) ; la zone du lancer parfait `PERFECT` ; au combat, la ligne va à la bouche
   du poisson (`mouth`), la flotte reste à la surface, Roré se débat ; le bestiaire (`Bestiary` : dessin, rareté, où, quand, poids, force, description, anecdote `fact`, record ; silhouette et
   indice sinon),
   à partir de `fish.journal` dans `bureau:jeux`, `FishSave` dans `common.ts` ; en dev, `window.__fishing`).

@@ -50,6 +50,8 @@ interface Spec {
   mouth?: [number, number];
   /** une légende : sa zone verte bouge (vite pour l'anguille), un raté tend plus la ligne (il est lourd), il saute souvent */
   drift?: number; heavy?: number; jumpy?: number;
+  /** il vit au fond : il ne saute jamais, nage lentement, et reste en bas même quand il traîne la barque */
+  deep?: boolean;
 }
 const FISH: Record<Kind, Spec> = {
   sardine: { name: 'Sardine', kg: [0.05, 0.1], hp: 2, speed: 0.9, zone: 0.26, window: 0.6, far: 0, often: 10, w: 7, h: 3, body: '#9fb4c8', belly: '#e4edf5', fin: '#6f8aa4', hint: 'près de la barque, à toute heure', desc: 'Elle file en bancs argentés juste sous la barque. La première prise de tout pêcheur.', fact: 'Un banc peut compter des millions de sardines : elles tournent toutes ensemble, comme un seul grand poisson.' },
@@ -67,7 +69,7 @@ const FISH: Record<Kind, Spec> = {
   coelacanthe: { name: 'Le Cœlacanthe', kg: [40, 90], hp: 12, speed: 1.7, zone: 0.13, window: 0.5, far: 0.55, when: ['evening'], often: 0, w: 28, h: 12, body: '#2a4a7a', belly: '#3e6aa0', fin: '#1a3056', legend: true, hint: 'légendaire : un lancer parfait, au large, le soir', desc: 'Un poisson d’avant les dinosaures, bleu d’acier tacheté de blanc, avec des nageoires comme de petites pattes.', fact: 'On le croyait disparu depuis 66 millions d’années… jusqu’à ce qu’un pêcheur en remonte un, en 1938.', tough: 0.45, drags: [0.6], mouth: [14, 1] },
   requin: { name: 'Le Requin-baleine', kg: [2000, 9000], hp: 20, speed: 1.4, zone: 0.15, window: 0.6, far: 0.8, when: ['day'], often: 0, w: 42, h: 13, body: '#3a5a7a', belly: '#d8e2ea', fin: '#24405a', legend: true, hint: 'légendaire : un lancer parfait, très loin, de jour', desc: 'Le plus grand des poissons, doux comme un agneau : constellé de points blancs, une bouche immense pour avaler le plancton.', fact: 'Chaque requin-baleine a ses propres taches, comme une empreinte digitale.', tough: 0.55, drags: [0.7, 0.35], heavy: 1.3, mouth: [21, 2] },
   lune: { name: 'Le Poisson-lune', kg: [500, 1500], hp: 16, speed: 1.3, zone: 0.14, window: 0.6, far: 0.5, when: ['night'], often: 0, w: 22, h: 22, body: '#b8c0d0', belly: '#e8ecf4', fin: '#7a8498', legend: true, hint: 'légendaire : un lancer parfait, au large, la nuit', desc: 'Un géant rond et plat qui se laisse flotter sous la lune. Lent, mais si lourd que la ligne souffre à chaque raté.', fact: 'Le plus lourd des poissons osseux : plus d’une tonne… pour une toute petite bouche.', tough: 0.4, drags: [0.5], heavy: 1.6, mouth: [11, 1] },
-  kraken: { name: 'Le Kraken', kg: [800, 2000], hp: 18, speed: 1.8, zone: 0.12, window: 0.55, far: 0.65, when: ['night'], often: 0, w: 28, h: 24, body: '#a83a4a', belly: '#c85a68', fin: '#6a2030', legend: true, hint: 'légendaire : un lancer parfait, au loin, la nuit', desc: 'Une pieuvre immense, rouge sombre. Il traîne la barque plus fort que tous les autres : tiens bon la ligne.', fact: 'Les marins d’autrefois le prenaient pour une île… jusqu’à ce que l’île se réveille.', tough: 0.68, drags: [0.75, 0.5, 0.25], mouth: [2, 4] },
+  kraken: { name: 'Le Kraken', kg: [800, 2000], hp: 18, speed: 1.8, zone: 0.12, window: 0.55, far: 0.65, when: ['night'], often: 0, w: 28, h: 24, body: '#a83a4a', belly: '#c85a68', fin: '#6a2030', legend: true, hint: 'légendaire : un lancer parfait, au loin, la nuit', desc: 'Une pieuvre immense, rouge sombre. Il traîne la barque plus fort que tous les autres : tiens bon la ligne.', fact: 'Les marins d’autrefois le prenaient pour une île… jusqu’à ce que l’île se réveille.', tough: 0.68, drags: [0.75, 0.5, 0.25], mouth: [2, 4], deep: true },
   anguille: { name: 'L’Anguille-lumière', kg: [8, 25], hp: 11, speed: 2.0, zone: 0.11, window: 0.45, far: 0.7, when: ['night'], often: 0, w: 40, h: 6, body: '#26344e', belly: '#2a3a50', fin: '#8ff0ff', legend: true, hint: 'légendaire : un lancer parfait, très loin, la nuit', desc: 'Une longue anguille noire des abysses, zébrée de traits bleus qui s’allument en vagues. Elle se tortille : la zone verte bouge sans arrêt.', fact: 'Ses lumières viennent d’elle-même : elle s’en sert pour parler aux autres anguilles, dans le noir.', drift: 0.55, mouth: [21, 0] },
   botte: { name: 'Une vieille botte…', kg: [0.8, 0.8], hp: 1, speed: 0.6, zone: 0.4, window: 0.8, far: 0, often: 0, w: 8, h: 8, body: '#4a3a2c', belly: '#6b5440', fin: '#2e2418', junk: true, hint: '', desc: '' },
   algue: { name: 'Une algue, sur la tête', kg: [0.1, 0.1], hp: 1, speed: 0.6, zone: 0.4, window: 0.8, far: 0, often: 0, w: 8, h: 6, body: '#3f7a42', belly: '#5a9a52', fin: '#2f5e36', junk: true, hint: '', desc: '' },
@@ -91,165 +93,281 @@ function pickCatch(power: number, perfect: boolean, tod: TimeOfDay, lucky = fals
 }
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+/** Le rythme de nage : combien de battements de queue par seconde (au repos) ; un sprite en a 8 images par battement. */
+const SWIM_HZ = 1.6, FRAMES = 8;
 const fmtKg = (kg: number) => (kg < 1 ? `${Math.round(kg * 1000)} g` : kg >= 1000 ? `${(kg / 1000).toFixed(1).replace('.', ',')} t` : kg >= 100 ? `${Math.round(kg)} kg` : `${kg.toFixed(1).replace('.', ',')} kg`);
 
-/** Un poisson, centré en (0, 0), tourné vers la droite. `tint` : une seule couleur (la silhouette du bestiaire). */
+/** Un poisson, centré en (0, 0), tourné vers la droite. `tint` : une seule couleur (la silhouette du bestiaire).
+ *  Tout bouge sur une même phase de nage (`A`, un tour complet par battement) : le corps ondule de la tête vers la queue,
+ *  la queue bat d'un côté puis de l'autre, les nageoires pagaient, les bras et les tentacules ondulent. */
 function drawFish(g: CanvasRenderingContext2D, kind: Kind, t: number, flash = false, tint?: string) {
   const s = FISH[kind];
-  const r = (x: number, y: number, w: number, h: number, c: string) => { g.fillStyle = tint ?? (flash ? '#ffffff' : c); g.fillRect(Math.round(x), Math.round(y), w, h); };
+  const A = t * Math.PI * 2 * SWIM_HZ;
+  const r = (x: number, y: number, w: number, h: number, c: string) => { g.fillStyle = tint ?? (flash ? '#ffffff' : c); g.fillRect(Math.round(x), Math.round(y), Math.max(1, Math.round(w)), Math.max(1, Math.round(h))); };
   const eye = (x: number, y: number) => r(x, y, 1, 1, '#15121d');
+  /** l'ondulation d'un corps vu de profil, à la colonne u (0 : la queue, 1 : la tête) : la queue bouge le plus */
+  const wave = (u: number, amp = 1.6) => Math.round(Math.sin(A - u * 3.2) * amp * Math.pow(1 - u, 1.6));
+  /** la nageoire de queue, accrochée en (x, y) : ses deux lobes s'ouvrent d'un côté puis de l'autre */
+  const tailFin = (x: number, y: number, size: number, col: string, notch = true) => {
+    const sw = Math.sin(A - 0.6);
+    for (let k = 0; k <= size; k++) {
+      const top = y - k * (0.75 + 0.45 * sw), bot = y + k * (0.75 - 0.45 * sw);
+      if (notch && k > size * 0.55) { r(x - k, top, 1, 1, col); r(x - k, bot, 1, 1, col); r(x - k, top + 1, 1, 1, col); r(x - k, bot - 1, 1, 1, col); }
+      else r(x - k, top, 1, bot - top + 1, col);
+    }
+  };
+  /** un corps fuselé de profil, de x0 (la queue) à x1 (la tête) : le dos plus sombre, le ventre clair ; renvoie
+   *  l'ondulation à la queue et à la tête */
+  const body = (x0: number, x1: number, h: number, back: string, extra?: (x: number, top: number, hh: number, u: number) => void) => {
+    for (let x = x0; x <= x1; x++) {
+      const u = (x - x0) / (x1 - x0);
+      const hh = Math.max(1, Math.round(h * Math.sin(Math.PI * Math.min(1, 0.1 + u * 0.92))));
+      const top = -hh / 2 + wave(u);
+      r(x, top, 1, hh, s.body); r(x, top, 1, 1, back);
+      if (hh > 3) r(x, top + hh - 2, 1, 2, s.belly);
+      extra?.(x, top, hh, u);
+    }
+    return { tail: wave(0), head: wave(1) };
+  };
   if (kind === 'botte') { r(-2, -4, 4, 6, s.body); r(-3, 1, 8, 3, s.body); r(-2, 2, 6, 1, s.belly); return; }
-  if (kind === 'algue') { for (let i = 0; i < 5; i++) r(-4 + i * 2, -3 + Math.round(Math.sin(t * 4 + i) * 1), 1, 6, i % 2 ? s.body : s.belly); return; }
-  if (kind === 'poulpe') {
-    // la tête ronde, les yeux, quatre bras qui s'enroulent
-    for (let dy = -4; dy <= 2; dy++) { const w = Math.round(4 * Math.sqrt(Math.max(0, 1 - ((dy + 1) / 3.6) ** 2))); r(-3 - w, dy, w * 2 + 1, 1, dy > 0 ? s.belly : s.body); }
-    eye(-1, -1); eye(-5, -1);
-    for (let a = 0; a < 4; a++) for (let i = 0; i < 7; i++) { const x = -6 + a * 3 + i * 0.8, y = 3 + i * 0.7 + Math.sin(t * 5 + a + i * 0.8) * 1.2; r(x, y, 1, 1, i % 3 === 2 ? s.belly : s.body); }
-    return;
-  }
-  if (kind === 'calamar') {
-    // le manteau en pointe (il nage à reculons), les nageoires, les yeux, les tentacules derrière la tête
-    for (let i = 0; i < 9; i++) { const hh = Math.max(1, Math.round(1 + i * 0.45)); r(-8 + i, -Math.floor(hh / 2), 1, hh, i % 2 ? s.body : s.fin); }
-    r(-8, -3, 2, 1, s.fin); r(-8, 2, 2, 1, s.fin);
-    r(1, -2, 2, 4, s.belly); eye(2, -1);
-    for (let k = 0; k < 3; k++) for (let i = 0; i < 6; i++) r(3 + i, -1 + k + Math.round(Math.sin(t * 6 + i * 0.9 + k) * 0.8), 1, 1, i % 2 ? s.fin : s.body);
-    return;
-  }
+  if (kind === 'algue') { for (let i = 0; i < 5; i++) r(-4 + i * 2, -3 + Math.round(Math.sin(A + i) * 1), 1, 6, i % 2 ? s.body : s.belly); return; }
   if (kind === 'nessie') {
-    // Nessie corail : le corps et ses deux bosses tachetées, le ventre crème, les nageoires qui pagaient, la queue ;
-    // le long cou qui monte vers l'avant, la petite tête ronde, l'œil doux et les branchies roses en plumeau
-    const pad = Math.round(Math.sin(t * 5) * 1.5);
+    // Nessie corail : ses deux bosses qui ondulent, ses nageoires qui pagaient chacune à son tour, la queue qui frétille,
+    // le long cou qui se balance, la petite tête, l'œil doux et les branchies roses en plumeau
     for (let i = -12; i <= 8; i++) {
       const u = (i + 12) / 20;
       const hh = Math.max(1, Math.round(6 * Math.sin(Math.PI * Math.min(1, 0.08 + u * 0.95))));
-      const hump = Math.round(Math.max(0, Math.sin((i + 9) * 0.55)) * 2);
+      const hump = Math.round(Math.max(0, Math.sin((i + 9) * 0.55 - Math.sin(A) * 0.6)) * 2.5);
       r(i, -hh / 2 - hump, 1, hh + hump, s.body);
       r(i, -hh / 2 - hump, 1, 1, '#ffb0a8');
       if (hh > 3) r(i, hh / 2 - 1, 1, 1, s.belly);
       if ((i + 20) % 4 === 1 && hh > 4) r(i, -hh / 2 - hump + 2, 1, 1, '#ffc8b8');
     }
-    for (let i = 0; i < 6; i++) r(-13 - i, Math.round(Math.sin(t * 4 - i * 0.6) * (i / 3)), 1, Math.max(1, 3 - Math.floor(i / 2)), s.body);
-    r(-8, 2 + pad, 3, 2, s.fin); r(4, 2 - pad, 4, 2, s.fin);
-    // le cou et la tête
-    for (let k = 0; k < 9; k++) { const x = 8 + Math.round(k * 0.7), y = -2 - k; r(x, y, 3, 1, s.body); r(x + 2, y, 1, 1, s.belly); }
-    r(13, -14, 6, 4, s.body); r(17, -12, 3, 2, s.body); r(14, -11, 5, 1, s.belly);
-    eye(16, -13); r(19, -12, 1, 1, '#c0606a');
-    r(11, -15, 1, 2, '#ff6a9a'); r(10, -13, 2, 1, '#ff6a9a'); r(11, -11, 1, 1, '#ff6a9a'); r(10, -16, 1, 1, '#ffb0d0');
+    for (let i = 0; i < 7; i++) r(-13 - i, Math.round(Math.sin(A - i * 0.7) * (i / 3)), 1, Math.max(1, 3 - Math.floor(i / 2)), s.body);
+    const p1 = Math.round(Math.sin(A) * 2), p2 = Math.round(Math.sin(A + Math.PI) * 2);
+    r(-9 + p1, 2, 4, 2, s.fin); r(-8 + p1, 4, 2, 1, s.fin);
+    r(3 + p2, 2, 4, 2, s.fin); r(5 + p2, 4, 2, 1, s.fin);
+    const sway = Math.round(Math.sin(A * 0.5) * 1);
+    for (let k = 0; k < 9; k++) { const x = 8 + Math.round(k * 0.7) + Math.round(sway * k / 9), y = -2 - k; r(x, y, 3, 1, s.body); r(x + 2, y, 1, 1, s.belly); }
+    const hx = 13 + sway, hy = -14;
+    r(hx, hy, 6, 4, s.body); r(hx + 4, hy + 2, 3, 2, s.body); r(hx + 1, hy + 3, 5, 1, s.belly);
+    eye(hx + 3, hy + 1); r(hx + 6, hy + 2, 1, 1, '#c0606a');
+    const gw = Math.round(Math.sin(A * 2) * 0.6);
+    r(hx - 2, hy - 1 + gw, 1, 2, '#ff6a9a'); r(hx - 3, hy + 1, 2, 1, '#ff6a9a'); r(hx - 2, hy + 3 - gw, 1, 1, '#ff6a9a'); r(hx - 3, hy - 2 + gw, 1, 1, '#ffb0d0');
     return;
   }
   if (kind === 'thon') {
-    // le Thon d'Or : fuselé, le dos bleu nuit et or, le flanc doré qui brille, le ventre pâle, la grande nageoire en
-    // faucille, les petites pinnules jaunes vers la queue, la queue en croissant
-    for (let i = -13; i <= 12; i++) {
-      const u = (i + 13) / 25, hh = Math.max(1, Math.round(s.h * Math.sin(Math.PI * Math.min(1, 0.12 + u * 0.92))));
-      r(i, -hh / 2, 1, hh, s.body); r(i, -hh / 2, 1, 2, '#3a3a6a'); if (hh > 3) r(i, hh / 2 - 2, 1, 2, s.belly);
-      if ((i + 30) % 4 === 0 && hh > 5) r(i, -1, 1, 1, '#fff6c8');
-    }
-    for (let k = 0; k < 5; k++) { r(-10 + k * 2, -4 + (k > 2 ? 1 : 0) - 1, 1, 1, '#ffe040'); r(-10 + k * 2, 3 - (k > 2 ? 1 : 0), 1, 1, '#ffe040'); }
-    for (let k = 0; k < 4; k++) r(-1 - k, -5 - k, 2, 1, s.fin);
-    for (let k = 0; k < 7; k++) r(2 - k, 1 + Math.round(k * 0.4), 1, 1, s.fin);
-    for (let k = 0; k < 6; k++) { r(-14 - k, -1 - k, 1, 1, s.fin); r(-14 - k, k, 1, 1, s.fin); }
+    // le Thon d'Or : fuselé, le dos bleu nuit et or, le flanc qui brille, les pinnules jaunes, la nageoire en faucille
+    // qui bat, la queue en croissant
+    const { tail } = body(-13, 12, s.h, '#3a3a6a', (x, top, hh, u) => { if ((x + 30) % 4 === 0 && hh > 5) r(x, top + hh / 2 - 1, 1, 1, '#fff6c8'); if (u < 0.45 && (x + 30) % 2 === 0) { r(x, top - 1, 1, 1, '#ffe040'); r(x, top + hh, 1, 1, '#ffe040'); } });
+    const fl = Math.round(Math.sin(A + 1) * 2);
+    for (let k = 0; k < 7; k++) r(2 - k, 1 + Math.round(k * (0.3 + fl * 0.1)), 1, 1, s.fin);
+    for (let k = 0; k < 4; k++) r(-1 - k, -5 - k + wave(0.5), 2, 1, s.fin);
+    tailFin(-14, tail, 6, s.fin);
     eye(9, -1); r(9, -2, 1, 1, '#ffffff');
     return;
   }
   if (kind === 'espadon') {
-    // la voile bleue, le corps fuselé argenté au dos sombre, le rostre, la queue en croissant
-    for (let i = -6; i <= 6; i++) { const hh = Math.round(10 * Math.sin(((i + 7) / 14) * Math.PI)); r(i, -4 - hh, 1, hh, s.fin); if (i % 3 === 0) r(i, -4 - hh, 1, hh, '#7a9af0'); r(i, -4 - hh, 1, 1, '#9fbaff'); }
-    for (let i = -14; i <= 12; i++) {
-      const u = (i + 14) / 26, hh = Math.max(1, Math.round(s.h * Math.sin(Math.PI * Math.min(1, 0.1 + u * 0.92))));
-      r(i, -hh / 2, 1, hh, s.body); r(i, -hh / 2, 1, 1, '#4a5a80'); if (hh > 3) r(i, hh / 2 - 2, 1, 2, s.belly);
-      if ((i + 20) % 5 === 0 && hh > 4) r(i, -hh / 2 + 1, 1, hh - 3, '#8a9ab8');
-    }
+    // la voile bleue qui ondule, le corps fuselé argenté, le rostre, la queue en croissant qui bat
+    for (let i = -6; i <= 6; i++) { const hh = Math.round(10 * Math.sin(((i + 7) / 14) * Math.PI)) + Math.round(Math.sin(A + i * 0.4) * 1); r(i, -4 - hh, 1, hh, s.fin); if (i % 3 === 0) r(i, -4 - hh, 1, hh, '#7a9af0'); r(i, -4 - hh, 1, 1, '#9fbaff'); }
+    const { tail } = body(-14, 12, s.h, '#4a5a80', (x, top, hh) => { if ((x + 20) % 5 === 0 && hh > 4) r(x, top + 1, 1, hh - 3, '#8a9ab8'); });
     for (let i = 13; i <= 26; i++) r(i, -1, 1, 1, '#d8e0f0');
     r(26, -1, 1, 1, '#ffffff');
-    for (let k = 0; k < 6; k++) { r(-15 - k, -1 - k, 1, 1, '#4a5a80'); r(-15 - k, k, 1, 1, '#4a5a80'); }
-    r(-6, 3, 4, 1, s.fin); eye(9, -1); r(9, -2, 1, 1, '#ffffff');
-    return;
-  }
-  if (kind === 'lune') {
-    // le grand disque gris d'argent, les deux hautes nageoires, le bord de queue festonné, le gros œil, la petite bouche
-    for (let k = 0; k < 9; k++) { r(-2 + Math.round(k * 0.3), -10 - k, 3 - Math.floor(k / 4), 1, s.fin); r(-2 + Math.round(k * 0.3), 10 + k, 3 - Math.floor(k / 4), 1, s.fin); }
-    for (let dy = -10; dy <= 10; dy++) { const w = Math.round(10 * Math.sqrt(Math.max(0, 1 - (dy / 10.5) ** 2))); r(-w, dy, w * 2 + 1, 1, dy > 3 ? s.belly : s.body); r(-w, dy, 1, 1, '#8a94a8'); }
-    for (let dy = -8; dy <= 8; dy += 2) r(-11, dy, 1, 1, s.fin);
-    for (const [x, y] of [[-5, -4], [-1, 5], [3, -6], [-6, 2], [2, 1]]) r(x, y, 1, 1, '#d8dee8');
-    r(5, -4, 3, 3, '#f4f8ff'); r(6, -3, 2, 2, '#15121d'); r(5, -4, 1, 1, '#ffffff');
-    r(10, 0, 1, 2, '#4a5468'); r(-4, 0, 3, 1, s.fin);
+    tailFin(-15, tail, 6, '#4a5a80');
+    r(-6, 3 + Math.round(Math.sin(A + 2) * 1), 4, 1, s.fin); eye(9, -1); r(9, -2, 1, 1, '#ffffff');
     return;
   }
   if (kind === 'coelacanthe') {
-    // le corps massif bleu d'acier tacheté, les nageoires lobées comme des pattes, la queue à trois lobes, l'œil qui luit
-    for (let i = -13; i <= 13; i++) {
-      const u = (i + 13) / 26, hh = Math.max(2, Math.round(s.h * Math.sin(Math.PI * Math.min(1, 0.12 + u * 0.9))));
-      r(i, -hh / 2, 1, hh, s.body); r(i, -hh / 2, 1, 1, '#3e6aa0'); r(i, hh / 2 - 1, 1, 1, s.fin);
-    }
-    for (const [x, y] of [[-8, -2], [-3, 1], [2, -3], [6, 1], [-6, 3], [9, -2], [-1, -4]]) { r(x, y, 2, 1, '#e8eef6'); }
-    for (let k = 0; k < 4; k++) { r(-14 - k, -k - 1, 1, 1, s.fin); r(-14 - k, k, 1, 1, s.fin); }
-    r(-19, -1, 3, 2, s.fin);
-    for (const [x, y, d] of [[-3, 5, 1], [5, 5, 1], [-1, -6, -1], [8, -5, -1]]) { r(x, y, 1, 2 * d > 0 ? 2 : 1, s.fin); r(x - 1, y + (d > 0 ? 2 : -2), 3, 1, s.fin); }
+    // le corps massif tacheté qui ondule, les nageoires lobées qui pagaient l'une après l'autre (comme des pattes), la
+    // queue à trois lobes, l'œil qui luit
+    const { tail } = body(-13, 13, s.h, '#3e6aa0', (x, top, hh) => { if ((x * 7 + 3) % 9 === 0 && hh > 6) r(x, top + 3 + (x % 3), 2, 1, '#e8eef6'); });
+    tailFin(-14, tail, 4, s.fin, false); r(-19, tail - 1, 3, 2, s.fin);
+    ([[-3, 5, 1, 0], [5, 5, 1, 2], [-1, -6, -1, 1], [8, -5, -1, 3]] as [number, number, number, number][]).forEach(([x, y, d, ph]) => {
+      const sx = Math.round(Math.sin(A + ph * 1.6) * 2);
+      r(x, y, 1, 2, s.fin); r(x - 1 + sx, y + (d > 0 ? 2 : -2), 3, 1, s.fin);
+    });
     r(10, -2, 2, 2, '#ffe08a'); eye(11, -2);
     r(13, 1, 1, 1, '#0a1530');
     return;
   }
-  if (kind === 'kraken') {
-    // la tête énorme, l'œil à la pupille fendue, huit bras qui s'enroulent, leurs ventouses
-    for (let a = 0; a < 6; a++) for (let i = 0; i < 12; i++) {
-      const x = -6 + a * 2.6 + Math.sin(t * 3 + a + i * 0.5) * (i / 4) - (a < 3 ? i * 0.5 : -i * 0.4), y = 2 + i;
-      r(x, y, i < 6 ? 2 : 1, 1, s.body); if (i % 3 === 1) r(x + 1, y, 1, 1, '#f0b8c0');
-    }
-    for (let dy = -11; dy <= 3; dy++) { const w = Math.round(8 * Math.sqrt(Math.max(0, 1 - ((dy + 4) / 7.6) ** 2))); r(-w, dy, w * 2 + 1, 1, dy < -6 ? s.belly : s.body); }
-    for (const [x, y] of [[-4, -8], [2, -9], [-1, -5], [5, -6]]) r(x, y, 1, 1, s.fin);
-    r(1, -3, 4, 3, '#ffe08a'); r(2, -2, 2, 1, '#15121d');
-    return;
-  }
   if (kind === 'requin') {
-    // énorme, gris-bleu constellé de points blancs, des arêtes le long du dos, la tête large et plate, la bouche immense
-    for (let i = -20; i <= 20; i++) {
-      const u = (i + 20) / 40, hh = Math.max(2, Math.round(s.h * Math.sin(Math.PI * Math.min(1, 0.08 + u * 0.88))));
-      r(i, -hh / 2, 1, hh, s.body); if (hh > 6) r(i, hh / 2 - 3, 1, 3, s.belly);
-      if ((i + 40) % 7 === 0) r(i, -hh / 2 + 1, 1, hh - 4, '#4a6a8a');
-    }
-    for (let k = 0; k < 18; k++) r(-16 + (k * 13) % 34, -4 + (k * 5) % 7, 1, 1, '#e8eef6');
-    for (let k = 0; k < 6; k++) r(-3 + k, -7 - Math.min(k, 5 - k), 1, Math.min(k, 5 - k) + 1, s.fin);
-    for (let k = 0; k < 7; k++) { r(-21 - k, -1 - k, 1, 1, s.fin); r(-21 - k, k, 1, 1, s.fin); }
+    // énorme, constellé de points blancs, des arêtes le long du dos ; il ondule lentement, la grande queue bat
+    const { tail } = body(-20, 20, s.h, '#2a4a6a', (x, top, hh) => { if ((x + 40) % 7 === 0) r(x, top + 1, 1, hh - 4, '#4a6a8a'); if ((x * 13) % 11 < 2 && hh > 6) r(x, top + 2 + ((x * 5) % 5), 1, 1, '#e8eef6'); });
+    for (let k = 0; k < 6; k++) r(-3 + k, -7 - Math.min(k, 5 - k) + wave(0.45), 1, Math.min(k, 5 - k) + 1, s.fin);
+    tailFin(-21, tail, 8, s.fin);
     r(14, 2, 7, 1, '#15121d'); eye(16, -2);
+    r(4, 4 + Math.round(Math.sin(A) * 1), 5, 1, s.fin);
     return;
   }
-  if (kind === 'anguille') {
-    // longue, noire, ondulante, zébrée de traits bleus qui s'allument en vagues ; l'œil qui luit
-    for (let i = -20; i <= 18; i++) {
-      const y = Math.round(Math.sin(t * 4 + i * 0.3) * 2), hh = i < -16 ? 1 : i > 15 ? 2 : 3;
-      r(i, y - Math.floor(hh / 2), 1, hh, s.body);
-      r(i, y - Math.floor(hh / 2), 1, 1, '#3e5070');
-      if (((i + 40) % 3 === 0) && Math.sin(t * 6 - i * 0.4) > -0.3) { r(i, y, 1, 1, s.fin); if (hh > 2) r(i, y - 1, 1, 1, '#c8faff'); }
+  if (kind === 'lune') {
+    // le grand disque gris d'argent ; ses deux hautes nageoires battent d'un côté puis de l'autre, son bord de queue
+    // ondule ; le gros œil, la petite bouche
+    const sw = Math.sin(A);
+    for (let k = 0; k < 9; k++) { const lean = Math.round(sw * k * 0.35); r(-2 + lean, -10 - k, 3 - Math.floor(k / 4), 1, s.fin); r(-2 - lean, 10 + k, 3 - Math.floor(k / 4), 1, s.fin); }
+    for (let dy = -10; dy <= 10; dy++) { const w = Math.round(10 * Math.sqrt(Math.max(0, 1 - (dy / 10.5) ** 2))); r(-w, dy, w * 2 + 1, 1, dy > 3 ? s.belly : s.body); r(-w, dy, 1, 1, '#8a94a8'); }
+    for (let dy = -8; dy <= 8; dy += 2) r(-11 + Math.round(Math.sin(A + dy * 0.4) * 1), dy, 1, 1, s.fin);
+    for (const [x, y] of [[-5, -4], [-1, 5], [3, -6], [-6, 2], [2, 1]]) r(x, y, 1, 1, '#d8dee8');
+    r(5, -4, 3, 3, '#f4f8ff'); r(6, -3, 2, 2, '#15121d'); r(5, -4, 1, 1, '#ffffff');
+    r(10, 0, 1, 2, '#4a5468'); r(-4, Math.round(sw), 3, 1, s.fin);
+    return;
+  }
+  if (kind === 'kraken' || kind === 'poulpe') {
+    // la tête qui se gonfle et se dégonfle ; les bras qui ondulent, chacun à son tour, et s'enroulent au bout ; les ventouses
+    const big = kind === 'kraken';
+    const n = big ? 6 : 4, len = big ? 13 : 8, sp = big ? 2.6 : 2.4, x0 = big ? -6 : -6;
+    for (let a = 0; a < n; a++) {
+      const side = a < n / 2 ? -1 : 1;
+      for (let i = 0; i < len; i++) {
+        const q = i / len;
+        const x = x0 + a * sp + Math.sin(A + a * 0.9 - i * 0.45) * (0.5 + i * (big ? 0.35 : 0.3)) + side * i * (big ? 0.6 : 0.35) + (q > 0.7 ? side * (1 + Math.sin(A + a)) * (big ? 2 : 1.5) : 0);
+        const y = (big ? 2 : 3) + i * (big ? 0.85 : 0.95) - (big && q > 0.8 ? (q - 0.8) * 10 * (0.6 + 0.4 * Math.sin(A * 1.3 + a)) : 0);
+        r(x, y, i < len / 2 ? 2 : 1, 1, s.body); if (i % 3 === 1) r(x + 1, y, 1, 1, big ? '#f0b8c0' : s.belly);
+      }
     }
-    const hy = Math.round(Math.sin(t * 4 + 18 * 0.3) * 2);
-    r(18, hy - 2, 4, 4, s.body); r(20, hy - 1, 1, 1, '#e8fbff'); r(21, hy + 1, 1, 1, s.fin);
+    const pulse = Math.sin(A) * 0.7;
+    if (big) {
+      for (let dy = -11; dy <= 3; dy++) { const w = Math.round((8 + pulse) * Math.sqrt(Math.max(0, 1 - ((dy + 4) / 7.6) ** 2))); r(-w, dy, w * 2 + 1, 1, dy < -6 ? s.belly : s.body); }
+      for (const [x, y] of [[-4, -8], [2, -9], [-1, -5], [5, -6]]) r(x, y, 1, 1, s.fin);
+      r(1, -4, 4, 1, s.fin); r(1, -3, 4, 2, '#ffe08a'); r(2, -2, 3, 1, '#15121d'); r(4, -3, 1, 1, '#fff6d0');
+    } else {
+      for (let dy = -4; dy <= 2; dy++) { const w = Math.round((4 + pulse * 0.6) * Math.sqrt(Math.max(0, 1 - ((dy + 1) / 3.6) ** 2))); r(-3 - w, dy, w * 2 + 1, 1, dy > 0 ? s.belly : s.body); }
+      eye(-1, -1); eye(-5, -1);
+    }
+    return;
+  }
+  if (kind === 'calamar') {
+    // le manteau en pointe (il nage à reculons), les nageoires qui battent, les yeux, les tentacules qui ondulent
+    const fl = Math.round(Math.sin(A) * 1);
+    for (let i = 0; i < 9; i++) { const hh = Math.max(1, Math.round(1 + i * 0.45)); r(-8 + i, -Math.floor(hh / 2), 1, hh, i % 2 ? s.body : s.fin); }
+    r(-8, -3 - fl, 2, 1, s.fin); r(-8, 2 + fl, 2, 1, s.fin); r(-9, -2 - fl, 1, 1, s.fin); r(-9, 1 + fl, 1, 1, s.fin);
+    r(1, -2, 2, 4, s.belly); eye(2, -1);
+    for (let k = 0; k < 3; k++) for (let i = 0; i < 7; i++) r(3 + i, -1 + k + Math.round(Math.sin(A + k - i * 0.7) * (0.4 + i * 0.25)), 1, 1, i % 2 ? s.fin : s.body);
     return;
   }
   if (kind === 'raie') {
-    // un losange (les ailes), le ventre clair, la longue queue, les yeux sur le dessus
-    for (let i = 0; i < s.w; i++) { const u = i / (s.w - 1), hh = Math.max(1, Math.round(s.h * (1 - Math.abs(u - 0.55) * 1.8))); r(i - s.w / 2, -Math.floor(hh / 2) + Math.round(Math.sin(t * 4 + i * 0.5) * (Math.abs(u - 0.55) > 0.3 ? 1 : 0)), 1, hh, s.body); if (hh > 3) r(i - s.w / 2, Math.ceil(hh / 2) - 1, 1, 1, s.belly); }
-    for (let i = 0; i < 8; i++) r(-s.w / 2 - i, Math.round(Math.sin(t * 5 - i * 0.6) * 0.6), 1, 1, s.fin);
+    // un losange : les ailes ondulent de l'avant vers l'arrière, la longue queue fouette, les yeux sur le dessus
+    for (let i = 0; i < s.w; i++) {
+      const u = i / (s.w - 1), d = Math.abs(u - 0.55);
+      const hh = Math.max(1, Math.round(s.h * (1 - d * 1.8)));
+      const flap = Math.round(Math.sin(A - u * 3) * d * 4);
+      r(i - s.w / 2, -Math.floor(hh / 2) - flap, 1, hh + flap * 2 > 0 ? hh : 1, s.body);
+      if (hh > 3) r(i - s.w / 2, Math.ceil(hh / 2) - 1 + flap, 1, 1, s.belly);
+    }
+    for (let i = 0; i < 9; i++) r(-s.w / 2 - i, Math.round(Math.sin(A * 1.3 - i * 0.7) * (i / 4)), 1, 1, s.fin);
     eye(s.w / 2 - 4, -2); eye(s.w / 2 - 4, 1);
     return;
   }
+  if (kind === 'anguille') {
+    // longue, noire, elle ondule d'un bout à l'autre ; ses traits bleus s'allument en vagues ; l'œil qui luit
+    for (let i = -20; i <= 18; i++) {
+      const y = Math.round(Math.sin(A - i * 0.3) * 2.2), hh = i < -16 ? 1 : i > 15 ? 2 : 3;
+      r(i, y - Math.floor(hh / 2), 1, hh, s.body);
+      r(i, y - Math.floor(hh / 2), 1, 1, '#3e5070');
+      if (((i + 40) % 3 === 0) && Math.sin(A * 1.5 - i * 0.4) > -0.3) { r(i, y, 1, 1, s.fin); if (hh > 2) r(i, y - 1, 1, 1, '#c8faff'); }
+    }
+    const hy = Math.round(Math.sin(A - 18 * 0.3) * 2.2);
+    r(18, hy - 2, 4, 4, s.body); r(20, hy - 1, 1, 1, '#e8fbff'); r(21, hy + 1, 1, 1, s.fin);
+    return;
+  }
+  // les poissons ordinaires, de profil : le corps qui ondule, la queue qui bat, une petite nageoire sur le dos
   const hw = Math.floor(s.w / 2);
+  let tailY = 0, headY = 0;
   for (let i = 0; i < s.w; i++) {
     const u = i / (s.w - 1);
     const shape = kind === 'lotte' ? Math.min(1, 0.35 + u * 0.9) : Math.sin(Math.PI * Math.min(1, 0.2 + u * 0.9));
     const hh = Math.max(1, Math.round(s.h * shape));
-    const wob = 0;
-    r(i - hw, -Math.floor(hh / 2) + wob, 1, hh, s.body);
-    if (hh > 2) r(i - hw, Math.ceil(hh / 2) - 1 + wob, 1, 1, s.belly);
+    const off = wave(u, s.h > 5 ? 1.6 : 1.2);
+    if (i === 0) tailY = off;
+    if (i === s.w - 1) headY = off;
+    r(i - hw, -Math.floor(hh / 2) + off, 1, hh, s.body);
+    if (hh > 2) r(i - hw, Math.ceil(hh / 2) - 1 + off, 1, 1, s.belly);
+    if (kind === 'maquereau' && i % 2 === 0 && u < 0.8) r(i - hw, -Math.floor(hh / 2) + off, 1, 1, '#235e50');
   }
-  const tail = Math.floor(t * 8) % 2;
-  r(-hw - 2, -1 - tail - (s.h > 6 ? 2 : 0), 2, 1 + (s.h > 6 ? 2 : 0), s.fin);
-  r(-hw - 2, tail, 2, 1 + (s.h > 6 ? 2 : 0), s.fin);
-  eye(s.w - hw - 3, -1);
-  if (kind === 'lotte') { r(s.w - hw - 2, -7, 1, 3, s.fin); r(s.w - hw - 2, -9, 2, 2, '#fff2a0'); }
-  if (kind === 'dorade') r(s.w - hw - 5, -2, 1, 3, s.fin);
-  if (kind === 'maquereau') for (let i = -3; i < 4; i += 2) r(i, -2, 1, 1, '#235e50');
+  tailFin(-hw - 1, tailY, s.h > 6 ? 4 : s.h > 3 ? 3 : 2, s.fin);
+  if (s.h > 4) r(-1, -Math.ceil(s.h / 2) - 1 + wave(0.45), 3, 1, s.fin);
+  eye(s.w - hw - 3, -1 + headY);
+  if (kind === 'lotte') { r(s.w - hw - 2, -7, 1, 3, s.fin); r(s.w - hw - 2, -9 + Math.round(Math.sin(A) * 1), 2, 2, '#fff2a0'); }
+  if (kind === 'dorade') r(s.w - hw - 5, -2 + headY, 1, 3, s.fin);
 }
+
+// en développement seulement : le dessin des poissons, pour les planches d'essai
+if (import.meta.env.DEV) (window as unknown as { __fishDraw?: unknown }).__fishDraw = { drawFish, FISH };
+
+/** Les sprites des poissons, comme dans un vieux jeu : chaque espèce en huit images de nage (un battement complet), tournée par crans de
+ *  22,5° au pixel près (sans lissage, chaque pixel reste un pixel), vers la droite ou vers la gauche. Gardés en mémoire. */
+const SPR = 96, SPC = 48;
+const sprites = new Map<string, HTMLCanvasElement>();
+function fishSprite(kind: Kind, frame: number, step: number, face: number, flash: boolean, depth = 0): HTMLCanvasElement {
+  const key = `${kind}|${frame}|${step}|${face}|${flash}|${depth}`;
+  const hit = sprites.get(key);
+  if (hit) return hit;
+  const base = document.createElement('canvas'); base.width = base.height = SPR;
+  const bg = base.getContext('2d')!;
+  bg.imageSmoothingEnabled = false;
+  bg.save(); bg.translate(SPC, SPC); drawFish(bg, kind, frame / (FRAMES * SWIM_HZ), flash); bg.restore();
+  if (!flash) shade(bg);
+  let out = base;
+  if (step % 16 !== 0) {
+    // la rotation au plus proche voisin : chaque pixel d'arrivée va chercher le pixel de départ qui tombe dessus
+    out = document.createElement('canvas'); out.width = out.height = SPR;
+    const og = out.getContext('2d')!;
+    const th = (step * Math.PI) / 8, cs = Math.cos(th), sn = Math.sin(th);
+    const src = bg.getImageData(0, 0, SPR, SPR).data, img = og.createImageData(SPR, SPR), d = img.data;
+    for (let y = 0; y < SPR; y++) for (let x = 0; x < SPR; x++) {
+      const dx = x - SPC + 0.5, dy = y - SPC + 0.5;
+      const sx = Math.floor(cs * dx + sn * dy + SPC), sy = Math.floor(-sn * dx + cs * dy + SPC);
+      if (sx < 0 || sy < 0 || sx >= SPR || sy >= SPR) continue;
+      const i = (y * SPR + x) * 4, j = (sy * SPR + sx) * 4;
+      d[i] = src[j]; d[i + 1] = src[j + 1]; d[i + 2] = src[j + 2]; d[i + 3] = src[j + 3];
+    }
+    og.putImageData(img, 0, 0);
+  }
+  if (face < 0 || depth > 0) {
+    const m = document.createElement('canvas'); m.width = m.height = SPR;
+    const mg = m.getContext('2d')!;
+    if (face < 0) { mg.translate(SPR, 0); mg.scale(-1, 1); }
+    mg.drawImage(out, 0, 0);
+    // plus il est profond, plus l'eau le bleuit et l'assombrit
+    if (depth > 0) { mg.setTransform(1, 0, 0, 1, 0, 0); mg.globalCompositeOperation = 'source-atop'; mg.fillStyle = `rgba(14,48,96,${0.16 * depth})`; mg.fillRect(0, 0, SPR, SPR); }
+    out = m;
+  }
+  if (sprites.size > 6000) sprites.clear();
+  sprites.set(key, out);
+  return out;
+}
+
+/** Du relief, comme dans le pixel art soigné : chaque colonne du poisson s'éclaire en haut (un liseré de lumière sur le
+ *  dos) et s'assombrit en bas ; puis un contour, plus sombre que la couleur qu'il borde (pas un trait noir partout). */
+function shade(g: CanvasRenderingContext2D) {
+  const img = g.getImageData(0, 0, SPR, SPR), d = img.data;
+  const on = (x: number, y: number) => x >= 0 && y >= 0 && x < SPR && y < SPR && d[(y * SPR + x) * 4 + 3] > 40;
+  for (let x = 0; x < SPR; x++) {
+    let top = -1, bot = -1;
+    for (let y = 0; y < SPR; y++) if (on(x, y)) { if (top < 0) top = y; bot = y; }
+    if (top < 0) continue;
+    for (let y = top; y <= bot; y++) {
+      if (!on(x, y)) continue;
+      const rel = (y - top) / Math.max(1, bot - top);
+      const k = y === top ? 0.38 : rel < 0.22 ? 0.18 : rel < 0.4 ? 0.06 : rel > 0.82 ? -0.3 : rel > 0.62 ? -0.12 : 0;
+      const i = (y * SPR + x) * 4;
+      for (let c = 0; c < 3; c++) d[i + c] = k > 0 ? d[i + c] + (255 - d[i + c]) * k : d[i + c] * (1 + k);
+    }
+  }
+  const src = new Uint8ClampedArray(d);
+  const at = (x: number, y: number) => (y * SPR + x) * 4;
+  for (let y = 1; y < SPR - 1; y++) for (let x = 1; x < SPR - 1; x++) {
+    if (src[at(x, y) + 3] > 40) continue;
+    let n = -1;
+    for (const [ox, oy] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) if (src[at(x + ox, y + oy) + 3] > 40) { n = at(x + ox, y + oy); break; }
+    if (n < 0) continue;
+    const i = at(x, y);
+    d[i] = src[n] * 0.32; d[i + 1] = src[n + 1] * 0.32; d[i + 2] = src[n + 2] * 0.36 + 8; d[i + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+}
+
+/** La taille d'un poisson à l'écran pendant le combat : en pixels entiers (les petites légendes ×2). */
+const fishScale = (kind: Kind) => (FISH[kind].legend && FISH[kind].w < 30 ? 2 : 1);
 
 const SKY = { day: ['#7cbaec', '#9bcdf1', '#bcdff5', '#dcedf7'], evening: ['#3a2f6a', '#7a4579', '#d9786a', '#ffb27a'], night: ['#0b1030', '#121a42', '#18234c', '#202d5a'] };
 const SEA = { day: ['#a6d2ea', '#5aa0cc', '#2a78b2', '#175a92'], evening: ['#f0a88a', '#8a5a88', '#4a3a72', '#2c2858'], night: ['#28335e', '#1a2850', '#0f1c40', '#0a1532'] };
@@ -277,6 +395,10 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
     // le bras de fer : où en est la corde (1 : Roré gagne, 0 : la ligne casse), combien de fois il a déjà tiré, la
     // barque traînée (son décalage) et l'eau qui défile
     rope: 0.5, drags: 0, dragAt: -9, pressAt: -9, towX: 0, scroll: 0,
+    // le poisson accroché : où il nage, sa vitesse, son côté, quand il s'est retourné, où il va, s'il fonce, son saut
+    swim: { x: 160, y: SURFACE + 14, vx: 0, vy: 0, face: 1, turnAt: -9, tx: 160, ty: SURFACE + 20, next: 0, dart: false, jump: null as null | { t0: number; x0: number; y0: number; dir: number }, out: false },
+    rings: [] as { x: number; t0: number; w: number }[],
+    bubbles: [] as { x: number; y: number; t0: number }[],
     bits: [] as Bit[], confetti: [] as Bit[],
     msg: '', msgAt: -9,
   });
@@ -329,6 +451,8 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
         st.hp = sp.hp; st.shownHp = sp.hp; st.trailHp = sp.hp;
         st.kg = Math.round((sp.kg[0] + Math.random() * (sp.kg[1] - sp.kg[0])) * 100) / 100;
         st.cursor = 0; st.curDir = 1; st.zone = 0.3 + Math.random() * 0.4; st.tension = 0; st.rage = false; st.drags = 0;
+        Object.assign(st.swim, { x: st.bobX, y: SURFACE + 8, vx: 0, vy: sp.deep ? 30 : 20, face: Math.random() < 0.5 ? -1 : 1, next: 0, dart: !sp.deep, jump: null, out: false });
+        st.rings.push({ x: st.bobX, t0: st.t, w: 1 });
         set('fight');
         sfx('check');
         say(sp.legend ? 'FERRE ! LE COMBAT COMMENCE' : 'FERRE !');
@@ -357,7 +481,7 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
       st.zone = sp.zone / 2 + Math.random() * (1 - sp.zone);
       sfx('check', perfect ? 1.3 : 1);
       say(perfect ? 'PARFAIT !' : 'BIEN !');
-      if (Math.random() < (sp.jumpy ?? (sp.legend ? 0.45 : 0.3))) { st.jumpAt = st.t; splash(st.bobX, 8); }
+      if (!sp.deep && Math.random() < (sp.jumpy ?? (sp.legend ? 0.45 : 0.3)) && !st.swim.jump) { st.jumpAt = st.t; st.swim.jump = { t0: st.t, x0: st.swim.x, y0: Math.max(SURFACE + 6, st.swim.y), dir: st.swim.face }; }
       if (sp.legend && !st.rage && st.hp <= sp.hp / 2) { st.rage = true; st.flashAt = st.t; st.shake = 0.6; say('IL ENRAGE !'); sfx('error'); }
       if (st.hp <= 0) { land(); return; }
       // un poisson coriace : passé un certain reste de vie, il file et traîne la barque
@@ -434,6 +558,52 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
     set('fail', { title: 'La ligne a cassé…', sub: spec().legend ? `${spec().name} est reparti au fond. Il reviendra.` : 'Roré tombe à la renverse dans la barque.', legend: false, junk: true, record: false });
   };
 
+  /** Le poisson accroché nage : il file vers un point au hasard (parfois il fonce), se retourne, remonte quand il
+   *  fatigue et se rapproche de la barque ; quand il saute, il suit un arc, sort de l'eau dans une gerbe et y rentre. */
+  const this_swim = (dt: number) => {
+    const st = s.current, sw = st.swim, t = st.t, sp = spec();
+    if (sw.jump) {
+      const j = sw.jump, u = (t - j.t0) / 1.0;
+      const peak = SURFACE - (sp.legend ? 46 : 30);
+      if (u >= 1) { sw.jump = null; sw.vx = j.dir * 30; sw.vy = 40; }
+      else {
+        sw.x = j.x0 + j.dir * u * 46;
+        sw.y = j.y0 - (j.y0 - peak) * (1 - (2 * u - 1) ** 2);
+        sw.vx = j.dir * 46; sw.vy = (j.y0 - peak) * 4 * (2 * u - 1);
+        sw.face = j.dir;
+      }
+    } else {
+      // il s'épuise : il remonte et se rapproche de la barque à mesure qu'il perd de la vie
+      const tired = 1 - Math.max(0, st.hp) / sp.hp;
+      const anchor = Math.min(st.landX, 210) - tired * 70;
+      if (t > sw.next) {
+        sw.next = t + 0.5 + Math.random() * 0.9;
+        sw.dart = Math.random() < 0.35;
+        sw.tx = Math.max(BOAT_X + 70, Math.min(W - 16, anchor + (Math.random() - 0.5) * 80));
+        sw.ty = sp.deep ? SURFACE + 22 + Math.random() * 8 - tired * 4 : SURFACE + 9 + Math.random() * (34 - tired * 18);
+        if (sp.deep) { sw.dart = false; sw.tx = anchor + (Math.random() - 0.5) * 40; }
+      }
+      const spd = (sw.dart ? 72 : 30) * (st.rage ? 1.3 : 1) * (sp.deep ? 0.35 : 1);
+      const dx = sw.tx - sw.x, dy = sw.ty - sw.y, dl = Math.max(1, Math.hypot(dx, dy));
+      sw.vx += ((dx / dl) * spd - sw.vx) * Math.min(1, dt * 3);
+      sw.vy += ((dy / dl) * spd * 0.6 - sw.vy) * Math.min(1, dt * 3);
+      // il se retourne quand il change franchement de côté
+      if (sw.vx * sw.face < -8) { sw.face = -sw.face; sw.turnAt = t; }
+      if (sw.dart && Math.random() < dt * 10) st.bubbles.push({ x: sw.x - sw.face * 6, y: sw.y - 1, t0: t });
+    }
+    sw.x += sw.vx * dt; sw.y += sw.vy * dt;
+    // la gerbe quand il sort de l'eau, et quand il y retombe
+    const out = sw.y < SURFACE - 1;
+    if (out !== sw.out) {
+      sw.out = out;
+      const n = sp.legend ? 18 : 11;
+      for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + (i / (n - 1) - 0.5) * 1.8; st.bits.push({ x: sw.x, y: SURFACE - 1, vx: Math.cos(a) * (40 + Math.random() * 25), vy: Math.sin(a) * (55 + Math.random() * 30), life: 0.9, col: i % 3 ? '#ffffff' : '#bfe6ff' }); }
+      st.rings.push({ x: sw.x, t0: t, w: sp.legend ? 2 : 1 });
+      if (!out) for (let i = 0; i < 6; i++) st.bubbles.push({ x: sw.x + (i - 3) * 2, y: SURFACE + 4 + i * 2, t0: t });
+    }
+    st.bobX = sw.x;
+  };
+
   const step = (dt: number) => {
     const st = s.current;
     for (const k of keys.take()) if (k === ' ' || k === 'enter') action();
@@ -444,6 +614,9 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
     for (const b of [...st.bits, ...st.confetti]) { b.x += b.vx * dt; b.y += b.vy * dt; b.vy += 120 * dt; b.life -= dt; }
     st.bits = st.bits.filter((b) => b.life > 0 && b.y < SURFACE + 2);
     st.confetti = st.confetti.filter((b) => b.life > 0);
+    for (const b of st.bubbles) { b.y -= dt * 14; b.x += Math.sin((t - b.t0) * 6) * dt * 4; }
+    st.bubbles = st.bubbles.filter((b) => b.y > SURFACE + 1);
+    st.rings = st.rings.filter((r) => t - r.t0 < 1.2);
     if (st.gull) { st.gull.t += dt; if (st.gull.t > 3) st.gull = null; }
     // la barque traînée revient doucement à sa place ; l'eau ralentit
     if (st.phase !== 'drag') { st.towX += (0 - st.towX) * Math.min(1, dt * 1.5); st.scroll += dt * 4; }
@@ -498,11 +671,11 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
         if (sp.legend) st.zone = Math.max(sp.zone / 2, Math.min(1 - sp.zone / 2, st.zone + Math.sin(t * (sp.drift ? 3.1 : 1.7)) * (sp.drift ?? 0.12) * dt));
         st.tension = Math.max(0, st.tension - 0.05 * dt);
         st.dip = 0.8;
-        // la flotte revient doucement devant la barque après un bras de fer
-        st.bobX += (Math.min(st.landX, 200) - st.bobX) * Math.min(1, dt * 1.2);
+        this_swim(dt);
         break;
       }
       case 'drag': {
+        Object.assign(st.swim, { x: st.bobX + 6, y: spec().deep ? SURFACE + 24 : SURFACE + 5, vx: spec().deep ? 18 : 60, vy: 0, face: 1, jump: null });
         // il tire par à-coups, plus fort quand il enrage ; la barque est traînée, l'eau défile
         const sp = spec();
         // il tire par à-coups ; la première demi-seconde, Roré a le temps de réagir
@@ -510,7 +683,7 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
         st.rope -= pull * dt;
         st.towX += (34 - st.towX) * Math.min(1, dt * 0.9);
         st.scroll += dt * (60 + pull * 120);
-        st.bobX += (W - 26 + Math.sin(t * 2.2) * 10 - st.bobX) * Math.min(1, dt * 2);
+        st.bobX += ((sp.deep ? W - 46 : W - 26) + Math.sin(t * 2.2) * 10 - st.bobX) * Math.min(1, dt * 2);
         st.dip = 1;
         st.tension = 0.4 + (1 - st.rope) * 0.6;
         if (Math.random() < dt * 14) st.bits.push({ x: BOAT_X + st.towX + 44, y: SURFACE - 2, vx: 20 + Math.random() * 30, vy: -30 - Math.random() * 30, life: 0.6, col: '#ffffff' });
@@ -591,32 +764,49 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
       g.fillStyle = 'rgba(5,10,30,0.45)';
       g.beginPath(); g.ellipse(st.shadow.x, st.shadow.y, (sp.w / 2 + 3) * k, (sp.h / 2 + 1) * k, 0, 0, Math.PI * 2); g.fill();
     }
-    // le poisson accroché : il se débat sous l'eau, saute, ou file à la surface en traînant la barque ; sa pose sert aussi
-    // à accrocher la ligne à sa bouche
-    const jump = (t - st.jumpAt) / 0.9;
-    const fk = sp.legend ? 1.5 : 1;
-    let fish: null | { x: number; y: number; rot: number; flip: boolean } = null;
-    if (st.phase === 'fight') {
-      fish = jump >= 0 && jump < 1
-        ? { x: st.bobX + (jump - 0.5) * 34, y: SURFACE - Math.sin(jump * Math.PI) * (sp.legend ? 46 : 32), rot: (jump - 0.5) * 2.2, flip: false }
-        : { x: st.bobX + Math.sin(t * 3) * 10, y: SURFACE + 22 + Math.sin(t * 2.3) * 5, rot: 0, flip: Math.sin(t * 3) < 0 };
-    } else if (dragging) fish = { x: st.bobX + 6, y: SURFACE + 5 + Math.sin(t * 6) * 1.5, rot: 0, flip: false };
-    if (fish) {
-      g.save();
-      g.translate(Math.round(fish.x), Math.round(fish.y));
-      g.rotate(fish.rot);
-      if (fish.flip) g.scale(-1, 1);
-      g.scale(fk, fk);
-      drawFish(g, st.kind, t, t - st.hitAt < 0.1);
-      g.restore();
+    // le poisson accroché, en sprites : il nage (sa queue bat plus vite quand il fonce), se retourne en une image écrasée,
+    // secoue la tête quand on le touche, saute en suivant son arc (par crans de 22,5°) ; sa pose sert aussi à accrocher la
+    // ligne à sa bouche
+    const fk = fishScale(st.kind);
+    let fish: null | { x: number; y: number; th: number; face: number } = null;
+    const sw = st.swim;
+    if (st.phase === 'fight' || dragging) {
+      const face = sw.face >= 0 ? 1 : -1;
+      // l'angle : selon sa vitesse (vers le haut, vers le bas), un peu en nageant, beaucoup en sautant
+      let th = Math.atan2(sw.vy, Math.abs(sw.vx) + 0.01);
+      if (!sw.jump) th = Math.max(-0.45, Math.min(0.45, th * 0.6));
+      if (t - st.hitAt < 0.35) th += (Math.floor(t * 18) % 2 ? 1 : -1) * 0.4;
+      fish = { x: sw.x, y: sw.y, th, face };
+      const stepI = Math.max(-4, Math.min(4, Math.round(th / (Math.PI / 8))));
+      const speed = Math.hypot(sw.vx, sw.vy);
+      // la queue bat plus vite quand il fonce, et quand il se débat
+      const frame = Math.floor(t * FRAMES * SWIM_HZ * (0.8 + speed / 45 + st.tension * 0.6)) % FRAMES;
+      const depth = sw.y > SURFACE + 4 ? Math.max(0, Math.min(3, Math.round((sw.y - SURFACE) / 15))) : 0;
+      const spr = fishSprite(st.kind, frame, stepI, face, t - st.hitAt < 0.08, depth);
+      const turning = t - sw.turnAt < 0.12;
+      const wq = turning ? Math.round(SPR * fk * 0.5) : SPR * fk;
+      g.drawImage(spr, Math.round(sw.x - wq / 2), Math.round(sw.y - SPC * fk), wq, SPR * fk);
     }
     const mouth = (() => {
       if (!fish) return null;
       const m = sp.mouth ?? [Math.ceil(sp.w / 2), 0];
-      const mx = m[0] * (fish.flip ? -1 : 1) * fk, my = m[1] * fk;
-      return { x: fish.x + mx * Math.cos(fish.rot) - my * Math.sin(fish.rot), y: fish.y + mx * Math.sin(fish.rot) + my * Math.cos(fish.rot) };
+      const stepTh = Math.max(-4, Math.min(4, Math.round(fish.th / (Math.PI / 8)))) * (Math.PI / 8);
+      const px0 = m[0] * Math.cos(stepTh) - m[1] * Math.sin(stepTh), py0 = m[0] * Math.sin(stepTh) + m[1] * Math.cos(stepTh);
+      return { x: fish.x + px0 * fish.face * fk, y: fish.y + py0 * fk };
     })();
-    if (dragging) {
+    // les ronds à la surface, là où il est sorti ou rentré ; les bulles qui remontent
+    for (const rg of st.rings) {
+      const k = (t - rg.t0) / 1.2, rx = (4 + k * 18) * rg.w, ry = rx * 0.25;
+      g.fillStyle = `rgba(255,255,255,${0.6 * (1 - k)})`;
+      for (let q = 0; q < Math.PI * 2; q += 0.25) g.fillRect(Math.round(rg.x + Math.cos(q) * rx), Math.round(SURFACE + 1 + Math.sin(q) * ry), 1, 1);
+    }
+    for (const b of st.bubbles) { r(b.x, b.y, 1, 1, 'rgba(220,240,255,0.8)'); if ((t - b.t0) % 0.6 < 0.3) r(b.x + 1, b.y - 1, 1, 1, 'rgba(220,240,255,0.5)'); }
+    if (dragging && sp.deep) {
+      // il tire depuis le fond : l'eau bouillonne au-dessus de lui
+      for (let i = 0; i < 4; i++) { const q = (t * 1.8 + i / 4) % 1; r(st.bobX - 8 + i * 5, SURFACE + 30 - q * 30, 1, 1, 'rgba(220,240,255,0.7)'); }
+      for (let i = 0; i < 2; i++) { const q = (t * 1.2 + i / 2) % 1; g.fillStyle = `rgba(255,255,255,${0.5 * (1 - q)})`; for (let a = 0; a < Math.PI * 2; a += 0.3) g.fillRect(Math.round(st.bobX + Math.cos(a) * (4 + q * 12)), Math.round(SURFACE + 1 + Math.sin(a) * (1 + q * 2)), 1, 1); }
+    }
+    if (dragging && !sp.deep) {
       // sa nageoire qui fend l'eau, la gerbe devant lui
       const fx = Math.round(st.bobX + 4);
       for (let k = 0; k < 5; k++) r(fx - k, SURFACE - 5 + k, 1 + k, 1, sp.fin);
@@ -711,12 +901,10 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
     // le poisson qui s'envole au-dessus de Roré, pour la photo
     if (st.phase === 'catch' && caught >= 0) {
       const u = Math.min(1, caught);
-      g.save();
-      g.translate(Math.round(st.bobX + (BX + 20 - st.bobX) * u), Math.round(SURFACE - Math.sin(u * Math.PI * 0.5) * 40 - (u >= 1 ? Math.sin(t * 4) * 2 : 0)));
-      g.rotate(u < 1 ? u * Math.PI * 4 : 0);
-      g.scale(2, 2);
-      drawFish(g, st.kind, t);
-      g.restore();
+      const cx = Math.round(st.bobX + (BX + 20 - st.bobX) * u), cy = Math.round(SURFACE - Math.sin(u * Math.PI * 0.5) * 40 - (u >= 1 ? Math.sin(t * 4) * 2 : 0));
+      const k = sp.w > 30 ? 1 : 2;
+      const spr = fishSprite(st.kind, Math.floor(t * FRAMES * SWIM_HZ) % FRAMES, u < 1 ? Math.round(u * 32) % 16 : 0, 1, false);
+      g.drawImage(spr, cx - SPC * k, cy - SPC * k, SPR * k, SPR * k);
     }
     // les éclaboussures, les confettis
     for (const b of st.bits) { g.fillStyle = b.col; g.fillRect(Math.round(b.x), Math.round(b.y), 1, 1); }
@@ -902,7 +1090,8 @@ function BestiaryCard({ kind, entry }: { kind: Kind; entry?: { n: number; kg: nu
     g.save();
     g.translate(c.width / 2, c.height / 2 + (kind === 'nessie' ? 5 : 0));
     g.scale(k, k);
-    drawFish(g, kind, 0.3, false, known ? undefined : '#2c2a3a');
+    if (known) { g.translate(-SPC, -SPC); g.drawImage(fishSprite(kind, 0, 0, 1, false), 0, 0); }
+    else drawFish(g, kind, 0.3, false, '#2c2a3a');
     g.restore();
   }, [kind, known, sp]);
   const stars = rarity(kind);
