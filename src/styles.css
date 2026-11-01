@@ -815,8 +815,8 @@ input[type='color'] { width: 34px; height: 34px; padding: 0; border: 1px solid v
 .fish-card { position: absolute; left: 50%; top: 8%; transform: translateX(-50%); display: grid; gap: 2px; justify-items: center; padding: 8px 16px; border-radius: 10px; background: rgba(18, 15, 25, 0.9); border: 1px solid var(--line2); text-align: center; pointer-events: none; animation: fish-pop 0.35s ease-out; }
 .fish-card b { font: 700 18px var(--pixel); color: #fff; }
 .fish-card span { font-size: 12.5px; color: #e8e5f1; }
-.fish-card.legend { border-color: #ffd166; box-shadow: 0 0 28px rgba(255, 209, 102, 0.55); }
-.fish-card.legend b { color: #ffd166; }
+.fish-card.is-legend { border-color: #ffd166; box-shadow: 0 0 28px rgba(255, 209, 102, 0.55); }
+.fish-card.is-legend b { color: #ffd166; }
 .fish-card.junk b { color: #cfd2e0; }
 @keyframes fish-pop { from { transform: translateX(-50%) scale(0.6); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
 .fish-journal { display: grid; gap: 6px; }
@@ -826,12 +826,16 @@ input[type='color'] { width: 34px; height: 34px; padding: 0; border: 1px solid v
 .fish-chip.legend { border-color: #ffd166; color: #ffd166; }
 /* le bestiaire de la pêche */
 .bestiary-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.bestiary { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; max-height: 320px; overflow-y: auto; padding-right: 2px; }
+.bestiary { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; max-height: 380px; overflow-y: auto; padding-right: 2px; }
 .bestiary-card { display: grid; justify-items: center; align-content: start; gap: 3px; padding: 8px; border-radius: 10px; background: var(--surface2); border: 1px solid var(--line); text-align: center; }
 .bestiary-card canvas { width: 128px; height: 72px; image-rendering: pixelated; background: linear-gradient(#1a2850, #0f1c40); border-radius: 6px; }
 .bestiary-card b { font: 700 14px var(--pixel); }
-.bestiary-card.legend { border-color: #ffd166; box-shadow: 0 0 14px rgba(255, 209, 102, 0.25); }
-.bestiary-card.legend b { color: #ffd166; }
+.bestiary-card.is-legend { border-color: #ffd166; box-shadow: 0 0 14px rgba(255, 209, 102, 0.25); }
+.bestiary-card.is-legend b { color: #ffd166; }
 .bestiary-card.unknown b { color: #8a8698; }
 .bestiary-stars { color: #ffd166; letter-spacing: 1px; font-size: 12px; }
-.bestiary-stars .dim { color: #4a4458; }
+.bestiary-stars .dim, .bestiary-facts .dim { color: #4a4458; font-style: normal; }
+.bestiary-facts { display: grid; grid-template-columns: auto 1fr; gap: 1px 8px; margin: 2px 0; font-size: 11.5px; text-align: left; width: 100%; }
+.bestiary-facts dt { color: #8a8698; }
+.bestiary-facts dd { margin: 0; color: #e8e5f1; }
+.bestiary-fact { color: #ffe9b0; text-align: left; }

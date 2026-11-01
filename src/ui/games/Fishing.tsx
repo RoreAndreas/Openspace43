@@ -25,11 +25,13 @@ const HORIZON = 54, SURFACE = 76;
 const BOAT_X = 20;
 /** le bout de la canne */
 const TIP = { x: BOAT_X + 56, y: SURFACE - 30 };
+/** la zone dorée du lancer parfait, sur la jauge (étroite : il faut viser juste) */
+const PERFECT: [number, number] = [0.87, 0.93];
 /** la barre du combat (et du bras de fer) */
 const BAR = { x: 48, y: 126, w: 160, h: 7 };
 
 // ── Les prises ──
-type Kind = 'sardine' | 'maquereau' | 'rouget' | 'poulpe' | 'dorade' | 'calamar' | 'bar' | 'lotte' | 'raie' | 'thon' | 'nessie' | 'botte' | 'algue';
+type Kind = 'sardine' | 'maquereau' | 'rouget' | 'poulpe' | 'dorade' | 'calamar' | 'bar' | 'lotte' | 'raie' | 'thon' | 'espadon' | 'coelacanthe' | 'requin' | 'nessie' | 'lune' | 'kraken' | 'anguille' | 'botte' | 'algue';
 interface Spec {
   name: string; kg: [number, number]; hp: number;
   /** la vitesse du curseur, la largeur de la zone verte, le temps pour ferrer (s) */
@@ -40,21 +42,33 @@ interface Spec {
   legend?: boolean; junk?: boolean;
   /** où et quand le trouver (l'indice du bestiaire), et ce qu'on en dit une fois pris */
   hint: string; desc: string;
+  /** une anecdote, pour le bestiaire */
+  fact?: string;
   /** un poisson coriace : la force avec laquelle il traîne la barque, et à quels restes de vie (part des PV) */
   tough?: number; drags?: number[];
+  /** sa bouche, où la ligne est accrochée (par rapport à son centre, tourné vers la droite) */
+  mouth?: [number, number];
+  /** une légende : sa zone verte bouge (vite pour l'anguille), un raté tend plus la ligne (il est lourd), il saute souvent */
+  drift?: number; heavy?: number; jumpy?: number;
 }
 const FISH: Record<Kind, Spec> = {
-  sardine: { name: 'Sardine', kg: [0.05, 0.1], hp: 2, speed: 0.9, zone: 0.26, window: 0.6, far: 0, often: 10, w: 7, h: 3, body: '#9fb4c8', belly: '#e4edf5', fin: '#6f8aa4', hint: 'près de la barque, à toute heure', desc: 'Elle file en bancs argentés juste sous la barque. La première prise de tout pêcheur.' },
-  maquereau: { name: 'Maquereau', kg: [0.3, 0.7], hp: 3, speed: 1.1, zone: 0.22, window: 0.5, far: 0.15, often: 8, w: 10, h: 4, body: '#3f8f7a', belly: '#d8eee4', fin: '#235e50', hint: 'un peu partout, surtout au coucher du soleil', desc: 'Rayé de vert et de bleu, il mord avec appétit quand le soleil se couche.' },
-  rouget: { name: 'Rouget', kg: [0.2, 0.5], hp: 3, speed: 1.2, zone: 0.2, window: 0.45, far: 0.25, often: 6, w: 9, h: 4, body: '#d9574a', belly: '#f6c8b8', fin: '#a83a30', hint: 'un peu au large', desc: 'Rouge vif, avec deux petites moustaches pour fouiller le sable.' },
-  poulpe: { name: 'Poulpe', kg: [1, 4], hp: 5, speed: 1.25, zone: 0.18, window: 0.42, far: 0.1, often: 2, w: 12, h: 9, body: '#c8704a', belly: '#f0b090', fin: '#8a4a30', hint: 'près de la barque, si tu as de la chance', desc: 'Huit bras, trois cœurs, et une ventouse pour chaque rocher. Il s’accroche et tire !', tough: 0.36, drags: [0.6] },
-  dorade: { name: 'Dorade', kg: [0.6, 1.8], hp: 4, speed: 1.3, zone: 0.18, window: 0.42, far: 0.4, often: 5, w: 11, h: 6, body: '#c8b48a', belly: '#f1e6c8', fin: '#e0b040', hint: 'au large', desc: 'Un trait doré entre les yeux. Elle se défend bien, et file d’un coup.', tough: 0.28, drags: [0.55] },
-  calamar: { name: 'Calamar', kg: [0.4, 1.5], hp: 4, speed: 1.35, zone: 0.17, window: 0.4, far: 0.35, when: ['evening', 'night'], often: 4, w: 13, h: 5, body: '#e8b0c8', belly: '#fff0f6', fin: '#c07898', hint: 'le soir et la nuit, au large', desc: 'Il change de couleur quand il a peur, et crache un nuage d’encre en partant.' },
-  bar: { name: 'Bar', kg: [1, 4], hp: 5, speed: 1.5, zone: 0.15, window: 0.36, far: 0.6, often: 3, w: 14, h: 5, body: '#8a98aa', belly: '#e8edf2', fin: '#5a6678', hint: 'loin, avec un bon lancer', desc: 'Le loup de mer : rusé, puissant, il tire fort vers le large.', tough: 0.4, drags: [0.6] },
-  lotte: { name: 'Lotte', kg: [2, 8], hp: 6, speed: 1.4, zone: 0.14, window: 0.36, far: 0.45, when: ['night'], often: 3, w: 14, h: 9, body: '#6a5440', belly: '#8a7058', fin: '#3e3024', hint: 'seulement la nuit', desc: 'Une bouche immense et une petite lanterne sur la tête pour attirer les curieux.', tough: 0.42, drags: [0.6] },
-  raie: { name: 'Raie', kg: [3, 12], hp: 6, speed: 1.45, zone: 0.15, window: 0.38, far: 0.65, when: ['day'], often: 2, w: 16, h: 10, body: '#6a7a8a', belly: '#e8eef4', fin: '#4a5868', hint: 'très loin, de jour', desc: 'Elle vole sous l’eau comme un oiseau… et t’emmène faire un tour en barque.', tough: 0.46, drags: [0.7, 0.35] },
-  thon: { name: 'Le Thon d’Or', kg: [40, 80], hp: 12, speed: 1.9, zone: 0.13, window: 0.55, far: 0.7, when: ['day', 'evening'], often: 0, w: 26, h: 9, body: '#e8b830', belly: '#fff0a8', fin: '#b88010', legend: true, hint: 'légendaire : un lancer parfait, au loin, de jour', desc: 'La légende des pêcheurs : il brille comme une pièce d’or et nage plus vite qu’un bateau.', tough: 0.55, drags: [0.7, 0.35] },
-  nessie: { name: 'Nessie', kg: [300, 500], hp: 14, speed: 2.1, zone: 0.12, window: 0.55, far: 0.7, when: ['evening', 'night'], often: 0, w: 30, h: 8, body: '#e88a8a', belly: '#fff0dc', fin: '#c0606a', legend: true, hint: 'légendaire : un lancer parfait, au loin, le soir ou la nuit', desc: 'Le monstre de la grotte, rose corail. Timide… et très, très fort. On le relâche toujours.', tough: 0.6, drags: [0.7, 0.35] },
+  sardine: { name: 'Sardine', kg: [0.05, 0.1], hp: 2, speed: 0.9, zone: 0.26, window: 0.6, far: 0, often: 10, w: 7, h: 3, body: '#9fb4c8', belly: '#e4edf5', fin: '#6f8aa4', hint: 'près de la barque, à toute heure', desc: 'Elle file en bancs argentés juste sous la barque. La première prise de tout pêcheur.', fact: 'Un banc peut compter des millions de sardines : elles tournent toutes ensemble, comme un seul grand poisson.' },
+  maquereau: { name: 'Maquereau', kg: [0.3, 0.7], hp: 3, speed: 1.1, zone: 0.22, window: 0.5, far: 0.15, often: 8, w: 10, h: 4, body: '#3f8f7a', belly: '#d8eee4', fin: '#235e50', hint: 'un peu partout, surtout au coucher du soleil', desc: 'Rayé de vert et de bleu, il mord avec appétit quand le soleil se couche.', fact: 'Il n’a pas de vessie natatoire : s’il s’arrête de nager, il coule. Il ne dort donc jamais vraiment.' },
+  rouget: { name: 'Rouget', kg: [0.2, 0.5], hp: 3, speed: 1.2, zone: 0.2, window: 0.45, far: 0.25, often: 6, w: 9, h: 4, body: '#d9574a', belly: '#f6c8b8', fin: '#a83a30', hint: 'un peu au large', desc: 'Rouge vif, avec deux petites moustaches pour fouiller le sable.', fact: 'Ses barbillons goûtent le sable : il sent les petites crevettes cachées dessous.' },
+  poulpe: { name: 'Poulpe', kg: [1, 4], hp: 5, speed: 1.25, zone: 0.18, window: 0.42, far: 0.1, often: 2, w: 12, h: 9, body: '#c8704a', belly: '#f0b090', fin: '#8a4a30', hint: 'près de la barque, si tu as de la chance', desc: 'Huit bras, trois cœurs, et une ventouse pour chaque rocher. Il s’accroche et tire !', tough: 0.36, drags: [0.6], fact: 'Il ouvre les bocaux, se faufile par un trou grand comme une pièce, et change de couleur en un clin d’œil.' },
+  dorade: { name: 'Dorade', kg: [0.6, 1.8], hp: 4, speed: 1.3, zone: 0.18, window: 0.42, far: 0.4, often: 5, w: 11, h: 6, body: '#c8b48a', belly: '#f1e6c8', fin: '#e0b040', hint: 'au large', desc: 'Un trait doré entre les yeux. Elle se défend bien, et file d’un coup.', tough: 0.28, drags: [0.55], fact: 'Elle naît mâle, et devient femelle en grandissant.' },
+  calamar: { name: 'Calamar', kg: [0.4, 1.5], hp: 4, speed: 1.35, zone: 0.17, window: 0.4, far: 0.35, when: ['evening', 'night'], often: 4, w: 13, h: 5, body: '#e8b0c8', belly: '#fff0f6', fin: '#c07898', hint: 'le soir et la nuit, au large', desc: 'Il change de couleur quand il a peur, et crache un nuage d’encre en partant.', fact: 'Son encre fait un faux calamar : le prédateur attaque le nuage pendant qu’il s’enfuit.' },
+  bar: { name: 'Bar', kg: [1, 4], hp: 5, speed: 1.5, zone: 0.15, window: 0.36, far: 0.6, often: 3, w: 14, h: 5, body: '#8a98aa', belly: '#e8edf2', fin: '#5a6678', hint: 'loin, avec un bon lancer', desc: 'Le loup de mer : rusé, puissant, il tire fort vers le large.', tough: 0.4, drags: [0.6], fact: 'Les pêcheurs l’appellent aussi le loup : il chasse au crépuscule, au ras des rochers.' },
+  lotte: { name: 'Lotte', kg: [2, 8], hp: 6, speed: 1.4, zone: 0.14, window: 0.36, far: 0.45, when: ['night'], often: 3, w: 14, h: 9, body: '#6a5440', belly: '#8a7058', fin: '#3e3024', hint: 'seulement la nuit', desc: 'Une bouche immense et une petite lanterne sur la tête pour attirer les curieux.', tough: 0.42, drags: [0.6], fact: 'Sa lanterne est pleine de petites bactéries qui brillent. Les curieux s’approchent… et hop.' },
+  raie: { name: 'Raie', kg: [3, 12], hp: 6, speed: 1.45, zone: 0.15, window: 0.38, far: 0.65, when: ['day'], often: 2, w: 16, h: 10, body: '#6a7a8a', belly: '#e8eef4', fin: '#4a5868', hint: 'très loin, de jour', desc: 'Elle vole sous l’eau comme un oiseau… et t’emmène faire un tour en barque.', tough: 0.46, drags: [0.7, 0.35], fact: 'Elle n’a pas d’os : son squelette est en cartilage, comme le bout de ton nez.' },
+  thon: { name: 'Le Thon d’Or', kg: [40, 80], hp: 12, speed: 1.9, zone: 0.13, window: 0.55, far: 0.7, when: ['day', 'evening'], often: 0, w: 26, h: 9, body: '#e8b830', belly: '#fff0a8', fin: '#b88010', legend: true, hint: 'légendaire : un lancer parfait, au loin, de jour', desc: 'La légende des pêcheurs : il brille comme une pièce d’or et nage plus vite qu’un bateau.', tough: 0.55, drags: [0.7, 0.35], fact: 'Les vieux du port disent qu’il ne se montre qu’à ceux qui lancent parfaitement. Et ils ont raison.' },
+  nessie: { name: 'Nessie', kg: [300, 500], hp: 14, speed: 2.1, zone: 0.12, window: 0.55, far: 0.7, when: ['evening', 'night'], often: 0, w: 30, h: 8, body: '#e88a8a', belly: '#fff0dc', fin: '#c0606a', legend: true, hint: 'légendaire : un lancer parfait, au loin, le soir ou la nuit', desc: 'Le monstre de la grotte, rose corail. Timide… et très, très fort. On le relâche toujours.', tough: 0.6, drags: [0.7, 0.35], mouth: [19, -12], fact: 'Il chante doucement, la nuit, devant sa grotte. Si tu le prends, Roré le relâche toujours.' },
+  espadon: { name: 'L’Espadon d’argent', kg: [80, 200], hp: 12, speed: 2.5, zone: 0.12, window: 0.45, far: 0.75, when: ['day'], often: 0, w: 40, h: 9, body: '#9fb0c8', belly: '#eef3fa', fin: '#4a6ad0', legend: true, hint: 'légendaire : un lancer parfait, très loin, de jour', desc: 'Le plus rapide de la mer : un rostre comme une épée, une grande voile bleue sur le dos. Il saute sans arrêt et le curseur file.', fact: 'Il dépasse les 100 km/h ; sa voile se replie quand il fonce.', tough: 0.5, drags: [0.6], jumpy: 0.8, mouth: [12, 0] },
+  coelacanthe: { name: 'Le Cœlacanthe', kg: [40, 90], hp: 12, speed: 1.7, zone: 0.13, window: 0.5, far: 0.55, when: ['evening'], often: 0, w: 28, h: 12, body: '#2a4a7a', belly: '#3e6aa0', fin: '#1a3056', legend: true, hint: 'légendaire : un lancer parfait, au large, le soir', desc: 'Un poisson d’avant les dinosaures, bleu d’acier tacheté de blanc, avec des nageoires comme de petites pattes.', fact: 'On le croyait disparu depuis 66 millions d’années… jusqu’à ce qu’un pêcheur en remonte un, en 1938.', tough: 0.45, drags: [0.6], mouth: [14, 1] },
+  requin: { name: 'Le Requin-baleine', kg: [2000, 9000], hp: 20, speed: 1.4, zone: 0.15, window: 0.6, far: 0.8, when: ['day'], often: 0, w: 42, h: 13, body: '#3a5a7a', belly: '#d8e2ea', fin: '#24405a', legend: true, hint: 'légendaire : un lancer parfait, très loin, de jour', desc: 'Le plus grand des poissons, doux comme un agneau : constellé de points blancs, une bouche immense pour avaler le plancton.', fact: 'Chaque requin-baleine a ses propres taches, comme une empreinte digitale.', tough: 0.55, drags: [0.7, 0.35], heavy: 1.3, mouth: [21, 2] },
+  lune: { name: 'Le Poisson-lune', kg: [500, 1500], hp: 16, speed: 1.3, zone: 0.14, window: 0.6, far: 0.5, when: ['night'], often: 0, w: 22, h: 22, body: '#b8c0d0', belly: '#e8ecf4', fin: '#7a8498', legend: true, hint: 'légendaire : un lancer parfait, au large, la nuit', desc: 'Un géant rond et plat qui se laisse flotter sous la lune. Lent, mais si lourd que la ligne souffre à chaque raté.', fact: 'Le plus lourd des poissons osseux : plus d’une tonne… pour une toute petite bouche.', tough: 0.4, drags: [0.5], heavy: 1.6, mouth: [11, 1] },
+  kraken: { name: 'Le Kraken', kg: [800, 2000], hp: 18, speed: 1.8, zone: 0.12, window: 0.55, far: 0.65, when: ['night'], often: 0, w: 28, h: 24, body: '#a83a4a', belly: '#c85a68', fin: '#6a2030', legend: true, hint: 'légendaire : un lancer parfait, au loin, la nuit', desc: 'Une pieuvre immense, rouge sombre. Il traîne la barque plus fort que tous les autres : tiens bon la ligne.', fact: 'Les marins d’autrefois le prenaient pour une île… jusqu’à ce que l’île se réveille.', tough: 0.68, drags: [0.75, 0.5, 0.25], mouth: [2, 4] },
+  anguille: { name: 'L’Anguille-lumière', kg: [8, 25], hp: 11, speed: 2.0, zone: 0.11, window: 0.45, far: 0.7, when: ['night'], often: 0, w: 40, h: 6, body: '#26344e', belly: '#2a3a50', fin: '#8ff0ff', legend: true, hint: 'légendaire : un lancer parfait, très loin, la nuit', desc: 'Une longue anguille noire des abysses, zébrée de traits bleus qui s’allument en vagues. Elle se tortille : la zone verte bouge sans arrêt.', fact: 'Ses lumières viennent d’elle-même : elle s’en sert pour parler aux autres anguilles, dans le noir.', drift: 0.55, mouth: [21, 0] },
   botte: { name: 'Une vieille botte…', kg: [0.8, 0.8], hp: 1, speed: 0.6, zone: 0.4, window: 0.8, far: 0, often: 0, w: 8, h: 8, body: '#4a3a2c', belly: '#6b5440', fin: '#2e2418', junk: true, hint: '', desc: '' },
   algue: { name: 'Une algue, sur la tête', kg: [0.1, 0.1], hp: 1, speed: 0.6, zone: 0.4, window: 0.8, far: 0, often: 0, w: 8, h: 6, body: '#3f7a42', belly: '#5a9a52', fin: '#2f5e36', junk: true, hint: '', desc: '' },
 };
@@ -67,7 +81,7 @@ function pickCatch(power: number, perfect: boolean, tod: TimeOfDay, lucky = fals
   const r = Math.random();
   if (r < 0.05) return 'botte';
   if (r < 0.08) return 'algue';
-  const legends = (['thon', 'nessie'] as Kind[]).filter((k) => FISH[k].when!.includes(tod) && power >= FISH[k].far);
+  const legends = SPECIES.filter((k) => FISH[k].legend).filter((k) => FISH[k].when!.includes(tod) && power >= FISH[k].far);
   if (legends.length && Math.random() < (perfect ? 0.12 : 0.02) * (lucky ? 2.5 : 1)) return legends[Math.floor(Math.random() * legends.length)];
   const pool = SPECIES.filter((k) => !FISH[k].legend && power >= FISH[k].far && (!FISH[k].when || FISH[k].when!.includes(tod)));
   const weight = (k: Kind) => FISH[k].often * (k === 'maquereau' && tod === 'evening' ? 3 : 1) * (perfect && FISH[k].far >= 0.4 ? 2 : 1);
@@ -76,7 +90,8 @@ function pickCatch(power: number, perfect: boolean, tod: TimeOfDay, lucky = fals
   return 'sardine';
 }
 
-const fmtKg = (kg: number) => (kg < 1 ? `${Math.round(kg * 1000)} g` : `${kg.toFixed(1).replace('.', ',')} kg`);
+const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+const fmtKg = (kg: number) => (kg < 1 ? `${Math.round(kg * 1000)} g` : kg >= 1000 ? `${(kg / 1000).toFixed(1).replace('.', ',')} t` : kg >= 100 ? `${Math.round(kg)} kg` : `${kg.toFixed(1).replace('.', ',')} kg`);
 
 /** Un poisson, centré en (0, 0), tourné vers la droite. `tint` : une seule couleur (la silhouette du bestiaire). */
 function drawFish(g: CanvasRenderingContext2D, kind: Kind, t: number, flash = false, tint?: string) {
@@ -100,6 +115,117 @@ function drawFish(g: CanvasRenderingContext2D, kind: Kind, t: number, flash = fa
     for (let k = 0; k < 3; k++) for (let i = 0; i < 6; i++) r(3 + i, -1 + k + Math.round(Math.sin(t * 6 + i * 0.9 + k) * 0.8), 1, 1, i % 2 ? s.fin : s.body);
     return;
   }
+  if (kind === 'nessie') {
+    // Nessie corail : le corps et ses deux bosses tachetées, le ventre crème, les nageoires qui pagaient, la queue ;
+    // le long cou qui monte vers l'avant, la petite tête ronde, l'œil doux et les branchies roses en plumeau
+    const pad = Math.round(Math.sin(t * 5) * 1.5);
+    for (let i = -12; i <= 8; i++) {
+      const u = (i + 12) / 20;
+      const hh = Math.max(1, Math.round(6 * Math.sin(Math.PI * Math.min(1, 0.08 + u * 0.95))));
+      const hump = Math.round(Math.max(0, Math.sin((i + 9) * 0.55)) * 2);
+      r(i, -hh / 2 - hump, 1, hh + hump, s.body);
+      r(i, -hh / 2 - hump, 1, 1, '#ffb0a8');
+      if (hh > 3) r(i, hh / 2 - 1, 1, 1, s.belly);
+      if ((i + 20) % 4 === 1 && hh > 4) r(i, -hh / 2 - hump + 2, 1, 1, '#ffc8b8');
+    }
+    for (let i = 0; i < 6; i++) r(-13 - i, Math.round(Math.sin(t * 4 - i * 0.6) * (i / 3)), 1, Math.max(1, 3 - Math.floor(i / 2)), s.body);
+    r(-8, 2 + pad, 3, 2, s.fin); r(4, 2 - pad, 4, 2, s.fin);
+    // le cou et la tête
+    for (let k = 0; k < 9; k++) { const x = 8 + Math.round(k * 0.7), y = -2 - k; r(x, y, 3, 1, s.body); r(x + 2, y, 1, 1, s.belly); }
+    r(13, -14, 6, 4, s.body); r(17, -12, 3, 2, s.body); r(14, -11, 5, 1, s.belly);
+    eye(16, -13); r(19, -12, 1, 1, '#c0606a');
+    r(11, -15, 1, 2, '#ff6a9a'); r(10, -13, 2, 1, '#ff6a9a'); r(11, -11, 1, 1, '#ff6a9a'); r(10, -16, 1, 1, '#ffb0d0');
+    return;
+  }
+  if (kind === 'thon') {
+    // le Thon d'Or : fuselé, le dos bleu nuit et or, le flanc doré qui brille, le ventre pâle, la grande nageoire en
+    // faucille, les petites pinnules jaunes vers la queue, la queue en croissant
+    for (let i = -13; i <= 12; i++) {
+      const u = (i + 13) / 25, hh = Math.max(1, Math.round(s.h * Math.sin(Math.PI * Math.min(1, 0.12 + u * 0.92))));
+      r(i, -hh / 2, 1, hh, s.body); r(i, -hh / 2, 1, 2, '#3a3a6a'); if (hh > 3) r(i, hh / 2 - 2, 1, 2, s.belly);
+      if ((i + 30) % 4 === 0 && hh > 5) r(i, -1, 1, 1, '#fff6c8');
+    }
+    for (let k = 0; k < 5; k++) { r(-10 + k * 2, -4 + (k > 2 ? 1 : 0) - 1, 1, 1, '#ffe040'); r(-10 + k * 2, 3 - (k > 2 ? 1 : 0), 1, 1, '#ffe040'); }
+    for (let k = 0; k < 4; k++) r(-1 - k, -5 - k, 2, 1, s.fin);
+    for (let k = 0; k < 7; k++) r(2 - k, 1 + Math.round(k * 0.4), 1, 1, s.fin);
+    for (let k = 0; k < 6; k++) { r(-14 - k, -1 - k, 1, 1, s.fin); r(-14 - k, k, 1, 1, s.fin); }
+    eye(9, -1); r(9, -2, 1, 1, '#ffffff');
+    return;
+  }
+  if (kind === 'espadon') {
+    // la voile bleue, le corps fuselé argenté au dos sombre, le rostre, la queue en croissant
+    for (let i = -6; i <= 6; i++) { const hh = Math.round(10 * Math.sin(((i + 7) / 14) * Math.PI)); r(i, -4 - hh, 1, hh, s.fin); if (i % 3 === 0) r(i, -4 - hh, 1, hh, '#7a9af0'); r(i, -4 - hh, 1, 1, '#9fbaff'); }
+    for (let i = -14; i <= 12; i++) {
+      const u = (i + 14) / 26, hh = Math.max(1, Math.round(s.h * Math.sin(Math.PI * Math.min(1, 0.1 + u * 0.92))));
+      r(i, -hh / 2, 1, hh, s.body); r(i, -hh / 2, 1, 1, '#4a5a80'); if (hh > 3) r(i, hh / 2 - 2, 1, 2, s.belly);
+      if ((i + 20) % 5 === 0 && hh > 4) r(i, -hh / 2 + 1, 1, hh - 3, '#8a9ab8');
+    }
+    for (let i = 13; i <= 26; i++) r(i, -1, 1, 1, '#d8e0f0');
+    r(26, -1, 1, 1, '#ffffff');
+    for (let k = 0; k < 6; k++) { r(-15 - k, -1 - k, 1, 1, '#4a5a80'); r(-15 - k, k, 1, 1, '#4a5a80'); }
+    r(-6, 3, 4, 1, s.fin); eye(9, -1); r(9, -2, 1, 1, '#ffffff');
+    return;
+  }
+  if (kind === 'lune') {
+    // le grand disque gris d'argent, les deux hautes nageoires, le bord de queue festonné, le gros œil, la petite bouche
+    for (let k = 0; k < 9; k++) { r(-2 + Math.round(k * 0.3), -10 - k, 3 - Math.floor(k / 4), 1, s.fin); r(-2 + Math.round(k * 0.3), 10 + k, 3 - Math.floor(k / 4), 1, s.fin); }
+    for (let dy = -10; dy <= 10; dy++) { const w = Math.round(10 * Math.sqrt(Math.max(0, 1 - (dy / 10.5) ** 2))); r(-w, dy, w * 2 + 1, 1, dy > 3 ? s.belly : s.body); r(-w, dy, 1, 1, '#8a94a8'); }
+    for (let dy = -8; dy <= 8; dy += 2) r(-11, dy, 1, 1, s.fin);
+    for (const [x, y] of [[-5, -4], [-1, 5], [3, -6], [-6, 2], [2, 1]]) r(x, y, 1, 1, '#d8dee8');
+    r(5, -4, 3, 3, '#f4f8ff'); r(6, -3, 2, 2, '#15121d'); r(5, -4, 1, 1, '#ffffff');
+    r(10, 0, 1, 2, '#4a5468'); r(-4, 0, 3, 1, s.fin);
+    return;
+  }
+  if (kind === 'coelacanthe') {
+    // le corps massif bleu d'acier tacheté, les nageoires lobées comme des pattes, la queue à trois lobes, l'œil qui luit
+    for (let i = -13; i <= 13; i++) {
+      const u = (i + 13) / 26, hh = Math.max(2, Math.round(s.h * Math.sin(Math.PI * Math.min(1, 0.12 + u * 0.9))));
+      r(i, -hh / 2, 1, hh, s.body); r(i, -hh / 2, 1, 1, '#3e6aa0'); r(i, hh / 2 - 1, 1, 1, s.fin);
+    }
+    for (const [x, y] of [[-8, -2], [-3, 1], [2, -3], [6, 1], [-6, 3], [9, -2], [-1, -4]]) { r(x, y, 2, 1, '#e8eef6'); }
+    for (let k = 0; k < 4; k++) { r(-14 - k, -k - 1, 1, 1, s.fin); r(-14 - k, k, 1, 1, s.fin); }
+    r(-19, -1, 3, 2, s.fin);
+    for (const [x, y, d] of [[-3, 5, 1], [5, 5, 1], [-1, -6, -1], [8, -5, -1]]) { r(x, y, 1, 2 * d > 0 ? 2 : 1, s.fin); r(x - 1, y + (d > 0 ? 2 : -2), 3, 1, s.fin); }
+    r(10, -2, 2, 2, '#ffe08a'); eye(11, -2);
+    r(13, 1, 1, 1, '#0a1530');
+    return;
+  }
+  if (kind === 'kraken') {
+    // la tête énorme, l'œil à la pupille fendue, huit bras qui s'enroulent, leurs ventouses
+    for (let a = 0; a < 6; a++) for (let i = 0; i < 12; i++) {
+      const x = -6 + a * 2.6 + Math.sin(t * 3 + a + i * 0.5) * (i / 4) - (a < 3 ? i * 0.5 : -i * 0.4), y = 2 + i;
+      r(x, y, i < 6 ? 2 : 1, 1, s.body); if (i % 3 === 1) r(x + 1, y, 1, 1, '#f0b8c0');
+    }
+    for (let dy = -11; dy <= 3; dy++) { const w = Math.round(8 * Math.sqrt(Math.max(0, 1 - ((dy + 4) / 7.6) ** 2))); r(-w, dy, w * 2 + 1, 1, dy < -6 ? s.belly : s.body); }
+    for (const [x, y] of [[-4, -8], [2, -9], [-1, -5], [5, -6]]) r(x, y, 1, 1, s.fin);
+    r(1, -3, 4, 3, '#ffe08a'); r(2, -2, 2, 1, '#15121d');
+    return;
+  }
+  if (kind === 'requin') {
+    // énorme, gris-bleu constellé de points blancs, des arêtes le long du dos, la tête large et plate, la bouche immense
+    for (let i = -20; i <= 20; i++) {
+      const u = (i + 20) / 40, hh = Math.max(2, Math.round(s.h * Math.sin(Math.PI * Math.min(1, 0.08 + u * 0.88))));
+      r(i, -hh / 2, 1, hh, s.body); if (hh > 6) r(i, hh / 2 - 3, 1, 3, s.belly);
+      if ((i + 40) % 7 === 0) r(i, -hh / 2 + 1, 1, hh - 4, '#4a6a8a');
+    }
+    for (let k = 0; k < 18; k++) r(-16 + (k * 13) % 34, -4 + (k * 5) % 7, 1, 1, '#e8eef6');
+    for (let k = 0; k < 6; k++) r(-3 + k, -7 - Math.min(k, 5 - k), 1, Math.min(k, 5 - k) + 1, s.fin);
+    for (let k = 0; k < 7; k++) { r(-21 - k, -1 - k, 1, 1, s.fin); r(-21 - k, k, 1, 1, s.fin); }
+    r(14, 2, 7, 1, '#15121d'); eye(16, -2);
+    return;
+  }
+  if (kind === 'anguille') {
+    // longue, noire, ondulante, zébrée de traits bleus qui s'allument en vagues ; l'œil qui luit
+    for (let i = -20; i <= 18; i++) {
+      const y = Math.round(Math.sin(t * 4 + i * 0.3) * 2), hh = i < -16 ? 1 : i > 15 ? 2 : 3;
+      r(i, y - Math.floor(hh / 2), 1, hh, s.body);
+      r(i, y - Math.floor(hh / 2), 1, 1, '#3e5070');
+      if (((i + 40) % 3 === 0) && Math.sin(t * 6 - i * 0.4) > -0.3) { r(i, y, 1, 1, s.fin); if (hh > 2) r(i, y - 1, 1, 1, '#c8faff'); }
+    }
+    const hy = Math.round(Math.sin(t * 4 + 18 * 0.3) * 2);
+    r(18, hy - 2, 4, 4, s.body); r(20, hy - 1, 1, 1, '#e8fbff'); r(21, hy + 1, 1, 1, s.fin);
+    return;
+  }
   if (kind === 'raie') {
     // un losange (les ailes), le ventre clair, la longue queue, les yeux sur le dessus
     for (let i = 0; i < s.w; i++) { const u = i / (s.w - 1), hh = Math.max(1, Math.round(s.h * (1 - Math.abs(u - 0.55) * 1.8))); r(i - s.w / 2, -Math.floor(hh / 2) + Math.round(Math.sin(t * 4 + i * 0.5) * (Math.abs(u - 0.55) > 0.3 ? 1 : 0)), 1, hh, s.body); if (hh > 3) r(i - s.w / 2, Math.ceil(hh / 2) - 1, 1, 1, s.belly); }
@@ -110,9 +236,9 @@ function drawFish(g: CanvasRenderingContext2D, kind: Kind, t: number, flash = fa
   const hw = Math.floor(s.w / 2);
   for (let i = 0; i < s.w; i++) {
     const u = i / (s.w - 1);
-    const shape = kind === 'lotte' ? Math.min(1, 0.35 + u * 0.9) : kind === 'nessie' ? 0.6 + 0.4 * Math.sin(u * Math.PI * 3 + t * 4) * 0.5 : Math.sin(Math.PI * Math.min(1, 0.2 + u * 0.9));
+    const shape = kind === 'lotte' ? Math.min(1, 0.35 + u * 0.9) : Math.sin(Math.PI * Math.min(1, 0.2 + u * 0.9));
     const hh = Math.max(1, Math.round(s.h * shape));
-    const wob = kind === 'nessie' ? Math.round(Math.sin(t * 5 + i * 0.4) * 1.5) : 0;
+    const wob = 0;
     r(i - hw, -Math.floor(hh / 2) + wob, 1, hh, s.body);
     if (hh > 2) r(i - hw, Math.ceil(hh / 2) - 1 + wob, 1, 1, s.belly);
   }
@@ -120,12 +246,6 @@ function drawFish(g: CanvasRenderingContext2D, kind: Kind, t: number, flash = fa
   r(-hw - 2, -1 - tail - (s.h > 6 ? 2 : 0), 2, 1 + (s.h > 6 ? 2 : 0), s.fin);
   r(-hw - 2, tail, 2, 1 + (s.h > 6 ? 2 : 0), s.fin);
   eye(s.w - hw - 3, -1);
-  if (kind === 'thon') { r(-2, -s.h / 2 - 3, 4, 3, s.fin); r(-2, s.h / 2, 4, 2, s.fin); for (let i = -8; i < 8; i += 4) r(i, -1, 2, 1, '#fff6c8'); }
-  if (kind === 'nessie') {
-    // le long cou, la petite tête, les branchies roses en plumeau
-    r(s.w - hw - 2, -6, 3, 6, s.body); r(s.w - hw - 2, -8, 6, 3, s.body); eye(s.w - hw + 2, -8);
-    r(s.w - hw - 4, -10, 1, 2, '#ff6a9a'); r(s.w - hw - 5, -8, 1, 1, '#ff6a9a'); r(s.w - hw - 4, -6, 1, 1, '#ff6a9a');
-  }
   if (kind === 'lotte') { r(s.w - hw - 2, -7, 1, 3, s.fin); r(s.w - hw - 2, -9, 2, 2, '#fff2a0'); }
   if (kind === 'dorade') r(s.w - hw - 5, -2, 1, 3, s.fin);
   if (kind === 'maquereau') for (let i = -3; i < 4; i += 2) r(i, -2, 1, 1, '#235e50');
@@ -191,7 +311,7 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
       case 'ready': set('boat'); sfx('click'); return;
       case 'boat': st.power = 0; st.powDir = 1; set('aim'); sfx('tick'); return;
       case 'aim': {
-        st.perfect = st.power >= 0.82 && st.power <= 0.94;
+        st.perfect = st.power >= PERFECT[0] && st.power <= PERFECT[1];
         st.landX = 104 + st.power * 140;
         st.castT = 0;
         set('cast');
@@ -237,14 +357,14 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
       st.zone = sp.zone / 2 + Math.random() * (1 - sp.zone);
       sfx('check', perfect ? 1.3 : 1);
       say(perfect ? 'PARFAIT !' : 'BIEN !');
-      if (Math.random() < (sp.legend ? 0.45 : 0.3)) { st.jumpAt = st.t; splash(st.bobX, 8); }
+      if (Math.random() < (sp.jumpy ?? (sp.legend ? 0.45 : 0.3))) { st.jumpAt = st.t; splash(st.bobX, 8); }
       if (sp.legend && !st.rage && st.hp <= sp.hp / 2) { st.rage = true; st.flashAt = st.t; st.shake = 0.6; say('IL ENRAGE !'); sfx('error'); }
       if (st.hp <= 0) { land(); return; }
       // un poisson coriace : passé un certain reste de vie, il file et traîne la barque
       const next = sp.drags?.[st.drags];
       if (sp.tough && next !== undefined && st.hp <= sp.hp * next) startDrag();
     } else {
-      st.tension += sp.legend ? 0.3 : 0.34;
+      st.tension += (sp.legend ? 0.3 : 0.34) * (sp.heavy ?? 1);
       st.missAt = st.t;
       st.shake = 0.25;
       sfx('no');
@@ -375,7 +495,7 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
         st.cursor += st.curDir * speed * dt;
         if (st.cursor >= 1) { st.cursor = 1; st.curDir = -1; }
         if (st.cursor <= 0) { st.cursor = 0; st.curDir = 1; }
-        if (sp.legend) st.zone = Math.max(sp.zone / 2, Math.min(1 - sp.zone / 2, st.zone + Math.sin(t * 1.7) * 0.12 * dt));
+        if (sp.legend) st.zone = Math.max(sp.zone / 2, Math.min(1 - sp.zone / 2, st.zone + Math.sin(t * (sp.drift ? 3.1 : 1.7)) * (sp.drift ?? 0.12) * dt));
         st.tension = Math.max(0, st.tension - 0.05 * dt);
         st.dip = 0.8;
         // la flotte revient doucement devant la barque après un bras de fer
@@ -471,32 +591,33 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
       g.fillStyle = 'rgba(5,10,30,0.45)';
       g.beginPath(); g.ellipse(st.shadow.x, st.shadow.y, (sp.w / 2 + 3) * k, (sp.h / 2 + 1) * k, 0, 0, Math.PI * 2); g.fill();
     }
-    // le poisson accroché : il se débat sous l'eau, saute, ou file à la surface en traînant la barque
+    // le poisson accroché : il se débat sous l'eau, saute, ou file à la surface en traînant la barque ; sa pose sert aussi
+    // à accrocher la ligne à sa bouche
     const jump = (t - st.jumpAt) / 0.9;
+    const fk = sp.legend ? 1.5 : 1;
+    let fish: null | { x: number; y: number; rot: number; flip: boolean } = null;
     if (st.phase === 'fight') {
-      if (jump >= 0 && jump < 1) {
-        g.save();
-        g.translate(Math.round(st.bobX + (jump - 0.5) * 34), Math.round(SURFACE - Math.sin(jump * Math.PI) * (sp.legend ? 46 : 32)));
-        g.rotate((jump - 0.5) * 2.2);
-        if (sp.legend) g.scale(1.5, 1.5);
-        drawFish(g, st.kind, t, t - st.hitAt < 0.1);
-        g.restore();
-      } else {
-        g.save();
-        g.translate(Math.round(st.bobX + Math.sin(t * 3) * 10), Math.round(SURFACE + 22 + Math.sin(t * 2.3) * 5));
-        if (Math.sin(t * 3) < 0) g.scale(-1, 1);
-        if (sp.legend) g.scale(1.5, 1.5);
-        drawFish(g, st.kind, t, t - st.hitAt < 0.1);
-        g.restore();
-      }
-    }
-    if (dragging) {
-      // il file juste sous la surface : son dos, sa nageoire qui fend l'eau, la gerbe devant lui
+      fish = jump >= 0 && jump < 1
+        ? { x: st.bobX + (jump - 0.5) * 34, y: SURFACE - Math.sin(jump * Math.PI) * (sp.legend ? 46 : 32), rot: (jump - 0.5) * 2.2, flip: false }
+        : { x: st.bobX + Math.sin(t * 3) * 10, y: SURFACE + 22 + Math.sin(t * 2.3) * 5, rot: 0, flip: Math.sin(t * 3) < 0 };
+    } else if (dragging) fish = { x: st.bobX + 6, y: SURFACE + 5 + Math.sin(t * 6) * 1.5, rot: 0, flip: false };
+    if (fish) {
       g.save();
-      g.translate(Math.round(st.bobX + 6), Math.round(SURFACE + 5 + Math.sin(t * 6) * 1.5));
-      if (sp.legend) g.scale(1.5, 1.5);
-      drawFish(g, st.kind, t);
+      g.translate(Math.round(fish.x), Math.round(fish.y));
+      g.rotate(fish.rot);
+      if (fish.flip) g.scale(-1, 1);
+      g.scale(fk, fk);
+      drawFish(g, st.kind, t, t - st.hitAt < 0.1);
       g.restore();
+    }
+    const mouth = (() => {
+      if (!fish) return null;
+      const m = sp.mouth ?? [Math.ceil(sp.w / 2), 0];
+      const mx = m[0] * (fish.flip ? -1 : 1) * fk, my = m[1] * fk;
+      return { x: fish.x + mx * Math.cos(fish.rot) - my * Math.sin(fish.rot), y: fish.y + mx * Math.sin(fish.rot) + my * Math.cos(fish.rot) };
+    })();
+    if (dragging) {
+      // sa nageoire qui fend l'eau, la gerbe devant lui
       const fx = Math.round(st.bobX + 4);
       for (let k = 0; k < 5; k++) r(fx - k, SURFACE - 5 + k, 1 + k, 1, sp.fin);
       for (let k = 0; k < 4; k++) { const q = (t * 3 + k / 4) % 1; r(fx + 6 + q * 8, SURFACE - 2 - Math.sin(q * Math.PI) * 6, 1, 1, '#ffffff'); }
@@ -515,14 +636,18 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
     const boat = paintBoat(22, 1, tilt, 3, night || tod === 'evening');
     const bdx = BX + 22 - boat.ox, bdy = Math.round(by + 6) - boat.oy;
     g.drawImage(boat.back, bdx, bdy);
-    const pose = st.phase === 'aim' ? 'raise' : st.phase === 'cast' ? 'cheer' : dragging ? (t - st.pressAt < 0.12 ? 'cheer' : 'raise') : st.phase === 'fight' ? (t - st.hitAt < 0.2 ? 'cheer' : 'type') : st.phase === 'catch' && !sp.junk ? 'cheer' : 'sit';
+    const pose = st.phase === 'aim' ? 'raise' : st.phase === 'cast' ? 'cheer' : dragging ? (t - st.pressAt < 0.12 ? 'cheer' : 'raise') : st.phase === 'fight' ? (t - st.hitAt < 0.2 ? 'cheer' : Math.floor(t * 5) % 2 ? 'raise' : 'type') : st.phase === 'bite' ? 'raise' : st.phase === 'catch' && !sp.junk ? 'cheer' : 'sit';
     const eyes = st.sadUntil > t ? 'down' : dragging ? 'open' : st.phase === 'catch' || st.phase === 'bite' || st.phase === 'warn' ? 'happy' : 'open';
     const sprite = robotSprite(outside.rore.id, pose, 'right', Math.floor(t * 6) % 2, eyes);
     if (st.phase === 'fail' && fall >= 0) {
       g.save(); g.translate(BX + 18, Math.round(by)); g.rotate(-Math.min(1, fall) * 1.4); g.drawImage(sprite, -10, -20); g.restore();
-    } else if (dragging) {
-      // il se penche en arrière pour tenir
-      g.save(); g.translate(BX + 18, Math.round(by + 2)); g.rotate(-0.25); g.drawImage(sprite, -10, -20); g.restore();
+    } else if (dragging || st.phase === 'fight') {
+      // il se débat : penché en arrière, d'autant plus que la ligne est tendue, secoué par les à-coups du poisson
+      const lean = dragging ? -0.25 : -(0.08 + st.tension * 0.22) + Math.sin(t * 9) * 0.05 * (1 + st.tension);
+      const jx = st.tension > 0.5 ? Math.round(Math.sin(t * 40)) : 0;
+      g.save(); g.translate(BX + 18 + jx, Math.round(by + 2)); g.rotate(lean); g.drawImage(sprite, -10, -20); g.restore();
+      // des gouttes de sueur quand ça tire fort
+      if (st.tension > 0.35 || dragging) for (let i = 0; i < 2; i++) { const q = (t * 2.5 + i / 2) % 1; r(BX + 12 - q * 8, by - 20 - Math.sin(q * Math.PI) * 5 + q * 6, 1, 1, '#bfe6ff'); }
     } else g.drawImage(sprite, BX + 8, Math.round(by - 18));
     if (st.algaeUntil > t) for (let i = 0; i < 5; i++) r(BX + 12 + i * 2, by - 18 + (i % 2), 1, 5 + (i % 3), i % 2 ? '#3f7a42' : '#5a9a52');
     g.drawImage(boat.front, bdx, bdy);
@@ -541,8 +666,23 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
     }
     // la ligne et la flotte
     const tipX = tipBase.x, tipY = tipBase.y + bob + (st.phase === 'fight' || dragging ? 3 + st.tension * 6 : 0);
+    // pendant le combat, la ligne part du bout de la canne et file jusqu'à la bouche du poisson ; la flotte glisse sur la
+    // ligne et reste à la surface, là où la ligne entre dans l'eau
+    if (mouth) {
+      g.fillStyle = st.tension > 0.66 ? 'rgba(255,120,110,0.95)' : 'rgba(235,240,250,0.85)';
+      const n = Math.max(8, Math.round(Math.hypot(mouth.x - tipX, mouth.y - tipY)));
+      const shiver = st.tension > 0.5 ? Math.sin(t * 50) * 0.6 : 0;
+      for (let k = 0; k <= n; k++) { const u = k / n; g.fillRect(Math.round(tipX + (mouth.x - tipX) * u), Math.round(tipY + (mouth.y - tipY) * u + Math.sin(u * Math.PI) * shiver), 1, 1); }
+      if (mouth.y > SURFACE) {
+        const u = clamp01((SURFACE - tipY) / (mouth.y - tipY));
+        const fx = tipX + (mouth.x - tipX) * u;
+        r(fx - 1, SURFACE - 2, 3, 2, '#e5484d'); r(fx, SURFACE - 3, 1, 1, '#ffffff');
+        for (let i = 0; i < 2; i++) { const k = (t * 2 + i * 0.5) % 1; g.fillStyle = `rgba(255,255,255,${0.5 * (1 - k)})`; g.fillRect(Math.round(fx - 2 - k * 6), SURFACE + 1, Math.round(5 + k * 12), 1); }
+      }
+    }
     const bx = st.bobX, byb = st.bobY + (st.phase === 'wait' || st.phase === 'bite' || st.phase === 'fight' || st.phase === 'warn' ? Math.sin(t * 2.4) * 0.8 + st.dip * 3 : dragging ? 1 : 0);
-    if (st.phase !== 'ready' && st.phase !== 'boat' && st.phase !== 'aim' && st.phase !== 'fail') {
+    if (mouth) { /* la ligne est déjà tirée jusqu'au poisson */ }
+    else if (st.phase !== 'ready' && st.phase !== 'boat' && st.phase !== 'aim' && st.phase !== 'fail') {
       const taut = st.phase === 'fight' || dragging;
       g.fillStyle = taut && st.tension > 0.66 ? 'rgba(255,120,110,0.95)' : 'rgba(235,240,250,0.8)';
       const n = Math.max(8, Math.round(Math.hypot(bx - tipX, byb - tipY)));
@@ -595,8 +735,8 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
     if (st.phase === 'aim') {
       const gx = BOAT_X + 50, gy = 26, gw = 70;
       frame(gx, gy, gw, 5);
-      r(gx + gw * 0.82, gy, gw * 0.12, 5, '#8a6a20');
-      r(gx, gy, gw * st.power, 5, st.power >= 0.82 && st.power <= 0.94 ? '#ffd166' : '#3ddc97');
+      r(gx + gw * PERFECT[0], gy, gw * (PERFECT[1] - PERFECT[0]), 5, '#8a6a20');
+      r(gx, gy, gw * st.power, 5, st.power >= PERFECT[0] && st.power <= PERFECT[1] ? '#ffd166' : '#3ddc97');
       r(gx, gy, gw * st.power, 1, 'rgba(255,255,255,0.45)');
       r(gx + gw * st.power - 1, gy - 2, 2, 9, '#ffffff');
       pixelText(g, 'LANCER', gx, gy - 9, '#ffffff');
@@ -670,7 +810,8 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
         // la barre de vie, comme pour un boss : rouge, avec une traînée claire qui la rattrape
         const bx0 = 36, bw = W - 72, byy = 10;
         r(bx0 - 2, byy - 9, bw + 4, 17, 'rgba(10,8,18,0.8)');
-        const name = sp.name.toUpperCase().replace('’', "'");
+        // la police en pixels n'a ni Œ ni accents (sauf É) : on les retire
+        const name = sp.name.toUpperCase().replace(/’/g, "'").replace(/Œ/g, 'OE').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         pixelText(g, name, Math.round(W / 2 - textWidth(name) / 2), byy - 7, '#ffd166');
         r(bx0, byy, bw, 5, '#2a1018');
         r(bx0, byy, bw * Math.max(0, st.trailHp) / sp.hp, 5, '#ffe2b8');
@@ -694,7 +835,7 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
   const tip: Record<Phase, string> = {
     ready: '',
     boat: 'Espace (ou un clic) pour préparer le lancer.',
-    aim: 'Espace pour lancer ! Dans la zone dorée, c’est un lancer parfait : plus loin, et les légendes rôdent.',
+    aim: 'Espace pour lancer ! La zone dorée est étroite : un lancer parfait va plus loin, et les légendes rôdent.',
     cast: 'Plouf !',
     wait: 'Attends… La flotte frémit parfois pour rien (et les mouettes s’en mêlent). Ferre seulement quand elle plonge !',
     warn: 'Attention : quelque chose d’énorme approche…',
@@ -711,7 +852,7 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
       <div className="game-screen" onPointerDown={(e) => { e.preventDefault(); action(); }}>
         <canvas ref={canvas} width={W} height={H} style={{ cursor: 'pointer' }} />
         {hud.card && (hud.phase === 'catch' || hud.phase === 'fail') && (
-          <div className={`fish-card ${hud.card.legend ? 'legend' : ''} ${hud.card.junk ? 'junk' : ''}`}>
+          <div className={`fish-card ${hud.card.legend ? 'is-legend' : ''} ${hud.card.junk ? 'junk' : ''}`}>
             <b>{hud.card.title}</b>
             <span>{hud.card.sub}</span>
           </div>
@@ -756,22 +897,33 @@ function BestiaryCard({ kind, entry }: { kind: Kind; entry?: { n: number; kg: nu
     const g = c.getContext('2d')!;
     g.imageSmoothingEnabled = false;
     g.clearRect(0, 0, c.width, c.height);
-    const k = Math.max(1, Math.floor(Math.min(56 / (sp.w + 10), 30 / (sp.h + (kind === 'nessie' ? 12 : 6)))));
+    const tall = kind === 'nessie' ? 18 : 0;
+    const k = Math.max(1, Math.floor(Math.min(56 / (sp.w + 10), 30 / (sp.h + 6 + tall))));
     g.save();
-    g.translate(c.width / 2, c.height / 2 + (kind === 'nessie' ? 4 : 0));
+    g.translate(c.width / 2, c.height / 2 + (kind === 'nessie' ? 5 : 0));
     g.scale(k, k);
     drawFish(g, kind, 0.3, false, known ? undefined : '#2c2a3a');
     g.restore();
   }, [kind, known, sp]);
   const stars = rarity(kind);
+  // où (selon la longueur du lancer), quand, combien il pèse, sa force au combat
+  const where = sp.far >= 0.6 ? 'très loin' : sp.far >= 0.3 ? 'au large' : 'près de la barque';
+  const when = !sp.when ? '☀️ 🌅 🌙 à toute heure' : sp.when.map((w) => (w === 'day' ? '☀️ le jour' : w === 'evening' ? '🌅 le soir' : '🌙 la nuit')).join(' · ');
+  const force = Math.min(5, Math.max(1, Math.round(sp.hp / 2.4)));
   return (
-    <div className={`bestiary-card ${sp.legend ? 'legend' : ''} ${known ? '' : 'unknown'}`}>
+    <div className={`bestiary-card ${sp.legend ? 'is-legend' : ''} ${known ? '' : 'unknown'}`}>
       <canvas ref={ref} width={64} height={36} />
       <b>{known ? sp.name : '???'}</b>
-      <span className="bestiary-stars" title="Rareté">{'★'.repeat(stars)}<span className="dim">{'★'.repeat(5 - stars)}</span></span>
+      <span className="bestiary-stars" title="Rareté">{'★'.repeat(stars)}<i className="dim">{'★'.repeat(5 - stars)}</i>{sp.legend ? ' légendaire' : ''}</span>
+      <dl className="bestiary-facts">
+        <dt>Où</dt><dd>{where}</dd>
+        <dt>Quand</dt><dd>{when}</dd>
+        <dt>Poids</dt><dd>{known ? `${fmtKg(sp.kg[0])} à ${fmtKg(sp.kg[1])}` : '?'}</dd>
+        <dt>Force</dt><dd>{'●'.repeat(force)}<i className="dim">{'●'.repeat(5 - force)}</i>{sp.tough ? ' · traîne la barque' : ''}</dd>
+      </dl>
       {known ? <span className="small">{sp.desc}</span> : <span className="small muted">Indice : {sp.hint}.</span>}
-      {known && <span className="small muted">Pris {entry.n} fois · record {fmtKg(entry.kg)}</span>}
-      {known && <span className="small muted">Où : {sp.hint}.</span>}
+      {known && sp.fact && <span className="small bestiary-fact">💡 {sp.fact}</span>}
+      {known && <span className="small muted">Ta pêche : {entry.n} {entry.n > 1 ? 'prises' : 'prise'} · record {fmtKg(entry.kg)}</span>}
     </div>
   );
 }

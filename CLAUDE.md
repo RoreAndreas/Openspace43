@@ -66,7 +66,10 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
   musique lofi en Web Audio, sans fichier ; coupé avec le son). Le chemin de la barque
   (`outside.onFish`) mène en mer. La pêche est la fenêtre `game` « fishing » (`ui/games/Fishing.tsx`, au timing : lancer, touche, combat ;
   les poissons coriaces (`tough`, `drags`) traînent la barque : bras de fer `drag`, Espace très vite (`rope`) ; légendaires
-  en boss avec barre de vie ; le bestiaire (`Bestiary` : dessin, rareté, description, record ; silhouette et indice sinon),
+  en boss avec barre de vie (le Thon d'Or, l'Espadon, le Cœlacanthe, le Requin-baleine, Nessie, le Poisson-lune, le Kraken,
+  l'Anguille-lumière ; `drift`, `heavy`, `jumpy`) ; la zone du lancer parfait `PERFECT` ; au combat, la ligne va à la bouche
+  du poisson (`mouth`), la flotte reste à la surface, Roré se débat ; le bestiaire (`Bestiary` : dessin, rareté, où, quand, poids, force, description, anecdote `fact`, record ; silhouette et
+  indice sinon),
   à partir de `fish.journal` dans `bureau:jeux`, `FishSave` dans `common.ts` ; en dev, `window.__fishing`).
 - **La mer** (`room: 'sea'`, le quatrième espace ; ⛵, touche L ; depuis le chemin de la barque, Dehors : deux poteaux et des cordes
   au bord de la falaise, « Descendre à la barque » ; X pour revenir) : même logique que le jardin, l'île est vue depuis la barque.
