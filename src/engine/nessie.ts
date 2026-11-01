@@ -11,7 +11,9 @@ const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
  *  derrière ; la nageoire qui pagaie ; le long cou en S, qui se tend vers la barque quand il est curieux ; la tête ronde,
  *  le museau, la mâchoire crème, l'œil doux, les branchies en plumeau. `sub` : combien il est encore sous l'eau (0 : sorti).
  *  Il reste toujours dans l'eau. */
-export function paintNessie(g: G, x: number, wl: number, look: number, t: number, o: { night: boolean; sub: number; flap: number; curious?: number }) {
+/** `open` : la gueule ouverte (0 à 1) ; `happy` : les yeux fermés de plaisir ; `gulp` : la bouchée qui descend le long du
+ *  cou (de 0, la tête, à 1, la base). Renvoie l'œil et la bouche, à l'échelle 1 dans le canevas. */
+export function paintNessie(g: G, x: number, wl: number, look: number, t: number, o: { night: boolean; sub: number; flap: number; curious?: number; open?: number; happy?: boolean; gulp?: number }) {
   const c = o.night ? NESSIE_NIGHT : NESSIE;
   // il remonte : tout est décalé vers le bas, et ce qui est sous la ligne d'eau ne se dessine pas
   const sink = Math.round(clamp(o.sub, 0, 1) * 34);
@@ -46,7 +48,9 @@ export function paintNessie(g: G, x: number, wl: number, look: number, t: number
     const u = i / N;
     const nx = nx0 + look * (Math.sin(u * Math.PI * 0.85) * 3 + u * u * lean) + Math.round(Math.sin(t * 1.1 + u * 2.4) * 0.8 * u);
     const ny = ny0 - i + Math.round(u * u * curious * 3);
-    const w = Math.round(5.5 * (1 - u * 0.45));
+    // (la bouchée qu'il avale gonfle le cou en descendant)
+    const lump = o.gulp !== undefined && o.gulp >= 0 && o.gulp <= 1 && Math.abs(u - (1 - o.gulp)) < 0.07 ? 2 : 0;
+    const w = Math.round(5.5 * (1 - u * 0.45)) + lump;
     fill(nx - w / 2, ny, w, 1, c.body);
     fill(look > 0 ? nx + w * 0.05 : nx - w * 0.45, ny, Math.max(1, Math.round(w * 0.4)), 1, c.belly);
     dot(look > 0 ? nx - w / 2 : nx + w / 2 - 1, ny, c.dark);
@@ -67,8 +71,16 @@ export function paintNessie(g: G, x: number, wl: number, look: number, t: number
   for (let dy = -3; dy <= 3; dy++) { const w = Math.round(4.5 * Math.sqrt(Math.max(0, 1 - (dy / 3.3) ** 2))); fill(cx - w, cy + dy, w * 2 + 1, 1, c.body); }
   const sn = cx + look * 3;
   for (let dy = -2; dy <= 1; dy++) { const w = Math.round(2.8 * Math.sqrt(Math.max(0, 1 - (dy / 2.2) ** 2))); fill(look > 0 ? sn : sn - w, cy + dy + 1, w, 1, dy > 0 ? c.belly : c.body); }
-  fill(look > 0 ? cx - 1 : cx - 4, cy + 2, 6, 1, c.belly);
-  dot(look > 0 ? sn + 2 : sn - 3, cy + 1, c.dark);
+  // la gueule : fermée, un trait ; ouverte, la mâchoire crème descend et on voit dedans (rose sombre, la langue)
+  const gape = Math.round(Math.max(0, Math.min(1, o.open ?? 0)) * 3);
+  if (gape > 0) {
+    const mx = look > 0 ? sn - 1 : sn - 3;
+    fill(mx, cy + 1, 4, gape, '#5a1a2a');
+    dot(look > 0 ? mx + 1 : mx + 2, cy + gape, '#e86a8a');
+    fill(look > 0 ? cx - 1 : cx - 4, cy + 2 + gape, 7, 1, c.belly);
+    fill(look > 0 ? cx - 1 : cx - 4, cy + 3 + gape, 6, 1, c.dark);
+  } else fill(look > 0 ? cx - 1 : cx - 4, cy + 2, 6, 1, c.belly);
+  if (!gape) dot(look > 0 ? sn + 2 : sn - 3, cy + 1, c.dark);
   dot(cx - look, cy + 1, c.blush);
   // les branchies en plumeau, derrière la tête : trois de chaque côté, qui ondulent (celles d'en face, plus sombres)
   for (const [far, dx0] of [[true, 1], [false, 0]] as [boolean, number][]) {
@@ -79,8 +91,9 @@ export function paintNessie(g: G, x: number, wl: number, look: number, t: number
     });
   }
   const ex = Math.round(cx + look * 1.5), ey = Math.round(cy - 1);
-  if ((t % 4.6) < 0.14) fill(ex - 1, ey, 2, 1, c.eye);
+  if (o.happy) { dot(ex - 1, ey, c.eye); dot(ex, ey - 1, c.eye); dot(ex + 1, ey, c.eye); dot(cx - look * 2, cy + 1, c.blush); }
+  else if ((t % 4.6) < 0.14) fill(ex - 1, ey, 2, 1, c.eye);
   else { fill(ex - 1, ey - 1, 2, 2, c.eye); dot(ex - 1, ey - 1, '#ffffff'); }
-  return { x: ex, y: ey + sink };
+  return { x: ex, y: ey + sink, mx: look > 0 ? sn + 3 : sn - 3, my: cy + 1 + sink };
 }
 
