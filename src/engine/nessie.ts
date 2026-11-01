@@ -38,8 +38,10 @@ export function paintNessie(g: G, x: number, wl: number, look: number, t: number
       if ((k + 40) % 4 === 1 && hh > 3) dot(cx + k, base - hh + 3, c.spot);
     }
   };
-  // deux bosses qui ondulent l'une après l'autre, et le bout de la queue qui frétille
+  // deux bosses qui ondulent l'une après l'autre, et le bout de la queue qui frétille ; devant, les épaules d'où sort le cou
+  // (le corps est d'un seul tenant, du cou à la queue)
   dome(x - look * R(10), R(7), Math.round((6 + Math.sin(t * 1.6) * 1.5) * K));
+  dome(x - look * R(2), R(6), Math.round((4.5 + Math.sin(t * 1.6 + 0.8) * 0.8) * K));
   dome(x - look * R(23), R(6), Math.round((5 + Math.sin(t * 1.6 - 1.3) * 1.5) * K));
   const tw = Math.round(Math.sin(t * 3) * 1.5 * K);
   for (let i = 0; i < R(5); i++) fill(x - look * (R(32) + i), base - Math.round(i / K) - 1 + (i > R(2) ? tw : 0), R(2), 1, i < R(3) ? c.dark : c.body);
@@ -47,7 +49,7 @@ export function paintNessie(g: G, x: number, wl: number, look: number, t: number
   // en deux mouvements qui ne se répètent pas pareil (il respire, il se balance)
   const nx0 = x + look * R(3), ny0 = base;
   const N = R(28), lean = (3 + curious * 5) * K;
-  let hx = nx0, hy = ny0;
+  let hx = nx0, hy = ny0, prevY = ny0 + 1;
   for (let i = 0; i <= N; i++) {
     const u = i / N;
     const sway = (Math.sin(t * 1.1 + u * 2.4) * 0.8 + Math.sin(t * 0.63 + u * 1.3 + 1) * 0.6) * K * u;
@@ -55,10 +57,14 @@ export function paintNessie(g: G, x: number, wl: number, look: number, t: number
     const ny = ny0 - i + Math.round(u * u * curious * 3 * K);
     // (la bouchée qu'il avale gonfle le cou en descendant)
     const lump = o.gulp !== undefined && o.gulp >= 0 && o.gulp <= 1 && Math.abs(u - (1 - o.gulp)) < 0.07 ? R(2) : 0;
-    const w = Math.round(5.5 * K * (1 - u * 0.45)) + lump;
-    fill(nx - w / 2, ny, w, 1, c.body);
-    fill(look > 0 ? nx + w * 0.05 : nx - w * 0.45, ny, Math.max(1, Math.round(w * 0.4)), 1, c.belly);
-    dot(look > 0 ? nx - w / 2 : nx + w / 2 - 1, ny, c.dark);
+    // épais à la base (il sort des épaules), fin sous la tête ; chaque tranche rejoint la précédente (pas de trou quand le
+    // cou se tend ou se rejette en arrière)
+    const w = Math.round(K * (7.5 - u * 4)) + lump;
+    const hh = Math.max(1, prevY - ny);
+    fill(nx - w / 2, ny, w, hh, c.body);
+    fill(look > 0 ? nx + w * 0.05 : nx - w * 0.45, ny, Math.max(1, Math.round(w * 0.4)), hh, c.belly);
+    fill(look > 0 ? nx - w / 2 : nx + w / 2 - 1, ny, 1, hh, c.dark);
+    prevY = ny;
     hx = nx; hy = ny;
   }
   // la nageoire de devant, qui pagaie à la surface
@@ -85,8 +91,8 @@ export function paintNessie(g: G, x: number, wl: number, look: number, t: number
     const mx = look > 0 ? sn - 1 : sn - R(3);
     fill(mx, cy + 1, R(4), gape, '#5a1a2a');
     dot(look > 0 ? mx + 1 : mx + R(2), cy + gape, '#e86a8a');
-    fill(jx, cy + R(2) + gape, R(7), 1, c.belly);
-    fill(jx, cy + R(2) + gape + 1, R(6), 1, c.dark);
+    fill(jx, cy + 1 + gape, R(7), 1, c.belly);
+    fill(jx, cy + 2 + gape, R(6), 1, c.dark);
   } else {
     fill(jx, cy + R(2), R(6), 1, c.belly);
     dot(look > 0 ? sn + R(2) : sn - R(3), cy + 1, c.dark);
