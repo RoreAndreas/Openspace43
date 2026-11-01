@@ -460,7 +460,7 @@ function fishSprite(kind: Kind, frame: number, step: number, face: number, flash
     if (face < 0) { mg.translate(SPR, 0); mg.scale(-1, 1); }
     mg.drawImage(out, 0, 0);
     // plus il est profond, plus l'eau le bleuit et l'assombrit
-    if (depth > 0) { mg.setTransform(1, 0, 0, 1, 0, 0); mg.globalCompositeOperation = 'source-atop'; mg.fillStyle = `rgba(14,48,96,${0.16 * depth})`; mg.fillRect(0, 0, SPR, SPR); }
+    if (depth > 0) { mg.setTransform(1, 0, 0, 1, 0, 0); mg.globalCompositeOperation = 'source-atop'; mg.fillStyle = `rgba(14,48,96,${Math.min(0.7, 0.14 * depth)})`; mg.fillRect(0, 0, SPR, SPR); }
     out = m;
   }
   if (sprites.size > 6000) sprites.clear();
@@ -504,6 +504,7 @@ const fishScale = (kind: Kind) => (FISH[kind].legend && FISH[kind].w < 30 ? 2 : 
 const SKY = { day: ['#7cbaec', '#9bcdf1', '#bcdff5', '#dcedf7'], evening: ['#3a2f6a', '#7a4579', '#d9786a', '#ffb27a'], night: ['#0b1030', '#121a42', '#18234c', '#202d5a'] };
 const SEA = { day: ['#a6d2ea', '#5aa0cc', '#2a78b2', '#175a92'], evening: ['#f0a88a', '#8a5a88', '#4a3a72', '#2c2858'], night: ['#28335e', '#1a2850', '#0f1c40', '#0a1532'] };
 
+type SwimMode = 'pull' | 'dive' | 'rise' | 'thrash' | 'run';
 type Phase = 'ready' | 'boat' | 'aim' | 'cast' | 'wait' | 'warn' | 'bite' | 'fight' | 'drag' | 'catch' | 'fail';
 interface Bit { x: number; y: number; vx: number; vy: number; life: number; col: string }
 interface Card { title: string; sub: string; legend: boolean; junk: boolean; record: boolean }
@@ -528,7 +529,10 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
     // barque traînée (son décalage) et l'eau qui défile
     rope: 0.5, drags: 0, dragAt: -9, pressAt: -9, towX: 0, scroll: 0,
     // le poisson accroché : où il nage, sa vitesse, son côté, quand il s'est retourné, où il va, s'il fonce, son saut
-    swim: { x: 160, y: SURFACE + 14, vx: 0, vy: 0, face: 1, turnAt: -9, tx: 160, ty: SURFACE + 20, next: 0, dart: false, jump: null as null | { t0: number; x0: number; y0: number; dir: number }, out: false, ph: 0 },
+    swim: { x: 160, y: SURFACE + 14, vx: 0, vy: 0, face: 1, turnAt: -9, tx: 160, ty: SURFACE + 20, next: 0, dart: false, jump: null as null | { t0: number; x0: number; y0: number; dir: number }, out: false, ph: 0,
+      // la profondeur (0 : tout près, 1 : loin dans le bleu), ce qu'il fait (il tire, plonge, remonte, se débat, file) et
+      // jusqu'à quand, et combien la ligne le retient
+      z: 0.3, tz: 0.3, mode: 'pull' as SwimMode, until: 0, strain: 0 },
     rings: [] as { x: number; t0: number; w: number }[],
     bubbles: [] as { x: number; y: number; t0: number }[],
     bits: [] as Bit[], confetti: [] as Bit[],
@@ -583,7 +587,7 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
         st.hp = sp.hp; st.shownHp = sp.hp; st.trailHp = sp.hp;
         st.kg = Math.round((sp.kg[0] + Math.random() * (sp.kg[1] - sp.kg[0])) * 100) / 100;
         st.cursor = 0; st.curDir = 1; st.zone = 0.3 + Math.random() * 0.4; st.tension = 0; st.rage = false; st.drags = 0;
-        Object.assign(st.swim, { x: st.bobX, y: SURFACE + 8, vx: 0, vy: sp.deep ? 30 : 20, face: Math.random() < 0.5 ? -1 : 1, next: 0, dart: !sp.deep, jump: null, out: false });
+        Object.assign(st.swim, { x: st.bobX, y: SURFACE + 8, vx: 0, vy: sp.deep ? 30 : 20, face: Math.random() < 0.5 ? -1 : 1, next: 0, dart: !sp.deep, jump: null, out: false, z: 0.3, tz: 0.3, mode: 'pull', until: 0, strain: 0 });
         st.rings.push({ x: st.bobX, t0: st.t, w: 1 });
         set('fight');
         sfx('check');
@@ -613,7 +617,9 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
       st.zone = sp.zone / 2 + Math.random() * (1 - sp.zone);
       sfx('check', perfect ? 1.3 : 1);
       say(perfect ? 'PARFAIT !' : 'BIEN !');
-      if (!sp.deep && Math.random() < (sp.jumpy ?? (sp.legend ? 0.45 : 0.3)) && !st.swim.jump) { st.jumpAt = st.t; st.swim.jump = { t0: st.t, x0: st.swim.x, y0: Math.max(SURFACE + 6, st.swim.y), dir: st.swim.face }; }
+      // la ligne le ramène d'un coup vers la barque, et vers la surface ; il se débat
+      { const sw = st.swim, k = sp.deep ? 0.35 : sp.legend ? 0.55 : 1; sw.vx -= 75 * k; sw.vy -= 18 * k; sw.tz = Math.max(0, sw.z - 0.35); setMode('thrash', 0.6); }
+      if (!sp.deep && st.swim.z < 0.45 && st.swim.y < SURFACE + 24 && Math.random() < (sp.jumpy ?? (sp.legend ? 0.45 : 0.3)) && !st.swim.jump) { st.jumpAt = st.t; st.swim.jump = { t0: st.t, x0: st.swim.x, y0: Math.max(SURFACE + 6, st.swim.y), dir: st.swim.face }; }
       if (sp.legend && !st.rage && st.hp <= sp.hp / 2) { st.rage = true; st.flashAt = st.t; st.shake = 0.6; say('IL ENRAGE !'); sfx('error'); }
       if (st.hp <= 0) { land(); return; }
       // un poisson coriace : passé un certain reste de vie, il file et traîne la barque
@@ -623,6 +629,8 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
       st.tension += (sp.legend ? 0.3 : 0.34) * (sp.heavy ?? 1);
       st.missAt = st.t;
       st.shake = 0.25;
+      // il en profite : il file ou plonge
+      setMode(Math.random() < 0.5 ? 'run' : 'dive', 0.9);
       sfx('no');
       say('RATE !');
       if (st.tension >= 1) snap();
@@ -692,6 +700,20 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
 
   /** Le poisson accroché nage : il file vers un point au hasard (parfois il fonce), se retourne, remonte quand il
    *  fatigue et se rapproche de la barque ; quand il saute, il suit un arc, sort de l'eau dans une gerbe et y rentre. */
+  /** Ce que fait le poisson accroché, pendant un moment : où il va, à quelle profondeur. */
+  const setMode = (m: SwimMode, dur?: number) => {
+    const st = s.current, sw = st.swim, t = st.t, sp = spec();
+    const tired = 1 - Math.max(0, st.hp) / sp.hp;
+    const reach = Math.min(st.landX, 210) - tired * 60;
+    const rnd = (a: number, b: number) => a + Math.random() * (b - a);
+    sw.mode = m;
+    if (m === 'dive') { sw.until = t + (dur ?? rnd(1.4, 2.2)); sw.tz = sp.deep ? rnd(0.85, 1) : rnd(0.7, 1); sw.tx = reach + rnd(5, 40); sw.ty = SURFACE + rnd(34, 44); }
+    else if (m === 'rise') { sw.until = t + (dur ?? rnd(1.2, 1.8)); sw.tz = 0; sw.tx = reach + rnd(sp.own ? -5 : -25, 10); sw.ty = sp.deep ? SURFACE + 24 : SURFACE + rnd(5, 12); }
+    else if (m === 'pull') { sw.until = t + (dur ?? rnd(1, 2)); sw.tx = W - 10; sw.ty = Math.max(SURFACE + 8, Math.min(SURFACE + 40, sw.y + rnd(-8, 8))); }
+    else if (m === 'thrash') { sw.until = t + (dur ?? rnd(0.6, 1.1)); sw.tx = sw.x; sw.ty = sw.y; }
+    else { sw.until = t + (dur ?? rnd(0.5, 0.8)); sw.tx = sw.x + (Math.random() < 0.5 ? -1 : 1) * 70; sw.ty = Math.min(SURFACE + 44, sw.y + 8); sw.tz = Math.min(1, sw.z + 0.15); }
+  };
+
   const this_swim = (dt: number) => {
     const st = s.current, sw = st.swim, t = st.t, sp = spec();
     if (sw.jump) {
@@ -705,38 +727,61 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
         sw.face = j.dir;
       }
     } else {
-      // il s'épuise : il remonte et se rapproche de la barque à mesure qu'il perd de la vie
+      // il se débat : il tire vers le large, plonge au fond et s'éloigne dans le bleu, remonte tout près, secoue la tête
+      // à la surface, file d'un coup ; épuisé, il remonte et se laisse ramener vers la barque
       const tired = 1 - Math.max(0, st.hp) / sp.hp;
-      const anchor = Math.min(st.landX, 210) - tired * 70;
-      if (t > sw.next) {
-        sw.next = t + (sp.own ? 1.6 + Math.random() * 1.6 : 0.5 + Math.random() * 0.9);
-        sw.dart = Math.random() < 0.35;
-        sw.tx = Math.max(BOAT_X + 70, Math.min(W - 16, anchor + (Math.random() - 0.5) * 80));
-        sw.ty = sp.deep ? SURFACE + 24 + Math.random() * 5 - tired * 3 : SURFACE + 9 + Math.random() * (34 - tired * 18);
-        if (sp.deep) { sw.dart = false; sw.tx = Math.max(BOAT_X + 80, Math.min(W - 30, anchor + (Math.random() - 0.5) * (sp.own ? 100 : 40))); }
+      const reach = Math.min(st.landX, 210) - tired * 60;
+      if (t > sw.until) {
+        const q = Math.random();
+        const m: SwimMode = sw.z > 0.5 ? (q < 0.55 + tired * 0.3 ? 'rise' : q < 0.8 ? 'pull' : 'thrash')
+          : sw.y < SURFACE + 16 ? (q < 0.1 + 0.3 * (1 - tired) ? 'dive' : q < 0.7 ? 'thrash' : 'pull')
+          : (q < 0.4 * (1 - tired * 0.7) ? 'dive' : q < 0.65 ? 'pull' : q < 0.85 ? 'rise' : 'run');
+        setMode(m);
       }
       const dx = sw.tx - sw.x, dy = sw.ty - sw.y, dl = Math.max(1, Math.hypot(dx, dy));
-      if (sp.own) {
+      if (sp.own && sw.mode !== 'thrash') {
         // les pieuvres et le calamar nagent par jets : ils se serrent et partent d'un coup (au rythme du sprite), puis
         // glissent, freinés par l'eau, en coulant un peu ; ils ne se retournent qu'entre deux jets, presque arrêtés
         const c = sw.ph % 1;
         if (c < 0.28) {
-          const push = 95 * (st.rage ? 1.3 : 1) * (1 - c / 0.28);
+          const push = 110 * (st.rage ? 1.3 : 1) * (1 - c / 0.28);
           sw.vx += sw.face * Math.max(0, (dx * sw.face) / dl) * push * dt;
-          sw.vy += (dy / dl) * push * 0.4 * dt - 24 * (1 - c / 0.28) * dt;
+          sw.vy += (dy / dl) * push * 0.5 * dt - 18 * (1 - c / 0.28) * dt;
           if (c < 0.06 && Math.random() < dt * 30) st.bubbles.push({ x: sw.x - sw.face * 10, y: sw.y + 2, t0: t });
         }
         const water = Math.exp(-dt * 1.7);
         sw.vx *= water; sw.vy = sw.vy * water + 5 * dt;
-        if (dx * sw.face < -10 && Math.abs(sw.vx) < 5 && c > 0.55) { sw.face = -sw.face; sw.turnAt = t; }
+        if (dx * sw.face < -10 && Math.abs(sw.vx) < 6 && c > 0.55) { sw.face = -sw.face; sw.turnAt = t; }
+      } else if (sw.mode === 'thrash') {
+        // il secoue la tête et se tord sur place, se retourne d'un côté puis de l'autre
+        sw.vx *= Math.exp(-dt * 4); sw.vy *= Math.exp(-dt * 4);
+        sw.vx += Math.sin(t * 23) * 60 * dt; sw.vy += Math.sin(t * 17) * 30 * dt;
+        if (!sp.own && Math.random() < dt * 4) { sw.face = -sw.face; sw.turnAt = t; }
+        // tout près de la surface, il fait gicler l'eau
+        if (sw.y < SURFACE + 12 && sw.z < 0.35) {
+          if (Math.random() < dt * 28) st.bits.push({ x: sw.x + (Math.random() - 0.5) * sp.w, y: SURFACE - 1, vx: (Math.random() - 0.5) * 70, vy: -35 - Math.random() * 45, life: 0.6, col: Math.random() < 0.6 ? '#ffffff' : '#bfe6ff' });
+          if (Math.random() < dt * 3) st.rings.push({ x: sw.x, t0: t, w: sp.legend ? 1.5 : 1 });
+        }
       } else {
-        const spd = (sw.dart ? 72 : 30) * (st.rage ? 1.3 : 1) * (sp.deep ? 0.35 : 1);
+        const spd = { pull: 42, dive: 46, rise: 50, run: 95, thrash: 0 }[sw.mode] * (st.rage ? 1.3 : 1) * (sp.deep ? 0.5 : 1);
         sw.vx += ((dx / dl) * spd - sw.vx) * Math.min(1, dt * 3);
-        sw.vy += ((dy / dl) * spd * 0.6 - sw.vy) * Math.min(1, dt * 3);
+        sw.vy += ((dy / dl) * spd * 0.7 - sw.vy) * Math.min(1, dt * 3);
         // il se retourne quand il change franchement de côté
         if (sw.vx * sw.face < -8) { sw.face = -sw.face; sw.turnAt = t; }
+        if ((sw.mode === 'run' || sw.mode === 'dive') && Math.random() < dt * 12) st.bubbles.push({ x: sw.x - sw.face * 6, y: sw.y - 1, t0: t });
       }
-      if (sw.dart && Math.random() < dt * 10) st.bubbles.push({ x: sw.x - sw.face * 6, y: sw.y - 1, t0: t });
+      // la ligne le retient : au bout, il tire dessus et ne va pas plus loin ; la canne plie
+      const maxX = Math.min(reach + 34, W - 34);
+      let strain = sw.mode === 'pull' ? 0.45 : sw.mode === 'run' ? 0.6 : sw.mode === 'thrash' ? 0.5 : 0.15;
+      if (sw.x > maxX) { sw.vx -= (sw.x - maxX) * 14 * dt; if (sw.vx > 0) sw.vx *= Math.exp(-dt * 6); strain = Math.min(1, strain + (sw.x - maxX) / 12); }
+      sw.strain += (strain - sw.strain) * Math.min(1, dt * 5);
+      // il s'enfonce dans le bleu, ou revient tout près
+      sw.z += (sw.tz - sw.z) * Math.min(1, dt * 1.1);
+      // (les pieuvres sont grandes : elles restent bien sous l'eau)
+      const top = sp.own ? SURFACE + 22 : SURFACE + 4;
+      if (sw.y < top) { sw.y = top; sw.vy = Math.max(0, sw.vy); }
+      sw.y = Math.min(SURFACE + 46, sw.y);
+      sw.x = Math.max(BOAT_X + 66, sw.x);
     }
     sw.x += sw.vx * dt; sw.y += sw.vy * dt;
     // la gerbe quand il sort de l'eau, et quand il y retombe
@@ -759,7 +804,8 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
     {
       // l'horloge de l'animation : elle avance plus ou moins vite, mais sans jamais sauter (sinon la queue saccade)
       const sp = spec(), sw = st.swim, v = Math.hypot(sw.vx, sw.vy);
-      const rate = sp.own ? 1 + st.tension * 0.3 + (st.rage ? 0.25 : 0) : 0.8 + v / 45 + st.tension * 0.6;
+      const fury = sw.mode === 'thrash' && st.phase === 'fight';
+      const rate = sp.own ? (1 + st.tension * 0.3 + (st.rage ? 0.25 : 0)) * (fury ? 2.4 : 1) : 0.8 + v / 45 + st.tension * 0.6 + (fury ? 1.4 : 0);
       sw.ph += (dt * rate) / (sp.cycle ?? 1 / SWIM_HZ);
     }
     st.shake = Math.max(0, st.shake - dt);
@@ -921,7 +967,7 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
     // secoue la tête quand on le touche, saute en suivant son arc (par crans de 22,5°) ; sa pose sert aussi à accrocher la
     // ligne à sa bouche
     const fk = fishScale(st.kind);
-    let fish: null | { x: number; y: number; th: number; face: number } = null;
+    let fish: null | { x: number; y: number; th: number; face: number; zs: number } = null;
     const sw = st.swim;
     if (st.phase === 'fight' || dragging) {
       const face = sw.face >= 0 ? 1 : -1;
@@ -930,26 +976,31 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
       if (!sw.jump) th = Math.max(-0.45, Math.min(0.45, th * 0.6));
       // touché : il secoue la tête ; les pieuvres restent droites et tremblent
       const hit = t - st.hitAt < 0.35 ? (Math.floor(t * 18) % 2 ? 1 : -1) : 0;
-      if (sp.own) th = 0; else th += hit * 0.4;
-      fish = { x: sw.x + (sp.own ? hit : 0), y: sw.y, th, face };
+      // il se débat : la tête secouée d'un côté et de l'autre (les pieuvres restent droites, tremblent et agitent les bras)
+      const fury = st.phase === 'fight' && sw.mode === 'thrash' && !sw.jump;
+      const shakeX = sp.own ? hit + (fury ? Math.round(Math.sin(t * 31) * 1.5) : 0) : 0;
+      if (sp.own) th = 0; else th += hit * 0.4 + (fury ? Math.sin(t * 26) * 0.6 : 0);
+      // la profondeur : plus loin, plus petit (par huitièmes, pour garder des pixels nets) et plus bleu
+      const zs = Math.round((1 - 0.45 * clamp01(sw.z)) * 8) / 8;
+      fish = { x: sw.x + shakeX, y: sw.y, th, face, zs };
       const stepI = Math.max(-4, Math.min(4, Math.round(th / (Math.PI / 8))));
       // la queue bat plus vite quand il fonce, et quand il se débat
       const nF = sp.frames ?? FRAMES;
       const frame = Math.floor(sw.ph * nF) % nF;
       // les pieuvres qui filent : leurs bras traînent derrière (trois crans)
-      const lean = sp.own ? Math.min(2, Math.round(Math.abs(sw.vx) / 9)) : 0;
-      const depth = sw.y > SURFACE + 4 ? Math.max(0, Math.min(3, Math.round((sw.y - SURFACE) / 15))) : 0;
+      const lean = sp.own ? (fury ? (Math.floor(t * 9) % 2) * 2 : Math.min(2, Math.round(Math.abs(sw.vx) / 9))) : 0;
+      const depth = sw.y > SURFACE + 4 ? Math.max(0, Math.min(5, Math.round((sw.y - SURFACE) / 15 + clamp01(sw.z) * 2.5))) : 0;
       const spr = fishSprite(st.kind, frame, stepI, face, t - st.hitAt < 0.08, depth, lean);
       const turning = t - sw.turnAt < 0.12;
-      const wq = turning ? Math.round(SPR * fk * 0.5) : SPR * fk;
-      g.drawImage(spr, Math.round(fish.x - wq / 2), Math.round(sw.y - SPC * fk), wq, SPR * fk);
+      const sz = SPR * fk * fish.zs, wq = Math.round(turning ? sz * 0.5 : sz);
+      g.drawImage(spr, Math.round(fish.x - wq / 2), Math.round(sw.y - (sz / 2)), wq, Math.round(sz));
     }
     const mouth = (() => {
       if (!fish) return null;
       const m = sp.mouth ?? [Math.ceil(sp.w / 2), 0];
       const stepTh = Math.max(-4, Math.min(4, Math.round(fish.th / (Math.PI / 8)))) * (Math.PI / 8);
       const px0 = m[0] * Math.cos(stepTh) - m[1] * Math.sin(stepTh), py0 = m[0] * Math.sin(stepTh) + m[1] * Math.cos(stepTh);
-      return { x: fish.x + px0 * fish.face * fk, y: fish.y + py0 * fk };
+      return { x: fish.x + px0 * fish.face * fk * fish.zs, y: fish.y + py0 * fk * fish.zs };
     })();
     // les ronds à la surface, là où il est sorti ou rentré ; les bulles qui remontent
     for (const rg of st.rings) {
@@ -990,8 +1041,9 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
       g.save(); g.translate(BX + 18, Math.round(by)); g.rotate(-Math.min(1, fall) * 1.4); g.drawImage(sprite, -10, -20); g.restore();
     } else if (dragging || st.phase === 'fight') {
       // il se débat : penché en arrière, d'autant plus que la ligne est tendue, secoué par les à-coups du poisson
-      const lean = dragging ? -0.25 : -(0.08 + st.tension * 0.22) + Math.sin(t * 9) * 0.05 * (1 + st.tension);
-      const jx = st.tension > 0.5 ? Math.round(Math.sin(t * 40)) : 0;
+      const pk = Math.max(st.tension, st.swim.strain * 0.8);
+      const lean = dragging ? -0.25 : -(0.08 + pk * 0.24) + Math.sin(t * 9) * 0.05 * (1 + pk);
+      const jx = pk > 0.45 ? Math.round(Math.sin(t * 40)) : 0;
       g.save(); g.translate(BX + 18 + jx, Math.round(by + 2)); g.rotate(lean); g.drawImage(sprite, -10, -20); g.restore();
       // des gouttes de sueur quand ça tire fort
       if (st.tension > 0.35 || dragging) for (let i = 0; i < 2; i++) { const q = (t * 2.5 + i / 2) % 1; r(BX + 12 - q * 8, by - 20 - Math.sin(q * Math.PI) * 5 + q * 6, 1, 1, '#bfe6ff'); }
@@ -1003,7 +1055,7 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
     for (let i = -22; i <= 22; i++) { const wl = Math.round(wave(BX + 22 + i)) + 1, bot = boat.ky(i) + bdy + 1; if (wl < bot) g.fillRect(BX + 22 + i, wl, 1, bot - wl); }
     // la canne : le manche en liège, le moulinet qui tourne, le scion qui plie avec la tension
     if (st.phase !== 'fail') {
-      const bend = st.phase === 'fight' || dragging ? 3 + st.tension * 6 + (t - st.missAt < 0.2 ? 3 : 0) : st.phase === 'bite' ? 4 : 1;
+      const bend = st.phase === 'fight' || dragging ? 3 + st.tension * 6 + st.swim.strain * 5 + (t - st.missAt < 0.2 ? 3 : 0) : st.phase === 'bite' ? 4 : 1;
       for (let k = 0; k <= 18; k++) {
         const u = k / 18;
         r(BX + 20 + (tipBase.x - BX - 20) * u, by - 8 + (tipBase.y + bob - (by - 8)) * u + Math.sin(u * Math.PI * 0.9) * -2 + u * u * bend, 1, 1, k < 4 ? '#c89a6a' : k < 6 ? '#563821' : '#8a5530');
@@ -1012,13 +1064,14 @@ export function Fishing({ lucky = false }: { lucky?: boolean }) {
       r(BX + 22, by - 9, 3, 3, '#2e2e3c'); r(BX + 23 + (reel && Math.floor(t * 12) % 2 ? 1 : 0), by - 8 - (reel && Math.floor(t * 12) % 2 ? 1 : 0), 1, 1, '#c8c8d8');
     }
     // la ligne et la flotte
-    const tipX = tipBase.x, tipY = tipBase.y + bob + (st.phase === 'fight' || dragging ? 3 + st.tension * 6 : 0);
+    const tipX = tipBase.x, tipY = tipBase.y + bob + (st.phase === 'fight' || dragging ? 3 + st.tension * 6 + st.swim.strain * 5 : 0);
     // pendant le combat, la ligne part du bout de la canne et file jusqu'à la bouche du poisson ; la flotte glisse sur la
     // ligne et reste à la surface, là où la ligne entre dans l'eau
     if (mouth) {
       g.fillStyle = st.tension > 0.66 ? 'rgba(255,120,110,0.95)' : 'rgba(235,240,250,0.85)';
       const n = Math.max(8, Math.round(Math.hypot(mouth.x - tipX, mouth.y - tipY)));
-      const shiver = st.tension > 0.5 ? Math.sin(t * 50) * 0.6 : 0;
+      const pullK = Math.max(st.tension, st.swim.strain);
+      const shiver = pullK > 0.4 ? Math.sin(t * 50) * (0.4 + pullK * 0.8) : 0;
       for (let k = 0; k <= n; k++) { const u = k / n; g.fillRect(Math.round(tipX + (mouth.x - tipX) * u), Math.round(tipY + (mouth.y - tipY) * u + Math.sin(u * Math.PI) * shiver), 1, 1); }
       if (mouth.y > SURFACE) {
         const u = clamp01((SURFACE - tipY) / (mouth.y - tipY));

@@ -3,6 +3,7 @@
 ## À venir
 
 - **Le Kraken a trois variantes**, chacune avec sa fiche : le Kraken rouge (la nuit, au loin : l’œil doré, huit bras à ventouses), le Kraken abyssal (la nuit, très loin : violet, une cape de peau entre les bras, des taches et des yeux qui luisent) et le Calamar géant (le soir et la nuit : long manteau, nageoires qui battent, deux tentacules à massue). Ils nagent comme des pieuvres : ils se serrent et partent d’un coup, puis glissent en s’ouvrant lentement ; quand ils filent, leurs bras traînent derrière eux. Ils ne se retournent qu’entre deux jets.
+- **Le poisson se débat** : il tire au bout de la ligne, plonge loin dans le bleu (il rapetisse et s’assombrit), revient tout près, secoue la tête et fait gicler l’eau à la surface, file d’un coup quand tu rates. Un bon coup le ramène vers la barque. La canne plie, la ligne vibre, Roré est secoué quand il tire.
 - Les poissons ne saccadent plus : leur queue bat plus ou moins vite selon l’effort, sans à-coups.
 - **Un bestiaire plus léger** : une grille de vignettes, et une seule fiche pour l’espèce que tu choisis.
 - **Des poissons vivants dans la pêche** : chaque poisson est un sprite animé qui nage pour de vrai. La queue bat de gauche à droite, le corps ondule, les nageoires bougent ; les bras du poulpe et du Kraken ondulent un à un et s'enroulent au bout. Les sprites ont du relief (dos éclairé, ventre dans l'ombre, contour) et bleuissent quand le poisson est plus profond. Les poissons tournent, filent, sautent et retombent en éclaboussant.

@@ -70,7 +70,10 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
   l'Anguille-lumière ; `drift`, `heavy`, `jumpy`, `deep` : reste au fond, ne saute pas ; le Kraken a trois variantes, `family: 'kraken'` (une seule place parmi les légendes) :
   le rouge `kraken`, l'abyssal `abyssal`, le calamar géant `geant`, dessinés par `drawKraken` (`armPts`/`drawArm`, `blob`, battement
   `openness`), avec leur propre ombrage et rythme (`own`, `frames`, `cycle`) ; ils nagent par jets au rythme du sprite, glissent, et leurs
-  bras traînent derrière quand ils filent (`lean`)) ; l'horloge de l'animation `swim.ph` avance sans sauter ; les poissons sont des sprites
+  bras traînent derrière quand ils filent (`lean`)) ; l'horloge de l'animation `swim.ph` avance sans sauter ;
+  au combat, il se débat (`SwimMode` : `pull` tire au bout de la ligne, `dive` plonge loin dans le bleu, `rise` revient tout près,
+  `thrash` secoue la tête et fait gicler l'eau, `run` file ; `setMode`) ; `swim.z` : la profondeur (plus petit et plus bleu au
+  loin) ; `swim.strain` : la ligne qui le retient (canne qui plie, ligne qui vibre, Roré secoué) ; un bon coup le ramène vers la barque ; les poissons sont des sprites
   animés (`drawFish` : phase `SWIM_HZ`, `FRAMES` poses, queue `tailFin`, corps `wave`, bras qui ondulent) passés par `fishSprite`
   (ombrage `shade` : dos clair, ventre sombre, contour ; rotation, miroir, teinte bleue selon la profondeur ; en cache) ; la nage `this_swim`
   (cibles, virages, sauts, ronds et bulles) ; la zone du lancer parfait `PERFECT` ; au combat, la ligne va à la bouche
