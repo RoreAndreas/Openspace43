@@ -146,8 +146,9 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
   quelques gouttes tombent après) ; 1 à 3 étoiles, gardées dans le livre des cafés (`cafes` dans `bureau:jeux`) ; un café
   parfait : une tasse fumante sur le bureau de Roré et un pas plus rapide pendant dix minutes (`world.coffeeUntil`, `render.ts`) ;
   en dev, `window.__coffee`.
-- **La bibliothèque de la Pause** (le meuble `shelf`, « E · Ouvrir la bibliothèque », fenêtre `library`, `LibraryRoom` dans
-  `Rooms.tsx`) : on y range les ouvrages, le bestiaire de la pêche (`Bestiary`) et le livre des cafés (`CoffeeBook`).
+- **La bibliothèque de la Pause** (le meuble `shelf`, « E · Ouvrir la bibliothèque », fenêtre `library`, `ui/Library.tsx`) : une
+  étagère pleine de livres en pixel art (`paintShelf`) ; deux ouvrages se lisent (`BOOKS`) : le bestiaire de la pêche (`Bestiary`)
+  et le livre des cafés (`CoffeeBook`) ; un clic sur leur dos les ouvre, « Ranger le livre » les remet en place.
 - **Rook** (rôle `recherche`, sous-agent `rook`) : le chercheur et la veille. En ligne et avec Ollama, `runRook` (`src/local/agent.ts`)
   utilise Tavily : `tavilySearch` / `tavilyExtract` (`shared/web.ts`), routes `/api/tavily` et `/api/tavily/extract` du Worker et du
   serveur local, clé `TAVILY_KEY` ou `CLE_TAVILY` (le secret du Worker s'appelle `CLE_TAVILY`). Sans clé (501), il se rabat sur

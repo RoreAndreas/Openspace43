@@ -858,13 +858,17 @@ input[type='color'] { width: 34px; height: 34px; padding: 0; border: 1px solid v
 .coffee-card .stars, .coffee-stars { color: #ffd166; font-style: normal; letter-spacing: 1px; font-size: 11px; }
 .coffee-card .stars em, .coffee-stars em { color: #4a4458; font-style: normal; }
 .game-over .coffee-stars { font-size: 22px; color: #ffd166; }
-/* la bibliothèque de la Pause : les ouvrages */
-.library-books { display: flex; gap: 8px; margin-bottom: 8px; }
-.library-book { display: grid; gap: 1px; text-align: left; padding: 8px 14px 8px 12px; border-radius: 4px 10px 10px 4px; border: 1px solid var(--line); border-left: 6px solid #8a5530; background: var(--surface2); color: inherit; font: inherit; cursor: pointer; }
-.library-book b { font: 700 14px var(--pixel); }
-.library-book span { font-size: 11px; color: #8a8698; }
-.library-book.fish { border-left-color: #2a78b2; }
-.library-book.cafes { border-left-color: #c88a50; }
-.library-book.on { border-color: #e8e5f1; box-shadow: 0 0 0 1px #e8e5f1 inset; }
+/* la bibliothèque de la Pause : l'étagère et ses livres (deux se lisent), le livre ouvert */
+.library { display: grid; gap: 8px; justify-items: center; }
+.library-shelf { position: relative; width: min(100%, 720px); }
+.library-shelf canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; border-radius: 8px; }
+.library-spine { position: absolute; padding: 0; border: 0; background: transparent; cursor: pointer; border-radius: 2px; transition: box-shadow 0.15s, transform 0.15s; }
+.library-spine:hover, .library-spine:focus-visible { box-shadow: 0 0 0 2px #ffd166, 0 0 18px 4px rgba(255, 209, 102, 0.55); transform: translateY(-3px); outline: none; }
+.library-open { display: grid; gap: 8px; }
+.library-cover { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 4px 10px 10px 4px; border-left: 8px solid #8a5530; background: var(--surface2); }
+.library-cover b { font: 700 15px var(--pixel); }
+.library-cover span { font-size: 12px; color: #8a8698; flex: 1; }
+.library-open.fish .library-cover { border-left-color: #2a78b2; }
+.library-open.cafes .library-cover { border-left-color: #8a5a34; }
 @media (max-width: 520px) { .coffee-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .coffee-book .bestiary-sheet canvas, .coffee-book .bestiary-tile canvas { background: linear-gradient(#e9e5ef, #d6d1de); }
