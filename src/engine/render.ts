@@ -141,6 +141,15 @@ export class Renderer {
     }
     if (f.kind === 'chefDesk') {
       if (who) this.logo(g, p.x + 31, p.y + 10, true, t);
+      // un bon service au barista : une tasse fumante sur le bureau de Roré
+      if (world.time < world.coffeeUntil) {
+        const mx = p.x + 8, my = p.y + 5;
+        g.fillStyle = P.ink; g.fillRect(mx - 1, my - 1, 7, 7); g.fillRect(mx + 6, my + 1, 2, 3);
+        g.fillStyle = '#f6f2e9'; g.fillRect(mx, my, 5, 5); g.fillStyle = '#ff8a3d'; g.fillRect(mx, my + 2, 5, 1);
+        g.fillStyle = '#5a3018'; g.fillRect(mx, my, 5, 1);
+        g.fillStyle = 'rgba(255,255,255,0.7)';
+        for (let i = 0; i < 2; i++) { const q = (t * 0.8 + i * 0.5) % 1; g.fillRect(mx + 1 + i * 2 + Math.round(Math.sin(q * 6 + i) * 1), my - 2 - Math.round(q * 7), 1, 2); }
+      }
       // les rapports rendus, empilés dans la corbeille
       const n = Math.min(world.inbox, 7);
       for (let i = 0; i < n; i++) {

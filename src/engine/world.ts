@@ -133,6 +133,8 @@ export class World {
   private deliverTaken = new Set<number>();
   time = 0;
   speed = 1;
+  /** un bon service au barista (la Pause) : Roré a le plein d'énergie jusque-là (une tasse fumante, il marche plus vite) */
+  coffeeUntil = 0;
   /** les rapports posés sur le bureau du chef */
   inbox = 0;
   printUntil = 0;
@@ -269,7 +271,7 @@ export class World {
       case 'slide':
       case 'sit': {
         const speed = (task.t === 'slide' && task.speed) || (task.t === 'sit' ? 30 : WALK_SPEED);
-        let budget = speed * dt;
+        let budget = speed * dt * (a.role === 'chef' && this.time < this.coffeeUntil ? 1.3 : 1);
         while (budget > 0 && a.path.length) {
           const p = a.path[0];
           const dx = p.x - a.x, dy = p.y - a.y;

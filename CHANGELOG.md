@@ -2,6 +2,8 @@
 
 ## À venir
 
+- **Un nouveau mini-jeu : le barista**, à la machine à café de la Pause (« E · Jouer au barista »). Les collègues viennent un par un commander leur boisson préférée : l’espresso de Nyx, l’allongé de Merlain, le chocolat chaud de Boulon, le cappuccino de Margaux, le latte de Zaza, le ristretto de Hares… Tout se joue au bon moment, avec Espace : moudre, tasser, faire couler pile au trait, mousser le lait entre 60 et 65 °C, dessiner un cœur bien droit dans la mousse. Chacun réagit à sa tasse. Cinq tasses par service, un record. Un bon service : une tasse fumante attend Roré sur son bureau, et il file plus vite pendant dix minutes.
+- **Les poissons qui approchent, comme un mirage** : on ne voit plus leur forme entière, juste une tache trouble qui ondule.
 - **Le Kraken, plus dur** : ses trois tentacules restent dressés autour de la barque. Rien ne dit lequel va frapper : celui qui attaque se cabre une fraction de seconde, puis s’abat. Il faut choisir vite (← ↑ →). Attention aux feintes : un tentacule se cabre parfois pour rien, et frapper dans le vide déséquilibre Roré un instant.
 - **Les poissons qui approchent sont troubles** : on devine leur silhouette floue qui ondule sous l’eau, au lieu d’un ovale net ; le Kraken n’est qu’une masse sombre.
 - **Le cou de Nessie tient au corps** : il sort de ses épaules, épais à la base, d'un seul tenant avec les bosses ; il ne se coupe plus en tranches quand il se tend ou se rejette en arrière ; la mâchoire ouverte reste attachée.

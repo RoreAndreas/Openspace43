@@ -59,7 +59,7 @@ export function nearRore(): Near | null {
       if (f.kind === 'stool') continue;
       const verb = f.id === 'pingpong' ? 'Jouer au ping-pong'
         : f.id.startsWith('arcade') ? 'Jouer à Spartan Run'
-          : f.id === 'coffee' ? 'Se faire un café'
+          : f.id === 'coffee' ? 'Jouer au barista'
             : f.id === 'fridge' ? 'Ouvrir le frigo'
               : f.id === 'jukebox' ? 'Lancer la musique'
                 : f.label.split(' (')[0].split(' : ')[0];
