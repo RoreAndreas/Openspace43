@@ -95,7 +95,9 @@ export function Darts() {
   const [hud, setHud] = useState({ phase: 'ready', total: 0, best: loadScores().darts ?? 0, record: false });
   if (import.meta.env.DEV) (window as unknown as { __darts?: unknown }).__darts = s.current;
   /** après un café parfait : la main est plus sûre, le viseur plus lent */
-  const steady = () => world.time < world.coffeeUntil;
+  const steady = () => world.coffeeState() === 'boost';
+  /** trop de café : la main tremble */
+  const jittery = () => world.coffeeState() === 'jitter';
 
   const start = () => {
     Object.assign(s.current, { phase: 'aimX', pt: 0, round: 0, n: 0, darts: [], volley: [], total: 0, last: { pts: 0, label: '' }, lastAt: -9 });
@@ -108,7 +110,7 @@ export function Darts() {
     if (st.phase === 'aimX' && st.pt > 0.15) { st.lockX = st.ax; st.phase = 'aimY'; st.pt = 0; sfx('tick'); }
     else if (st.phase === 'aimY' && st.pt > 0.15) {
       // la fléchette part : là où était le viseur, à un souffle près
-      const spread = steady() ? 0.8 : 1.6;
+      const spread = steady() ? 0.8 : jittery() ? 2.6 : 1.6;
       st.to = { x: st.ax + (Math.random() - 0.5) * spread * 2, y: st.ay + (Math.random() - 0.5) * spread * 2 };
       st.from = { x: CX + 40, y: H + 12 };
       st.phase = 'fly'; st.pt = 0; sfx('send', 1.3);
@@ -121,7 +123,7 @@ export function Darts() {
     st.t += dt; st.pt += dt;
     const t = st.t, calm = steady() ? 0.7 : 1;
     // la main tremble un peu, le viseur va et vient (de plus en plus vite à chaque volée)
-    const wob = (steady() ? 0.8 : 1.8) * (1 + st.round * 0.25);
+    const wob = (steady() ? 0.8 : jittery() ? 3.4 : 1.8) * (1 + st.round * 0.25);
     const sp = (2.1 + st.round * 0.35) * calm;
     const wx = Math.sin(t * 2.3 + st.seed) * wob + Math.sin(t * 5.1) * wob * 0.4, wy = Math.cos(t * 1.9 + st.seed) * wob + Math.sin(t * 4.3 + 1) * wob * 0.4;
     if (st.phase === 'aimX') { st.ax = CX + Math.sin(st.pt * sp) * (R + 8) + wx; st.ay = CY + wy; }
@@ -194,6 +196,7 @@ export function Darts() {
       for (let i = 0; i < PER; i++) { const on = i >= st.n; r(6 + i * 9, 16, 2, 8, on ? '#c8c8d8' : '#4a3a5a'); r(5 + i * 9, 22, 4, 3, on ? '#ff8a3d' : '#4a3a5a'); }
       pixelText(g, `${st.total} PTS`, 6, 30, '#ffd166');
       if (steady()) pixelText(g, 'CAFE : MAIN SURE', 6, H - 18, '#c88a50');
+      if (jittery()) pixelText(g, 'TROP DE CAFE : CA TREMBLE', 6, H - 18, '#e5484d');
     }
   };
 

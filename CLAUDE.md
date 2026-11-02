@@ -144,7 +144,10 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
   choisit son café (`DRINKS` : espresso, ristretto, noisette, allongé, cappuccino, latte, mocha, chocolat ; un verre `GLASS` où l'on
   voit les couches, `drawGlass`), puis couche après couche : tenir Espace pour faire couler, lâcher au trait (la machine hoquette,
   quelques gouttes tombent après) ; 1 à 3 étoiles, gardées dans le livre des cafés (`cafes` dans `bureau:jeux`) ; un café
-  parfait : une tasse fumante sur le bureau de Roré et un pas plus rapide pendant dix minutes (`world.coffeeUntil`, `render.ts`) ;
+  parfait (`world.drinkPerfectCoffee`, `world.coffeeState()` : `none`, `boost`, `jitter`) donne dix minutes de plein d'énergie :
+  une tasse fumante sur le bureau de Roré (`render.ts`), Roré marche plus vite (×1.3) et l'équipe aussi (×1.15), main sûre aux
+  fléchettes, à la pêche une zone de lancer parfait plus large (`perfectZone`) et un curseur plus lent, le Kraken se cabre plus
+  longtemps ; trois cafés parfaits en dix minutes, c'est trop (`jitterUntil`, cinq minutes) : la main tremble aux fléchettes ;
   en dev, `window.__coffee`.
   **Les fléchettes** (`Darts.tsx`, la cible au mur de la Pause, au-dessus de la bibliothèque : `DARTBOARD` dans `annex.ts`, un clic
   dessus ou « E · Jouer aux fléchettes » juste dessous) : trois volées de trois ; le viseur glisse de gauche à droite (Espace

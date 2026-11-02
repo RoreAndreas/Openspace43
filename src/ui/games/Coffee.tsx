@@ -86,7 +86,7 @@ export function Coffee() {
     drops: [] as { x: number; y: number; vy: number; col: string }[],
     steam: [] as { x: number; y: number; t0: number }[],
   });
-  const [hud, setHud] = useState({ phase: 'menu', drink: 'espresso' as Drink, stars: 0, boost: false, book: loadScores().cafes });
+  const [hud, setHud] = useState({ phase: 'menu', drink: 'espresso' as Drink, stars: 0, boost: false, jitter: false, book: loadScores().cafes });
   if (import.meta.env.DEV) (window as unknown as { __coffee?: unknown }).__coffee = s.current;
 
   /** on choisit son café au tableau */
@@ -122,8 +122,8 @@ export function Coffee() {
     saveScores(sc);
     // un café parfait : Roré a le plein d'énergie au bureau pendant dix minutes
     const boost = stars === 3;
-    if (boost) world.coffeeUntil = world.time + 600;
-    setHud((h) => ({ ...h, phase: 'done', stars, boost, book: sc.cafes }));
+    const jitter = boost && world.drinkPerfectCoffee() === 'jitter';
+    setHud((h) => ({ ...h, phase: 'done', stars, boost, jitter, book: sc.cafes }));
     sfx(stars === 3 ? 'done' : stars > 0 ? 'check' : 'no');
   };
 
@@ -198,7 +198,8 @@ export function Coffee() {
             <b>{hud.stars === 3 ? `${d.name} parfait !` : hud.stars > 0 ? d.name : 'Oups, ça déborde…'}</b>
             <span className="coffee-stars">{'★'.repeat(hud.stars)}<em>{'★'.repeat(3 - hud.stars)}</em></span>
             {hud.stars > 0 && <span className="muted">Rangé dans le livre des cafés, à la bibliothèque de la Pause.</span>}
-            {hud.boost && <span>☕ Un café parfait : la tasse fumante attend Roré sur son bureau, et il file plus vite pendant dix minutes.</span>}
+            {hud.boost && !hud.jitter && <span>☕ Un café parfait : pendant dix minutes, Roré file plus vite (toute l’équipe aussi), sa main est sûre aux fléchettes, la pêche est plus facile et le Kraken se trahit plus tôt.</span>}
+            {hud.jitter && <span>☕☕☕ Trois cafés parfaits en dix minutes : c’est trop ! Pendant cinq minutes, la main de Roré tremble aux fléchettes.</span>}
             <button className="btn primary" onClick={(e) => { e.stopPropagation(); menu(); }}>Un autre café</button>
           </div>
         )}

@@ -13,7 +13,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { sfx } from '../../audio/sfx.ts';
 import { pixelText, textWidth } from '../../engine/font.ts';
-import { outside, timeOfDay } from '../../engine/instance.ts';
+import { outside, timeOfDay, world } from '../../engine/instance.ts';
 import { paintBoat } from '../../engine/boat.ts';
 import { robotSprite } from '../../engine/robots.ts';
 import type { TimeOfDay } from '../../engine/room.ts';
@@ -28,6 +28,8 @@ const BOAT_X = 20;
 const TIP = { x: BOAT_X + 56, y: SURFACE - 30 };
 /** la zone dorée du lancer parfait, sur la jauge (étroite : il faut viser juste) */
 const PERFECT: [number, number] = [0.87, 0.93];
+/** après un café parfait, la zone du lancer parfait est plus large */
+const perfectZone = (): [number, number] => (world.coffeeState() === 'boost' ? [0.85, 0.95] : PERFECT);
 /** la barre du combat (et du bras de fer) */
 const BAR = { x: 48, y: 126, w: 160, h: 7 };
 
@@ -665,7 +667,8 @@ export function Fishing({ lucky = false, meet }: { lucky?: boolean; meet?: 'krak
       case 'ready': set('boat'); sfx('click'); return;
       case 'boat': st.power = 0; st.powDir = 1; set('aim'); sfx('tick'); return;
       case 'aim': {
-        st.perfect = st.power >= PERFECT[0] && st.power <= PERFECT[1];
+        const pz = perfectZone();
+        st.perfect = st.power >= pz[0] && st.power <= pz[1];
         st.landX = 104 + st.power * 140;
         st.castT = 0;
         set('cast');
@@ -966,7 +969,8 @@ export function Fishing({ lucky = false, meet }: { lucky?: boolean; meet?: 'krak
         break;
       case 'fight': {
         const sp = spec();
-        const speed = sp.speed * (st.rage ? 1.35 : 1);
+        // (après un café parfait, le curseur va moins vite)
+        const speed = sp.speed * (st.rage ? 1.35 : 1) * (world.coffeeState() === 'boost' ? 0.8 : 1);
         st.cursor += st.curDir * speed * dt;
         if (st.cursor >= 1) { st.cursor = 1; st.curDir = -1; }
         if (st.cursor <= 0) { st.cursor = 0; st.curDir = 1; }
@@ -1254,8 +1258,10 @@ export function Fishing({ lucky = false, meet }: { lucky?: boolean; meet?: 'krak
     if (st.phase === 'aim') {
       const gx = BOAT_X + 50, gy = 26, gw = 70;
       frame(gx, gy, gw, 5);
-      r(gx + gw * PERFECT[0], gy, gw * (PERFECT[1] - PERFECT[0]), 5, '#8a6a20');
-      r(gx, gy, gw * st.power, 5, st.power >= PERFECT[0] && st.power <= PERFECT[1] ? '#ffd166' : '#3ddc97');
+      const pz = perfectZone();
+      r(gx + gw * pz[0], gy, gw * (pz[1] - pz[0]), 5, '#8a6a20');
+      r(gx, gy, gw * st.power, 5, st.power >= pz[0] && st.power <= pz[1] ? '#ffd166' : '#3ddc97');
+      if (world.coffeeState() === 'boost') pixelText(g, 'CAFE', gx + gw + 4, gy - 1, '#c88a50');
       r(gx, gy, gw * st.power, 1, 'rgba(255,255,255,0.45)');
       r(gx + gw * st.power - 1, gy - 2, 2, 9, '#ffffff');
       pixelText(g, 'LANCER', gx, gy - 9, '#ffffff');

@@ -7,6 +7,7 @@
 import { pixelText, textWidth } from '../../engine/font.ts';
 import { paintNessie } from '../../engine/nessie.ts';
 import { outline } from '../../engine/pixels.ts';
+import { world } from '../../engine/instance.ts';
 
 const W = 256, H = 144, SURFACE = 76;
 type G = CanvasRenderingContext2D;
@@ -135,7 +136,8 @@ export class KrakenBoss {
 
   /** il se cabre : une vraie attaque, ou une feinte (exactement pareil, au début) */
   private attack(x: Tent, progress: number) {
-    const st = this.style, tell = st.tell * (1 - progress * 0.35);
+    // (après un café parfait, Roré voit venir le coup un peu plus tôt)
+    const st = this.style, tell = st.tell * (1 - progress * 0.35) * (world.coffeeState() === 'boost' ? 1.3 : 1);
     this.go(x, Math.random() < st.feint + progress * 0.1 ? 'feint' : 'tell', tell);
     this.events.push('boil');
   }

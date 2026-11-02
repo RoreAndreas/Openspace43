@@ -135,6 +135,19 @@ export class World {
   speed = 1;
   /** un bon service au barista (la Pause) : Roré a le plein d'énergie jusque-là (une tasse fumante, il marche plus vite) */
   coffeeUntil = 0;
+  /** trop de café (trois cafés parfaits en dix minutes) : la main tremble jusque-là */
+  jitterUntil = 0;
+  private coffeeLog: number[] = [];
+  /** Un café parfait : le plein d'énergie pour dix minutes ; le troisième en dix minutes, c'est trop (la main tremble cinq
+   *  minutes). */
+  drinkPerfectCoffee(): 'boost' | 'jitter' {
+    this.coffeeUntil = this.time + 600;
+    this.coffeeLog = [...this.coffeeLog.filter((t) => this.time - t < 600), this.time];
+    if (this.coffeeLog.length >= 3) { this.jitterUntil = this.time + 300; this.coffeeLog = []; return 'jitter'; }
+    return 'boost';
+  }
+  /** l'effet du café en ce moment : rien, le plein d'énergie, ou trop de café */
+  coffeeState(): 'none' | 'boost' | 'jitter' { return this.time < this.jitterUntil ? 'jitter' : this.time < this.coffeeUntil ? 'boost' : 'none'; }
   /** les rapports posés sur le bureau du chef */
   inbox = 0;
   printUntil = 0;
@@ -271,7 +284,8 @@ export class World {
       case 'slide':
       case 'sit': {
         const speed = (task.t === 'slide' && task.speed) || (task.t === 'sit' ? 30 : WALK_SPEED);
-        let budget = speed * dt * (a.role === 'chef' && this.time < this.coffeeUntil ? 1.3 : 1);
+        // le café : Roré file (×1.3), toute l'équipe va un peu plus vite (×1.15)
+        let budget = speed * dt * (this.time < this.coffeeUntil ? (a.role === 'chef' ? 1.3 : 1.15) : 1);
         while (budget > 0 && a.path.length) {
           const p = a.path[0];
           const dx = p.x - a.x, dy = p.y - a.y;
