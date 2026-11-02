@@ -21,13 +21,15 @@ interface Bit { x: number; y: number; vx: number; vy: number; life: number; col:
 
 type Lane = 'left' | 'back' | 'right';
 const LANES: Lane[] = ['left', 'back', 'right'];
-type TentPhase = 'boil' | 'rise' | 'poise' | 'slam' | 'hurt' | 'sink';
-interface Tent { lane: Lane; phase: TentPhase; t0: number; dur: number; seed: number; len: number }
+type TentPhase = 'rise' | 'idle' | 'tell' | 'feint' | 'settle' | 'strike' | 'slammed' | 'hurt' | 'sink' | 'gone';
+interface Tent { lane: Lane; phase: TentPhase; t0: number; dur: number; seed: number; len: number; twitchAt: number }
 
-const STYLE: Record<KrakenKind, { name: string; body: string; dark: string; inner: string; hi: string; sucker: string; core: string; eye: string; hp: number; poise: number; club: boolean; glow: boolean }> = {
-  kraken: { name: 'LE KRAKEN ROUGE', body: '#8e2e40', dark: '#5a1828', inner: '#c0566a', hi: '#e07a80', sucker: '#f2c4b4', core: '#8a3040', eye: '#ffd45a', hp: 8, poise: 1.05, club: false, glow: false },
-  abyssal: { name: 'LE KRAKEN ABYSSAL', body: '#3a2160', dark: '#1e1236', inner: '#5a3488', hi: '#8a5ab8', sucker: '#7ff0ff', core: '#1e3a5a', eye: '#9ff8ff', hp: 9, poise: 0.9, club: false, glow: true },
-  geant: { name: 'LE CALAMAR GEANT', body: '#b4482e', dark: '#6a2418', inner: '#dc6c46', hi: '#f8a070', sucker: '#ffd8b8', core: '#8a3a28', eye: '#ffe2a0', hp: 7, poise: 0.85, club: true, glow: false },
+/** `tell` : le temps où le tentacule se cabre avant de frapper ; `strike` : le temps du coup (on peut encore le frapper) ;
+ *  `feint` : la part des fausses attaques (il se cabre, puis se ravise) */
+const STYLE: Record<KrakenKind, { name: string; body: string; dark: string; inner: string; hi: string; sucker: string; core: string; eye: string; hp: number; tell: number; strike: number; feint: number; club: boolean; glow: boolean }> = {
+  kraken: { name: 'LE KRAKEN ROUGE', body: '#8e2e40', dark: '#5a1828', inner: '#c0566a', hi: '#e07a80', sucker: '#f2c4b4', core: '#8a3040', eye: '#ffd45a', hp: 10, tell: 0.34, strike: 0.3, feint: 0.25, club: false, glow: false },
+  abyssal: { name: 'LE KRAKEN ABYSSAL', body: '#3a2160', dark: '#1e1236', inner: '#5a3488', hi: '#8a5ab8', sucker: '#7ff0ff', core: '#1e3a5a', eye: '#9ff8ff', hp: 11, tell: 0.3, strike: 0.27, feint: 0.32, club: false, glow: true },
+  geant: { name: 'LE CALAMAR GEANT', body: '#b4482e', dark: '#6a2418', inner: '#dc6c46', hi: '#f8a070', sucker: '#ffd8b8', core: '#8a3a28', eye: '#ffe2a0', hp: 9, tell: 0.28, strike: 0.24, feint: 0.2, club: true, glow: false },
 };
 
 /** Les touches : les flèches, et ZQSD / WASD. */
@@ -39,33 +41,40 @@ export class KrakenBoss {
   hp: number;
   lives = 3;
   t = 0;
-  tents: Tent[] = [];
-  next = 1.4;
+  tents: Tent[];
+  next = 2.2;
   over: null | 'win' | 'lose' = null;
   overAt = 0;
   swing = { at: -9, lane: 'right' as Lane, ok: false };
+  /** Roré a frappé dans le vide : il se reprend (il ne peut pas refrapper tout de suite) */
+  stunUntil = 0;
   hurtAt = -9;
   eyeAt = 3;
   bits: Bit[] = [];
   rings: { x: number; t0: number; w: number }[] = [];
   private events: GiantEvent[] = [];
   private can = canvas(W, H);
-  private seed = 0;
 
-  constructor(kind: KrakenKind) { this.kind = kind; this.maxHp = STYLE[kind].hp; this.hp = this.maxHp; }
+  constructor(kind: KrakenKind) {
+    this.kind = kind; this.maxHp = STYLE[kind].hp; this.hp = this.maxHp;
+    // les trois tentacules sortent l'un après l'autre, et restent dressés autour de la barque
+    this.tents = LANES.map((lane, i) => ({ lane, phase: 'gone' as TentPhase, t0: 0, dur: 0.2 + i * 0.35, seed: i * 2.3 + Math.random(), len: lane === 'back' ? 82 : 70 + Math.random() * 6, twitchAt: 3 + Math.random() * 3 }));
+  }
   get style() { return STYLE[this.kind]; }
 
   /** où sort le tentacule de chaque couloir, selon la place de la barque (BX : son bord gauche) */
   laneX(lane: Lane, BX: number) { return lane === 'left' ? BX - 30 : lane === 'back' ? BX + 36 : BX + 88; }
 
+  /** ← ↑ → : Roré frappe le tentacule de ce côté. Il faut viser celui qui attaque (il se cabre puis s'abat) ; frapper un
+   *  tentacule qui ne fait que se cabrer pour rien (une feinte), ou qui attend, c'est frapper dans le vide : Roré perd
+   *  l'équilibre un instant. */
   press(key: string) {
     const lane = KEY_LANE[key];
-    if (!lane || this.over || this.t - this.swing.at < 0.22) return;
-    // on frappe le tentacule dressé de ce côté (ou qui finit de sortir) ; sinon, Roré frappe dans le vide
-    const tent = this.tents.find((x) => x.lane === lane && (x.phase === 'poise' || (x.phase === 'rise' && this.t - x.t0 > x.dur * 0.5)));
+    if (!lane || this.over || this.t < this.stunUntil || this.t - this.swing.at < 0.12) return;
+    const tent = this.tents.find((x) => x.lane === lane && (x.phase === 'tell' || x.phase === 'strike'));
     this.swing = { at: this.t, lane, ok: !!tent };
-    if (!tent) { this.events.push('whiff'); return; }
-    this.go(tent, 'hurt', 0.55);
+    if (!tent) { this.stunUntil = this.t + 0.55; this.events.push('whiff'); return; }
+    this.go(tent, 'hurt', 0.5);
     this.hp--;
     this.events.push('hurt');
     if (this.hp <= 0) this.finish('win');
@@ -73,36 +82,48 @@ export class KrakenBoss {
 
   update(dt: number): GiantEvent[] {
     this.t += dt;
-    const t = this.t;
+    const t = this.t, st = this.style;
     const progress = 1 - this.hp / this.maxHp;
-    // un nouveau tentacule, de plus en plus souvent ; deux à la fois quand il enrage
+    const rnd = (a: number, b: number) => a + Math.random() * (b - a);
+    // une attaque (ou une feinte) d'un tentacule au hasard, de plus en plus souvent ; parfois deux d'affilée quand il enrage
     if (!this.over && t > this.next) {
-      const busy = new Set(this.tents.filter((x) => x.phase !== 'sink' && x.phase !== 'hurt').map((x) => x.lane));
-      const max = progress >= 0.5 ? 2 : 1;
-      const free = LANES.filter((l) => !busy.has(l));
-      if (busy.size < max && free.length) {
-        const lane = free[Math.floor(Math.random() * free.length)];
-        this.tents.push({ lane, phase: 'boil', t0: t, dur: 0.95 - progress * 0.3, seed: this.seed++ * 1.7, len: lane === 'back' ? 96 : 80 + Math.random() * 10 });
-        this.events.push('boil');
+      const ready = this.tents.filter((x) => x.phase === 'idle');
+      if (ready.length) {
+        const x = ready[Math.floor(Math.random() * ready.length)];
+        this.attack(x, progress);
+        const other = ready.filter((y) => y !== x);
+        if (progress >= 0.5 && other.length && Math.random() < 0.35) {
+          const y = other[Math.floor(Math.random() * other.length)];
+          y.phase = 'idle'; y.t0 = t; y.dur = 0.18 + Math.random() * 0.15;
+          (y as Tent & { queued?: boolean }).queued = true;
+        }
       }
-      this.next = t + 1.7 - progress * 0.7 + Math.random() * 0.5;
+      this.next = t + rnd(0.75, 1.7) * (1 - progress * 0.4);
     }
     for (const x of this.tents) {
-      if (t - x.t0 < x.dur) continue;
-      if (x.phase === 'boil') { this.go(x, 'rise', 0.45); this.events.push('rise'); this.spray(x, 14); }
-      else if (x.phase === 'rise') this.go(x, 'poise', this.style.poise * (1 - progress * 0.3));
-      else if (x.phase === 'poise') this.go(x, 'slam', 0.32);
-      else if (x.phase === 'slam') {
-        // il s'abat sur la barque
-        this.lives--;
-        this.hurtAt = t;
-        this.events.push('hit');
-        this.spray(x, 22);
-        this.go(x, 'sink', 0.6);
-        if (this.lives <= 0) this.finish('lose');
-      } else x.dur = -1;
+      const q = x as Tent & { queued?: boolean };
+      if (x.phase === 'idle' && q.queued && t - x.t0 >= x.dur) { q.queued = false; this.attack(x, progress); continue; }
+      if (x.phase === 'idle' && t > x.twitchAt) x.twitchAt = t + rnd(1.5, 4);
+      if (x.phase === 'idle' || t - x.t0 < x.dur) continue;
+      switch (x.phase) {
+        case 'gone': if (!this.over) { this.go(x, 'rise', 0.45); this.events.push('rise'); this.spray(x, 14); } break;
+        case 'rise': this.go(x, 'idle', 0); break;
+        case 'tell': this.go(x, 'strike', st.strike * (1 - progress * 0.25)); break;
+        case 'feint': this.go(x, 'settle', 0.28); break;
+        case 'settle': this.go(x, 'idle', 0); break;
+        case 'strike':
+          // il s'abat sur la barque
+          this.lives--;
+          this.hurtAt = t;
+          this.events.push('hit');
+          this.spray(x, 22);
+          this.go(x, 'slammed', 0.45);
+          if (this.lives <= 0) this.finish('lose');
+          break;
+        case 'slammed': this.go(x, 'sink', 0.45); break;
+        case 'hurt': case 'sink': this.go(x, 'gone', this.over ? 99 : rnd(0.6, 1.1)); break;
+      }
     }
-    this.tents = this.tents.filter((x) => x.dur >= 0);
     if (t > this.eyeAt) this.eyeAt = t + 4 + Math.random() * 3;
     for (const b of this.bits) { b.x += b.vx * dt; b.y += b.vy * dt; b.vy += 120 * dt; b.life -= dt; }
     this.bits = this.bits.filter((b) => b.life > 0 && b.y < SURFACE + 3);
@@ -112,11 +133,17 @@ export class KrakenBoss {
     return ev;
   }
 
+  /** il se cabre : une vraie attaque, ou une feinte (exactement pareil, au début) */
+  private attack(x: Tent, progress: number) {
+    const st = this.style, tell = st.tell * (1 - progress * 0.35);
+    this.go(x, Math.random() < st.feint + progress * 0.1 ? 'feint' : 'tell', tell);
+    this.events.push('boil');
+  }
   private go(x: Tent, phase: TentPhase, dur: number) { x.phase = phase; x.t0 = this.t; x.dur = dur; }
   private finish(how: 'win' | 'lose') {
     this.over = how;
     this.overAt = this.t;
-    for (const x of this.tents) if (x.phase !== 'hurt') this.go(x, 'sink', 0.8);
+    for (const x of this.tents) if (x.phase !== 'hurt' && x.phase !== 'gone') this.go(x, 'sink', 0.8);
     this.events.push(how);
   }
   private spray(x: Tent, n: number) {
@@ -126,16 +153,14 @@ export class KrakenBoss {
   }
   private lastX: Record<Lane, number> = { left: 60, back: 120, right: 180 };
 
-  /** Sous la barque : l'ombre immense du Kraken, son œil qui s'ouvre parfois dans le noir ; l'eau qui bouillonne. */
+  /** Sous la barque : l'ombre immense du Kraken, floue, son œil qui s'ouvre parfois dans le noir ; des bulles là où un
+   *  tentacule repousse. */
   drawUnder(g: G, BX: number) {
     const t = this.t, st = this.style;
     for (const l of LANES) this.lastX[l] = this.laneX(l, BX);
     const sink = this.over ? smooth((t - this.overAt) / 2.5) : 0;
     const cx = BX + 40 + Math.sin(t * 0.3) * 10, cy = SURFACE + 36 + sink * 30;
-    g.fillStyle = `rgba(4,6,18,${0.42 * (1 - sink)})`;
-    g.beginPath(); g.ellipse(cx, cy, st.club ? 96 : 76, 20, 0, 0, Math.PI * 2); g.fill();
-    g.fillStyle = `rgba(4,6,18,${0.3 * (1 - sink)})`;
-    g.beginPath(); g.ellipse(cx, cy - 6, st.club ? 70 : 54, 12, 0, 0, Math.PI * 2); g.fill();
+    murk(g, cx, cy, st.club ? 100 : 80, 22, 0.5 * (1 - sink), t);
     // l'œil, sous l'eau, qui s'ouvre et regarde la barque (et une dernière fois quand il s'en va)
     const open = this.over === 'win' ? Math.min(1, (t - this.overAt) * 2) * (1 - sink) : Math.max(0, 1 - Math.abs(t - (this.eyeAt - 2)) / 0.7);
     if (open > 0.05) {
@@ -147,27 +172,19 @@ export class KrakenBoss {
       if (h > 3) { g.fillStyle = '#ffffff'; g.fillRect(ex - 4, ey - 2, 2, 1); }
       if (st.glow) { g.fillStyle = 'rgba(159,248,255,0.25)'; g.fillRect(ex - 8, ey - h, 17, h * 2); }
     }
-    // l'eau qui bouillonne là où un tentacule va sortir
-    for (const x of this.tents) if (x.phase === 'boil') {
-      const lx = this.laneX(x.lane, BX), k = (t - x.t0) / x.dur;
-      g.fillStyle = `rgba(4,6,18,${0.5 * k})`;
-      g.beginPath(); g.ellipse(lx, SURFACE + 10, 6 + k * 6, 4 + k * 3, 0, 0, Math.PI * 2); g.fill();
-      for (let i = 0; i < 5; i++) { const q = (t * 2.2 + i / 5) % 1; g.fillStyle = 'rgba(220,240,255,0.8)'; g.fillRect(Math.round(lx - 8 + i * 4 + Math.sin(t * 5 + i) * 2), Math.round(SURFACE + 14 - q * 14), 1, 1); }
+    for (const x of this.tents) if (x.phase === 'gone' && !this.over) {
+      const lx = this.laneX(x.lane, BX);
+      for (let i = 0; i < 4; i++) { const q = (t * 2.2 + i / 4) % 1; g.fillStyle = 'rgba(220,240,255,0.7)'; g.fillRect(Math.round(lx - 6 + i * 4 + Math.sin(t * 5 + i) * 2), Math.round(SURFACE + 12 - q * 12), 1, 1); }
     }
   }
 
-  /** La surface : les ronds, l'écume à la base des tentacules. */
-  drawSurface(g: G, BX: number) {
+  /** La surface : les ronds. */
+  drawSurface(g: G, _BX: number) {
     const t = this.t;
     for (const rg of this.rings) {
       const k = (t - rg.t0) / 1.4, rx = (5 + k * 20) * rg.w, ry = rx * 0.22;
       g.fillStyle = `rgba(255,255,255,${0.6 * (1 - k)})`;
       for (let q = 0; q < Math.PI * 2; q += 0.2) g.fillRect(Math.round(rg.x + Math.cos(q) * rx), Math.round(SURFACE + 1 + Math.sin(q) * ry), 1, 1);
-    }
-    for (const x of this.tents) if (x.phase === 'boil') {
-      const lx = this.laneX(x.lane, BX), k = (t * 1.6) % 1;
-      g.fillStyle = `rgba(255,255,255,${0.7 * (1 - k)})`;
-      for (let q = 0; q < Math.PI * 2; q += 0.3) g.fillRect(Math.round(lx + Math.cos(q) * (3 + k * 10)), Math.round(SURFACE + 1 + Math.sin(q) * (1 + k * 2)), 1, 1);
     }
   }
 
@@ -176,11 +193,11 @@ export class KrakenBoss {
   drawFront(g: G, BX: number, roreX: number, roreY: number) {
     const t = this.t;
     for (const x of this.tents) if (x.lane !== 'back') this.drawTent(g, x, BX);
-    // le coup de rame de Roré : un arc blanc vers le couloir
+    // le coup de rame de Roré : un arc blanc vers le couloir (gris s'il frappe dans le vide)
     const sk = (t - this.swing.at) / 0.22;
     if (sk >= 0 && sk < 1) {
       const lx = this.laneX(this.swing.lane, BX), ty = SURFACE - 34;
-      g.fillStyle = this.swing.ok ? `rgba(255,255,255,${1 - sk})` : `rgba(180,190,210,${0.7 * (1 - sk)})`;
+      g.fillStyle = this.swing.ok ? `rgba(255,255,255,${1 - sk})` : `rgba(160,170,190,${0.7 * (1 - sk)})`;
       for (let i = 0; i <= 12; i++) {
         const u = i / 12, a = sk * 0.9 + u * 0.6;
         const x0 = roreX + (lx - roreX) * u, y0 = roreY + (ty - roreY) * u - Math.sin(u * Math.PI) * 14 * (1 - a * 0.3);
@@ -190,7 +207,8 @@ export class KrakenBoss {
     for (const b of this.bits) { g.fillStyle = b.col; g.fillRect(Math.round(b.x), Math.round(b.y), 1, 1); }
   }
 
-  /** En haut de l'écran : son nom et sa vie ; tes vies (des bouées) ; au-dessus de chaque tentacule, la touche à presser. */
+  /** En haut : son nom et sa vie ; tes vies (des bouées). En bas, sous chaque tentacule, sa touche (toujours la même, rien
+   *  ne dit lequel va attaquer). */
   drawHud(g: G, BX: number) {
     const t = this.t, st = this.style;
     g.save(); g.scale(2, 2);
@@ -201,25 +219,23 @@ export class KrakenBoss {
     g.fillStyle = '#4a2a30'; g.fillRect(bx, by, bw, 4);
     g.fillStyle = '#e5484d'; g.fillRect(bx, by, Math.round(bw * Math.max(0, this.hp) / this.maxHp), 4);
     g.fillStyle = 'rgba(255,255,255,0.35)'; g.fillRect(bx, by, Math.round(bw * Math.max(0, this.hp) / this.maxHp), 1);
-    // les bouées : tes vies
     for (let i = 0; i < 3; i++) {
       const x = 8 + i * 11, y = 8, on = i < this.lives;
       g.fillStyle = on ? '#ff5a4a' : '#3a2a30'; g.fillRect(x, y, 8, 8);
       g.fillStyle = on ? '#ffffff' : '#4a3a40'; g.fillRect(x, y + 3, 8, 2); g.fillRect(x + 3, y, 2, 8);
       g.fillStyle = '#15121d'; g.fillRect(x + 3, y + 3, 2, 2);
     }
-    for (const x of this.tents) {
-      if (x.phase !== 'boil' && x.phase !== 'rise' && x.phase !== 'poise') continue;
-      const lx = Math.round(this.laneX(x.lane, BX)), y = 30;
-      const hot = x.phase === 'poise' || x.phase === 'rise';
-      const col = hot ? (Math.floor(t * 10) % 2 ? '#ffd166' : '#ffffff') : '#8a8698';
+    for (const lane of LANES) {
+      const lx = Math.round(this.laneX(lane, BX)), y = H - 16;
+      const sk = t - this.swing.at;
+      const col = this.swing.lane === lane && sk < 0.25 ? (this.swing.ok ? '#3ddc97' : '#e5484d') : '#8a8698';
       g.fillStyle = '#15121d'; g.fillRect(lx - 7, y - 1, 15, 13);
-      g.fillStyle = hot ? '#4a4458' : '#2a2636'; g.fillRect(lx - 6, y, 13, 11);
-      arrow(g, lx, y + 5, x.lane, col);
+      g.fillStyle = '#2a2636'; g.fillRect(lx - 6, y, 13, 11);
+      arrow(g, lx, y + 5, lane, col);
     }
-    if (!this.over && t < 3.5) {
-      const tip = 'FRAPPE LE TENTACULE QUI SE DRESSE';
-      pixelText(g, tip, Math.round((W - textWidth(tip)) / 2), H - 12, '#ffffff');
+    if (!this.over && t < 4) {
+      const tip = 'FRAPPE CELUI QUI ATTAQUE';
+      pixelText(g, tip, Math.round((W - textWidth(tip)) / 2), H - 26, '#ffffff');
     }
   }
 
@@ -229,15 +245,22 @@ export class KrakenBoss {
     const t = this.t, st = this.style;
     const lx = this.laneX(x.lane, BX);
     const k = Math.min(1, (t - x.t0) / Math.max(0.01, x.dur));
-    let h = 0, lean = 0, flash = false;
+    let h = 0, lean = 0, flash = false, unwind = 0;
     // vers la barque : le couloir de gauche penche à droite, celui de droite à gauche ; derrière, il se penche en avant
     const side = x.lane === 'left' ? 1 : x.lane === 'right' ? -1 : 0.5, sg = side > 0 ? 1 : -1;
-    if (x.phase === 'boil') return;
-    if (x.phase === 'rise') h = smooth(k) * 1.05;
-    else if (x.phase === 'poise') { h = 1 + Math.sin(k * Math.PI) * 0.03; lean = 0.25 * k + Math.sin(t * 2 + x.seed) * 0.06; }
-    else if (x.phase === 'slam') { h = 1; lean = 0.3 + Math.pow(k, 1.6) * 1.9; }
-    else if (x.phase === 'hurt') { h = 1 - smooth(k) * 1.05; lean = -0.35 * (1 - k); flash = k < 0.18; }
-    else { h = (1 - smooth(k)) * (this.over === 'win' ? 1 : 0.9); lean = this.over ? 0 : 1.6 * (1 - k); }
+    // au repos, il ondule et tressaille parfois (pour rien : rien ne dit lequel va frapper)
+    const twitch = Math.max(0, 1 - Math.abs(t - x.twitchAt + 0.15) / 0.15) * 0.14;
+    const rest = 0.12 + Math.sin(t * 0.9 + x.seed) * 0.08 + twitch;
+    if (x.phase === 'gone') return;
+    if (x.phase === 'rise') { h = smooth(k); lean = rest; }
+    else if (x.phase === 'idle') { h = 1 + Math.sin(t * 1.3 + x.seed) * 0.03; lean = rest; }
+    // il se cabre (vraie attaque ou feinte : pareil), puis s'abat d'un coup de fouet
+    else if (x.phase === 'tell' || x.phase === 'feint') { const e = smooth(k * 1.3); h = 1 + 0.12 * e; lean = rest - 0.6 * e; unwind = e; }
+    else if (x.phase === 'settle') { const e = 1 - smooth(k); h = 1 + 0.12 * e; lean = rest - 0.6 * e; unwind = e; }
+    else if (x.phase === 'strike') { h = 1.08; lean = rest - 0.6 + Math.pow(k, 1.5) * 2.7; unwind = 1 - k; }
+    else if (x.phase === 'slammed') { h = 1; lean = 2.2 - k * 0.3; }
+    else if (x.phase === 'hurt') { h = 1 - smooth(k) * 1.05; lean = -0.35 * (1 - k); flash = k < 0.2; }
+    else { h = (1 - smooth(k)); lean = this.over === 'win' ? 0 : 1.9 * (1 - k); }
     if (h <= 0.02) return;
     const len = x.len * h * (x.lane === 'back' ? 0.85 : 1);
     const [c, cg] = this.can;
@@ -245,7 +268,7 @@ export class KrakenBoss {
     // l'épine : une onde lente qui monte de la base au bout, le bout qui s'enroule (une massue pour le calamar)
     const pts: { x: number; y: number; a: number; th: number; u: number }[] = [];
     let px = lx, py = SURFACE + 6;
-    const curl = (st.club ? 0.8 : 2.8 + 0.7 * Math.sin(t * 1.1 + x.seed)) * (x.phase === 'slam' ? 0.5 : 1);
+    const curl = (st.club ? 0.8 : 2.8 + 0.7 * Math.sin(t * 1.1 + x.seed)) * (1 - unwind * 0.65);
     const step = 0.5, full = x.len * (x.lane === 'back' ? 0.85 : 1);
     for (let s = 0; s <= len; s += step) {
       const u = s / full;
@@ -289,6 +312,20 @@ export class KrakenBoss {
     for (let i = -3; i <= 3; i++) g.fillRect(Math.round(lx + i * 2.5 + Math.sin(t * 6 + i) * 1), SURFACE + (i % 2 ? 0 : 1), 2, 1);
     g.fillStyle = `rgba(255,255,255,${0.5 * (1 - fk)})`;
     g.fillRect(Math.round(lx - 9 - fk * 4), SURFACE + 2, Math.round(18 + fk * 8), 1);
+  }
+}
+
+/** Une ombre trouble sous l'eau : plusieurs ovales doux et décalés qui respirent, sans bord net. */
+export function murk(g: G, cx: number, cy: number, rx: number, ry: number, alpha: number, t: number) {
+  if (alpha <= 0.01) return;
+  for (let i = 0; i < 6; i++) {
+    const k = i / 5, a = alpha * (0.22 - k * 0.025);
+    const wob = Math.sin(t * 0.7 + i * 1.7) * 3;
+    // (le dégradé est posé dans le repère déjà déplacé et étiré : centré en 0, de rayon 1)
+    const grd = g.createRadialGradient(0, 0, 0, 0, 0, 1);
+    grd.addColorStop(0, `rgba(4,6,18,${a * 1.6})`); grd.addColorStop(0.6, `rgba(4,6,18,${a})`); grd.addColorStop(1, 'rgba(4,6,18,0)');
+    g.save(); g.translate(cx + wob, cy + Math.sin(t * 0.5 + i) * 1.5); g.scale(rx * (0.7 + k * 0.45), ry * (0.7 + k * 0.45));
+    g.fillStyle = grd; g.beginPath(); g.arc(0, 0, 1, 0, Math.PI * 2); g.fill(); g.restore();
   }
 }
 

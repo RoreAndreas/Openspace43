@@ -19,7 +19,7 @@ import { robotSprite } from '../../engine/robots.ts';
 import type { TimeOfDay } from '../../engine/room.ts';
 import { useOffice } from '../../state/store.ts';
 import { loadScores, saveScores, useKeys, useLoop, type FishSave } from './common.ts';
-import { KrakenBoss, NessieMeet, type GiantEvent, type KrakenKind } from './giants.ts';
+import { KrakenBoss, murk, NessieMeet, type GiantEvent, type KrakenKind } from './giants.ts';
 
 const W = 256, H = 144;
 const HORIZON = 54, SURFACE = 76;
@@ -427,6 +427,30 @@ function drawKraken(g: CanvasRenderingContext2D, kind: Kind, t: number, r: Px, l
   void g;
 }
 
+/** Un poisson qu'on n'a pas encore pris, vu à travers l'eau : sa silhouette, floue (dessinée plusieurs fois, un peu
+ *  décalée, sans lissage net), qui ondule doucement. */
+const murks = new Map<string, HTMLCanvasElement>();
+function murkFish(g: CanvasRenderingContext2D, kind: Kind, x: number, y: number, k: number, face: number, t: number, blur: number, alpha: number) {
+  const frame = Math.floor(t * 4) % 8, key = `${kind}|${frame}`;
+  let c = murks.get(key);
+  if (!c) {
+    c = document.createElement('canvas'); c.width = c.height = SPR;
+    const mg = c.getContext('2d')!;
+    mg.translate(SPC, SPC); drawFish(mg, kind, (frame / 8) * (FISH[kind].cycle ?? 1 / SWIM_HZ), false, '#04060f');
+    murks.set(key, c);
+  }
+  g.save();
+  g.imageSmoothingEnabled = true;
+  g.translate(x, y + Math.sin(t * 1.7) * 1.2);
+  g.scale(face * k, k * (1 + Math.sin(t * 2.3) * 0.03));
+  for (let i = 0; i < 9; i++) {
+    const a = (i / 9) * Math.PI * 2, r = i === 0 ? 0 : blur / k;
+    g.globalAlpha = alpha * (i === 0 ? 1.4 : 1);
+    g.drawImage(c, -SPC + Math.cos(a + t * 0.6) * r, -SPC + Math.sin(a + t * 0.6) * r * 0.6);
+  }
+  g.restore();
+}
+
 /** Les sprites des poissons, comme dans un vieux jeu : chaque espèce en huit images de nage (un battement complet), tournée par crans de
  *  22,5° au pixel près (sans lissage, chaque pixel reste un pixel), vers la droite ou vers la gauche. Gardés en mémoire. */
 const SPR = 96, SPC = 48;
@@ -586,7 +610,7 @@ export function Fishing({ lucky = false, meet }: { lucky?: boolean; meet?: 'krak
     else if (e === 'rise') { st.shake = Math.max(st.shake, 0.25); sfx('send', 0.7); }
     else if (e === 'hurt') { st.hitAt = st.t; sfx('check', 1.2); say('PAF !'); }
     else if (e === 'hit') { st.shake = 0.8; st.sadUntil = st.t + 1.2; sfx('error'); say('AIE ! LA BARQUE TANGUE'); }
-    else if (e === 'whiff') sfx('no', 0.8);
+    else if (e === 'whiff') { sfx('no', 0.8); st.sadUntil = st.t + 0.55; say('DANS LE VIDE !'); }
     else if (e === 'toss') { st.pressAt = st.t; sfx('send'); }
     else if (e === 'catch') { sfx('check', 1.3); say('MIAM !'); }
     else if (e === 'startle') { sfx('no'); say('PLOUF... IL A EU PEUR'); }
@@ -1027,9 +1051,15 @@ export function Fishing({ lucky = false, meet }: { lucky?: boolean; meet?: 'krak
     for (let i = 0; i < 3; i++) { const fx = wrap(t * (8 + i * 3) * (i % 2 ? -1 : 1) + i * 90 - sc * 0.7, W + 30) - 15, fy = SURFACE + 40 + i * 12; g.fillStyle = 'rgba(5,10,30,0.25)'; g.fillRect(Math.round(fx), fy, 6, 2); g.fillRect(Math.round(fx) + (i % 2 ? 6 : -2), fy, 2, 2); }
     // l'ombre du poisson qui approche (énorme pour une légende)
     if (st.shadow && (st.phase === 'wait' || st.phase === 'warn' || st.phase === 'bite')) {
-      const k = sp.legend ? 2.2 : 1;
-      g.fillStyle = 'rgba(5,10,30,0.45)';
-      g.beginPath(); g.ellipse(st.shadow.x, st.shadow.y, Math.min(60, (sp.w / 2 + 3) * k), Math.min(18, (sp.h / 2 + 1) * k), 0, 0, Math.PI * 2); g.fill();
+      // trouble, sans bord net : sa silhouette floue qui ondule dans l'eau, sur une ombre douce (le Kraken : une masse
+      // sombre immense, à peine une forme)
+      const sh = st.shadow, kraken = sp.family === 'kraken';
+      const k = kraken ? 1.7 : sp.legend ? 2 : 1, face = st.bobX >= sh.x ? 1 : -1, sy = sh.y + (kraken ? 18 : 0);
+      // (seulement sous l'eau)
+      g.save(); g.beginPath(); g.rect(0, SURFACE + 3, W, H); g.clip();
+      murk(g, sh.x, sy + 1, Math.min(kraken ? 70 : 60, (sp.w / 2 + 6) * k), Math.min(kraken ? 22 : 16, (sp.h / 2 + 3) * k), kraken ? 0.55 : 0.45, t);
+      murkFish(g, st.kind, sh.x, sy, k, face, t, kraken ? 3 : 1.4, kraken ? 0.045 : 0.08);
+      g.restore();
     }
     // le poisson accroché, en sprites : il nage (sa queue bat plus vite quand il fonce), se retourne en une image écrasée,
     // secoue la tête quand on le touche, saute en suivant son arc (par crans de 22,5°) ; sa pose sert aussi à accrocher la

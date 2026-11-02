@@ -75,8 +75,9 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
   `thrash` secoue la tête et fait gicler l'eau, `run` file ; `setMode`) ; `swim.z` : la profondeur (plus petit et plus bleu au
   loin) ; `swim.strain` : la ligne qui le retient (canne qui plie, ligne qui vibre, Roré secoué) ; un bon coup le ramène vers la barque ;
   les géants ne se pêchent pas à la ligne (`giant` dans `FISH`, `ui/games/giants.ts`, phases `boss` et `tame`) : le Kraken est une
-  rencontre-boss (`KrakenBoss` : tentacules énormes qui sortent de l'eau à gauche, derrière, à droite de la barque, ← ↑ → pour
-  frapper celui qui se dresse, trois bouées de vie, son ombre et son œil sous la barque), Nessie s'apprivoise (`NessieMeet` :
+  rencontre-boss (`KrakenBoss` : trois tentacules énormes dressés à gauche, derrière, à droite de la barque ; l'un se cabre
+  (`tell`, une fraction de seconde) puis s'abat (`strike`) ; ← ↑ → pour le frapper à temps ; certains ne font que se cabrer
+  (`feint`) : frapper dans le vide déséquilibre Roré (`stunUntil`) ; trois bouées de vie ; son ombre trouble (`murk`) et son œil sous la barque), Nessie s'apprivoise (`NessieMeet` :
   toujours tourné vers Roré, à taille fixe (`SIZE`, dessiné au pixel près) ; distrait, il lève les yeux (`up`) ou somnole (`shut`) ;
   Espace quand il te regarde (un cœur) : il guette la sardine, ouvre la gueule, la happe et l'avale, replonge et ressort plus près ;
   sinon plouf, il sursaute et file sous l'eau ; ses poses suivent des ressorts (`Spring`) ; `paintNessie` : `size`, `open`, `happy`,
@@ -84,7 +85,7 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
   `paintNessie`, partagé avec la mer) ; ils surgissent pendant la pêche, ou en mer (`meet` : « Approcher Nessie » devant sa grotte,
   « Défier le Kraken » la nuit tout au large, `sea.krakenHere`, `krakenTips`) ; les poissons sont des sprites
   animés (`drawFish` : phase `SWIM_HZ`, `FRAMES` poses, queue `tailFin`, corps `wave`, bras qui ondulent) passés par `fishSprite`
-  (ombrage `shade` : dos clair, ventre sombre, contour ; rotation, miroir, teinte bleue selon la profondeur ; en cache) ; la nage `this_swim`
+  (ombrage `shade` : dos clair, ventre sombre, contour ; rotation, miroir, teinte bleue selon la profondeur ; en cache) ; les poissons pas encore pris se voient troubles sous l'eau (`murkFish` : silhouette floue qui ondule, sur `murk`) ; la nage `this_swim`
   (cibles, virages, sauts, ronds et bulles) ; la zone du lancer parfait `PERFECT` ; au combat, la ligne va à la bouche
   du poisson (`mouth`), la flotte reste à la surface, Roré se débat ; le bestiaire (`Bestiary` : dessin, rareté, où, quand, poids, force, description, anecdote `fact`, record ; silhouette et
   indice sinon ; une grille de vignettes `FishPic`, cadrées sur le sprite, et la fiche `BestiarySheet` de celle qu'on choisit),
