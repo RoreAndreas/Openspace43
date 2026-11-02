@@ -216,6 +216,18 @@ export function annexPlacement(f: AnnexFurn) {
   return { s, x: f.tx * T + s.ox, y: f.ty * T + s.oy, w: s.c.width, h: s.c.height, sortY: f.ty * T + s.sort };
 }
 
+/** La Pause sans personne : la pièce et ses meubles (pour un mini-jeu qui s'y déroule, comme le café). */
+const stills = new Map<TimeOfDay, HTMLCanvasElement>();
+export function annexStill(tod: TimeOfDay): HTMLCanvasElement {
+  const hit = stills.get(tod);
+  if (hit) return hit;
+  const c = makeCanvas(W, H), g = g2d(c);
+  g.drawImage(drawAnnexRoom(tod), 0, 0);
+  for (const p of ANNEX_FURNITURE.map((f) => ({ f, ...annexPlacement(f) })).sort((a, b) => a.sortY - b.sortY)) g.drawImage(p.s.c, p.x, p.y);
+  stills.set(tod, c);
+  return c;
+}
+
 // ── La pièce ──
 
 function drawAnnexRoom(tod: TimeOfDay): HTMLCanvasElement {

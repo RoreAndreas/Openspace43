@@ -139,10 +139,11 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
   Les coupes de l'étagère = missions `done` du store (`world.trophies`).
 - **Les mini-jeux** (fenêtre `game`) : `ui/games/` (`PingPong.tsx`, `SpartanRun.tsx`, `Fishing.tsx`, `Coffee.tsx`, boucle à pas fixe et scores
   localStorage `bureau:jeux` dans `common.ts`). Ouverts par un clic sur la table de ping-pong, une borne ou la machine à café (`interactAnnex`).
-  **Le barista** (`Coffee.tsx`, la machine à café de la Pause, « E · Jouer au barista ») : cinq collègues du catalogue viennent
-  commander leur boisson préférée (`FAVORITE`, `DRINKS`) ; chaque geste au timing, Espace (`grind`, `tamp`, `pull` au trait,
-  `steam` entre 60 et 65 °C, `art` un cœur, `pour`) ; 100 points par tasse, record `coffee` ; un bon service donne à Roré une
-  tasse fumante sur son bureau et un pas plus rapide pendant dix minutes (`world.coffeeUntil`, `render.ts`) ; en dev, `window.__coffee`.
+  **Le café parfait** (`Coffee.tsx`, la machine à café de la Pause, « E · Se faire un café ») : en solo, la Pause vue de près
+  (`annexStill`, la pièce et ses meubles sans personne, agrandie ×3 autour de la machine) ; un seul geste : tenir Espace pour
+  faire couler, lâcher au trait (la machine hoquette, quelques gouttes tombent après) ; une série de parfaits rapporte de plus
+  en plus ; trois tasses ratées et c'est fini ; record `coffee` ; trois parfaits : une tasse fumante sur le bureau de Roré et
+  un pas plus rapide pendant dix minutes (`world.coffeeUntil`, `render.ts`) ; en dev, `window.__coffee`.
 - **Rook** (rôle `recherche`, sous-agent `rook`) : le chercheur et la veille. En ligne et avec Ollama, `runRook` (`src/local/agent.ts`)
   utilise Tavily : `tavilySearch` / `tavilyExtract` (`shared/web.ts`), routes `/api/tavily` et `/api/tavily/extract` du Worker et du
   serveur local, clé `TAVILY_KEY` ou `CLE_TAVILY` (le secret du Worker s'appelle `CLE_TAVILY`). Sans clé (501), il se rabat sur
