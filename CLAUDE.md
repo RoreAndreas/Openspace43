@@ -146,6 +146,11 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
   quelques gouttes tombent après) ; 1 à 3 étoiles, gardées dans le livre des cafés (`cafes` dans `bureau:jeux`) ; un café
   parfait : une tasse fumante sur le bureau de Roré et un pas plus rapide pendant dix minutes (`world.coffeeUntil`, `render.ts`) ;
   en dev, `window.__coffee`.
+  **Les fléchettes** (`Darts.tsx`, la cible au mur de la Pause, au-dessus de la bibliothèque : `DARTBOARD` dans `annex.ts`, un clic
+  dessus ou « E · Jouer aux fléchettes » juste dessous) : trois volées de trois ; le viseur glisse de gauche à droite (Espace
+  l'arrête), puis de haut en bas (Espace lance), la main tremble un peu ; la cible au pixel près (`boardCanvas`, `ORDER`, anneaux
+  `BULL`, `OUTER`, `T_IN`/`T_OUT`, `D_IN`), `scoreAt` ; record `darts` ; après un café parfait (`world.coffeeUntil`), la main est
+  plus sûre et le viseur plus lent ; en dev, `window.__darts`.
 - **La bibliothèque de la Pause** (le meuble `shelf`, « E · Ouvrir la bibliothèque », fenêtre `library`, `ui/Library.tsx`) : une
   étagère pleine de livres en pixel art (`paintShelf`) ; deux ouvrages se lisent (`BOOKS`) : le bestiaire de la pêche (`Bestiary`)
   et le livre des cafés (`CoffeeBook`) ; un clic sur leur dos les ouvre, « Ranger le livre » les remet en place.

@@ -20,14 +20,16 @@ export interface Scores {
   fish: FishSave;
   /** le livre des cafés (la machine à café de la Pause) : pour chaque café réussi, ses meilleures étoiles (1 à 3) */
   cafes: Record<string, number>;
+  /** les fléchettes (la cible de la Pause) : le meilleur total */
+  darts: number;
 }
 
 export function loadScores(): Scores {
   try {
     const s = JSON.parse(localStorage.getItem(KEY) ?? '{}') as Partial<Scores>;
-    return { cafes: s.cafes && typeof s.cafes === 'object' ? s.cafes : {}, run: typeof s.run === 'number' ? s.run : 0, pong: s.pong && typeof s.pong === 'object' ? s.pong : {}, fish: { journal: { ...((s.fish as Partial<FishSave> | undefined)?.journal ?? {}) } } };
+    return { darts: typeof s.darts === 'number' ? s.darts : 0, cafes: s.cafes && typeof s.cafes === 'object' ? s.cafes : {}, run: typeof s.run === 'number' ? s.run : 0, pong: s.pong && typeof s.pong === 'object' ? s.pong : {}, fish: { journal: { ...((s.fish as Partial<FishSave> | undefined)?.journal ?? {}) } } };
   } catch {
-    return { cafes: {}, run: 0, pong: {}, fish: { journal: {} } };
+    return { darts: 0, cafes: {}, run: 0, pong: {}, fish: { journal: {} } };
   }
 }
 

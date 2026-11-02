@@ -19,6 +19,8 @@ export interface AnnexFurn { id: string; kind: AnnexKind | ReusedKind; tx: numbe
 
 /** La porte du bureau : dans le mur de gauche (la Pause est à droite du bureau), sur deux cases (rangées 9 et 10). */
 export const ANNEX_BACK_DOOR = { row: 9 };
+/** La cible accrochée au mur du fond (dessinée avec la pièce, dans annexDraw.ts) */
+export const DARTBOARD = { x: 188, y: 22 };
 
 export const ANNEX_FURNITURE: AnnexFurn[] = [
   // la cuisine
@@ -726,6 +728,8 @@ export function annexHitAt(annex: Annex, x: number, y: number, place: (f: AnnexF
     }
   }
   if (x < T + 30 && y >= ANNEX_BACK_DOOR.row * T - 18 && y < (ANNEX_BACK_DOOR.row + 2) * T && (x < T || y < ANNEX_BACK_DOOR.row * T - 9)) return { kind: 'door', label: 'La porte du bureau : retour au travail' };
+  // la cible, au mur (au-dessus de la bibliothèque) : les fléchettes
+  if (Math.hypot(x - DARTBOARD.x, y - DARTBOARD.y) <= 9) return { kind: 'object', id: 'darts', label: 'La cible : une partie de fléchettes (clique pour jouer)' };
   const placed = ANNEX_FURNITURE.map((f) => ({ f, ...place(f) })).sort((a, b) => b.sortY - a.sortY);
   for (const p of placed) {
     if (x >= p.x + 1 && x < p.x + p.w - 1 && y >= p.y + 1 && y < p.y + p.h - 1) return { kind: 'object', id: p.f.id, label: p.f.label };

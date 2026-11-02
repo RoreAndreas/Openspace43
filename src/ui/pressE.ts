@@ -1,6 +1,6 @@
 // « Appuie sur E » : quand tu diriges Roré, ce qui est à portée de main — un collègue, le chat, un meuble,
 // une porte. Une étiquette « E · … » flotte au-dessus de lui ; la touche E fait la même chose qu'un clic.
-import { ANNEX_BACK_DOOR, ANNEX_FURNITURE } from '../engine/annex.ts';
+import { ANNEX_BACK_DOOR, ANNEX_FURNITURE, DARTBOARD } from '../engine/annex.ts';
 import { furnitureLabel } from '../engine/hits.ts';
 import { annex, outside, sea, world } from '../engine/instance.ts';
 import { FISH_SPOT, OUT_DOOR } from '../engine/outside.ts';
@@ -66,6 +66,8 @@ export function nearRore(): Near | null {
                 : f.label.split(' (')[0].split(' : ')[0];
       offer(toRect(px, py, f.tx * T, f.ty * T, (f.tx + Math.max(1, f.w)) * T, (f.ty + Math.max(1, f.h)) * T), 10, { verb, act: () => interactAnnex({ kind: 'object', id: f.id, label: f.label }) });
     }
+    // juste sous la cible : les fléchettes (ailleurs devant la bibliothèque : les livres)
+    if (Math.abs(px - DARTBOARD.x) <= 5 && py < 5 * T + 4) offer(-1, 0, { verb: 'Jouer aux fléchettes', act: () => interactAnnex({ kind: 'object', id: 'darts', label: '' }) });
     if (me.x < 2 * T && row >= ANNEX_BACK_DOOR.row && row <= ANNEX_BACK_DOOR.row + 1) offer(0, 1, { verb: 'Retour au bureau', act: () => interactAnnex({ kind: 'door', label: '' }) });
     return best;
   }

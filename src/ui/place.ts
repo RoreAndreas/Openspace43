@@ -104,12 +104,12 @@ export function interactAnnex(hit: AnnexHit) {
     return;
   }
   // les mini-jeux : la table de ping-pong et les bornes d'arcade
-  if (hit.id === 'pingpong' || hit.id.startsWith('arcade') || hit.id === 'coffee') {
+  if (hit.id === 'pingpong' || hit.id.startsWith('arcade') || hit.id === 'coffee' || hit.id === 'darts') {
     sfx(hit.id === 'coffee' ? 'pour' : 'open');
     // les flèches servent au jeu : Roré, s'il était piloté, reprend sa vie
     if (useOffice.getState().driving) annex.drive(false);
     if (hit.id === 'coffee') annex.objectFx('coffee');
-    useOffice.setState({ driving: false, modal: { kind: 'game', game: hit.id === 'pingpong' ? 'pingpong' : hit.id === 'coffee' ? 'coffee' : 'arcade' } });
+    useOffice.setState({ driving: false, modal: { kind: 'game', game: hit.id === 'pingpong' ? 'pingpong' : hit.id === 'coffee' ? 'coffee' : hit.id === 'darts' ? 'darts' : 'arcade' } });
     return;
   }
   // la bibliothèque : le bestiaire et le livre des cafés

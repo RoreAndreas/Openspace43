@@ -2,12 +2,14 @@
 import { useOffice } from '../../state/store.ts';
 import { Shell } from '../Rooms.tsx';
 import { Coffee } from './Coffee.tsx';
+import { Darts } from './Darts.tsx';
 import { Fishing } from './Fishing.tsx';
 import { PingPong } from './PingPong.tsx';
 import { SpartanRun } from './SpartanRun.tsx';
 
-export function GameRoom({ game, lucky, meet }: { game: 'pingpong' | 'arcade' | 'fishing' | 'coffee'; lucky?: boolean; meet?: 'kraken' | 'nessie' }) {
+export function GameRoom({ game, lucky, meet }: { game: 'pingpong' | 'arcade' | 'fishing' | 'coffee' | 'darts'; lucky?: boolean; meet?: 'kraken' | 'nessie' }) {
   const close = () => useOffice.setState({ modal: null });
+  if (game === 'darts') return <Shell wide title="🎯 Les fléchettes" sub="La cible de la Pause" onClose={close}><Darts /></Shell>;
   if (game === 'coffee') return <Shell wide title="☕ Le café parfait" sub="La machine à café de la Pause" onClose={close}><Coffee /></Shell>;
   if (game === 'fishing') return <Shell wide title="🎣 La pêche au large" sub="Lance, attends la touche, ferre au bon moment" onClose={close}><Fishing lucky={lucky} meet={meet} /></Shell>;
   return game === 'pingpong'
