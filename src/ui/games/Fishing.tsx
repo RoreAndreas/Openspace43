@@ -427,26 +427,41 @@ function drawKraken(g: CanvasRenderingContext2D, kind: Kind, t: number, r: Px, l
   void g;
 }
 
-/** Un poisson qu'on n'a pas encore pris, vu à travers l'eau : sa silhouette, floue (dessinée plusieurs fois, un peu
- *  décalée, sans lissage net), qui ondule doucement. */
-const murks = new Map<string, HTMLCanvasElement>();
-function murkFish(g: CanvasRenderingContext2D, kind: Kind, x: number, y: number, k: number, face: number, t: number, blur: number, alpha: number) {
-  const frame = Math.floor(t * 4) % 8, key = `${kind}|${frame}`;
-  let c = murks.get(key);
-  if (!c) {
-    c = document.createElement('canvas'); c.width = c.height = SPR;
-    const mg = c.getContext('2d')!;
-    mg.translate(SPC, SPC); drawFish(mg, kind, (frame / 8) * (FISH[kind].cycle ?? 1 / SWIM_HZ), false, '#04060f');
-    murks.set(key, c);
-  }
+/** Un poisson qu'on n'a pas encore pris, vu à travers l'eau : pas sa forme entière, une tache trouble, comme un mirage. Sa
+ *  silhouette floutée, ses bouts effacés (on ne voit ni la queue ni la tête nettement), puis posée en fines tranches qui
+ *  ondulent chacune de leur côté et s'effacent par moments. */
+const hazes = new Map<string, HTMLCanvasElement>();
+function hazeSprite(kind: Kind, frame: number): HTMLCanvasElement {
+  const key = `${kind}|${frame}`;
+  const hit = hazes.get(key);
+  if (hit) return hit;
+  const sil = document.createElement('canvas'); sil.width = sil.height = SPR;
+  const sg = sil.getContext('2d')!;
+  sg.translate(SPC, SPC); drawFish(sg, kind, (frame / 8) * (FISH[kind].cycle ?? 1 / SWIM_HZ), false, '#04060f');
+  const out = document.createElement('canvas'); out.width = out.height = SPR;
+  const og = out.getContext('2d')!;
+  og.imageSmoothingEnabled = true;
+  for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2, r = 1.2 + (i % 3) * 0.9; og.globalAlpha = 0.13; og.drawImage(sil, Math.cos(a) * r, Math.sin(a) * r * 0.7); }
+  // les bouts s'effacent : seul le cœur de la forme reste un peu sombre
+  const sp = FISH[kind], rx = sp.w / 2 + 2, ry = sp.h / 2 + 4;
+  og.globalAlpha = 1; og.globalCompositeOperation = 'destination-in';
+  og.setTransform(rx, 0, 0, ry, SPC, SPC);
+  const grd = og.createRadialGradient(0, 0, 0, 0, 0, 1);
+  grd.addColorStop(0, 'rgba(0,0,0,1)'); grd.addColorStop(0.45, 'rgba(0,0,0,0.8)'); grd.addColorStop(1, 'rgba(0,0,0,0)');
+  og.fillStyle = grd; og.fillRect(-SPC / rx, -SPC / ry, SPR / rx, SPR / ry);
+  hazes.set(key, out);
+  return out;
+}
+function murkFish(g: CanvasRenderingContext2D, kind: Kind, x: number, y: number, k: number, face: number, t: number, haze: number, alpha: number) {
+  const c = hazeSprite(kind, Math.floor(t * 4) % 8);
   g.save();
   g.imageSmoothingEnabled = true;
-  g.translate(x, y + Math.sin(t * 1.7) * 1.2);
-  g.scale(face * k, k * (1 + Math.sin(t * 2.3) * 0.03));
-  for (let i = 0; i < 9; i++) {
-    const a = (i / 9) * Math.PI * 2, r = i === 0 ? 0 : blur / k;
-    g.globalAlpha = alpha * (i === 0 ? 1.4 : 1);
-    g.drawImage(c, -SPC + Math.cos(a + t * 0.6) * r, -SPC + Math.sin(a + t * 0.6) * r * 0.6);
+  g.translate(x, y);
+  g.scale(face * k, k);
+  for (let sy = 0; sy < SPR; sy += 2) {
+    const dx = (Math.sin(sy * 0.32 + t * 4.2) * 1.6 + Math.sin(sy * 0.9 - t * 2.6) * 0.8) * haze;
+    g.globalAlpha = alpha * (0.5 + 0.5 * Math.sin(sy * 0.45 + t * 1.8));
+    g.drawImage(c, 0, sy, SPR, 2, -SPC + dx, -SPC + sy, SPR, 2);
   }
   g.restore();
 }
@@ -1058,7 +1073,7 @@ export function Fishing({ lucky = false, meet }: { lucky?: boolean; meet?: 'krak
       // (seulement sous l'eau)
       g.save(); g.beginPath(); g.rect(0, SURFACE + 3, W, H); g.clip();
       murk(g, sh.x, sy + 1, Math.min(kraken ? 70 : 60, (sp.w / 2 + 6) * k), Math.min(kraken ? 22 : 16, (sp.h / 2 + 3) * k), kraken ? 0.55 : 0.45, t);
-      murkFish(g, st.kind, sh.x, sy, k, face, t, kraken ? 3 : 1.4, kraken ? 0.045 : 0.08);
+      murkFish(g, st.kind, sh.x, sy, k, face, t, kraken ? 1.8 : 1, kraken ? 0.5 : 0.55);
       g.restore();
     }
     // le poisson accroché, en sprites : il nage (sa queue bat plus vite quand il fonce), se retourne en une image écrasée,
