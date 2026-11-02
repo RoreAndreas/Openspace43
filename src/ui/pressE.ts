@@ -61,6 +61,7 @@ export function nearRore(): Near | null {
         : f.id.startsWith('arcade') ? 'Jouer à Spartan Run'
           : f.id === 'coffee' ? 'Se faire un café'
             : f.id === 'fridge' ? 'Ouvrir le frigo'
+              : f.id === 'shelf' ? 'Ouvrir la bibliothèque'
               : f.id === 'jukebox' ? 'Lancer la musique'
                 : f.label.split(' (')[0].split(' : ')[0];
       offer(toRect(px, py, f.tx * T, f.ty * T, (f.tx + Math.max(1, f.w)) * T, (f.ty + Math.max(1, f.h)) * T), 10, { verb, act: () => interactAnnex({ kind: 'object', id: f.id, label: f.label }) });

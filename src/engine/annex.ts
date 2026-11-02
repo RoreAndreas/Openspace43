@@ -34,7 +34,7 @@ export const ANNEX_FURNITURE: AnnexFurn[] = [
   { id: 'bin', kind: 'bin', tx: 8, ty: 13, w: 0, h: 0, label: 'La poubelle (le tri, c’est important)' },
   { id: 'plant-k', kind: 'plantTall', tx: 9, ty: 14, w: 1, h: 1, seed: 4, label: 'Une plante (elle aime qu’on la chatouille)' },
   // la salle de loisirs
-  { id: 'shelf', kind: 'shelf', tx: 11, ty: 3, w: 2, h: 1, seed: 8, label: 'La bibliothèque : romans, BD et vieux manuels' },
+  { id: 'shelf', kind: 'shelf', tx: 11, ty: 3, w: 2, h: 1, seed: 8, label: 'La bibliothèque : le bestiaire et le livre des cafés (clique pour l’ouvrir)' },
   { id: 'sofa', kind: 'sofa', tx: 13, ty: 3, w: 3, h: 1, label: 'Le canapé : on y joue à la console' },
   { id: 'tv', kind: 'tv', tx: 13, ty: 5, w: 3, h: 1, label: 'La console et la télé' },
   { id: 'plant-w', kind: 'plantBig', tx: 16, ty: 3, w: 1, h: 1, seed: 13, label: 'Une plante (elle aime qu’on la chatouille)' },

@@ -848,3 +848,23 @@ input[type='color'] { width: 34px; height: 34px; padding: 0; border: 1px solid v
 .bestiary-stars .dim { color: #4a4458; font-style: normal; }
 .bestiary-fact { color: #ffe9b0; }
 @media (max-width: 520px) { .bestiary-sheet { flex-direction: column; } }
+/* le café parfait : le tableau des cafés, les étoiles */
+.coffee-menu { gap: 8px; }
+.coffee-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; width: min(100%, 460px); }
+.coffee-card { display: grid; justify-items: center; gap: 1px; padding: 5px 4px; border-radius: 8px; background: var(--surface2); border: 1px solid var(--line); color: inherit; font: inherit; cursor: pointer; }
+.coffee-card:hover { border-color: #ffd166; }
+.coffee-card canvas { width: 60px; height: 60px; image-rendering: pixelated; }
+.coffee-card span { font-size: 12px; }
+.coffee-card .stars, .coffee-stars { color: #ffd166; font-style: normal; letter-spacing: 1px; font-size: 11px; }
+.coffee-card .stars em, .coffee-stars em { color: #4a4458; font-style: normal; }
+.game-over .coffee-stars { font-size: 22px; color: #ffd166; }
+/* la bibliothèque de la Pause : les ouvrages */
+.library-books { display: flex; gap: 8px; margin-bottom: 8px; }
+.library-book { display: grid; gap: 1px; text-align: left; padding: 8px 14px 8px 12px; border-radius: 4px 10px 10px 4px; border: 1px solid var(--line); border-left: 6px solid #8a5530; background: var(--surface2); color: inherit; font: inherit; cursor: pointer; }
+.library-book b { font: 700 14px var(--pixel); }
+.library-book span { font-size: 11px; color: #8a8698; }
+.library-book.fish { border-left-color: #2a78b2; }
+.library-book.cafes { border-left-color: #c88a50; }
+.library-book.on { border-color: #e8e5f1; box-shadow: 0 0 0 1px #e8e5f1 inset; }
+@media (max-width: 520px) { .coffee-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.coffee-book .bestiary-sheet canvas, .coffee-book .bestiary-tile canvas { background: linear-gradient(#e9e5ef, #d6d1de); }

@@ -67,6 +67,7 @@ export type Modal =
   | { kind: 'rules' }
   /** « Comment ça marche » (la note posée près du bureau de Roré) */
   | { kind: 'howto' }
+  | { kind: 'library' }
   /** la galerie des personnages ; avec `pick`, on choisit celui d'un agent */
   | { kind: 'characters'; pick?: { role: Role; name: string; agent?: string } }
   /** un mini-jeu : le ping-pong ou la borne d'arcade (Spartan Run) dans la Pause, la pêche Dehors */

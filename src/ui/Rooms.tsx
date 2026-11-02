@@ -16,6 +16,9 @@ import { bureau } from '../local/bureau.ts';
 import { characterInfo } from '../engine/characters.ts';
 import { CharactersRoom } from './Characters.tsx';
 import { GameRoom } from './games/GameRoom.tsx';
+import { CoffeeBook, DRINK_LIST } from './games/Coffee.tsx';
+import { Bestiary } from './games/Fishing.tsx';
+import { loadScores } from './games/common.ts';
 import { DrawerRoom, RulesRoom, SkillsRoom } from './Extras.tsx';
 import { JukeboxRoom } from './Jukebox.tsx';
 import { startTour } from './tour.ts';
@@ -58,6 +61,7 @@ export function Rooms() {
     case 'howto': return <HowtoRoom />;
     case 'characters': return <CharactersRoom pick={modal.pick} />;
     case 'game': return <GameRoom game={modal.game} lucky={modal.lucky} meet={modal.meet} />;
+    case 'library': return <LibraryRoom />;
   }
 }
 
@@ -440,5 +444,21 @@ function PreviewRoom({ missionId, file }: { missionId: string; file: string }) {
         </div>
       </div>
     </div>
+  );
+}
+
+// ── La bibliothèque de la Pause : on y range les ouvrages (le bestiaire de la pêche, le livre des cafés) ──
+function LibraryRoom() {
+  const [book, setBook] = useState<'fish' | 'cafes'>('fish');
+  const journal = loadScores().fish.journal;
+  const fishN = Object.keys(journal).length, cafeN = Object.keys(loadScores().cafes).length;
+  return (
+    <Shell wide title="📚 La bibliothèque" sub="Les ouvrages de la Pause" onClose={() => useOffice.setState({ modal: null })}>
+      <div className="library-books">
+        <button className={`library-book fish ${book === 'fish' ? 'on' : ''}`} onClick={() => setBook('fish')}><b>Le bestiaire</b><span>{fishN} espèces</span></button>
+        <button className={`library-book cafes ${book === 'cafes' ? 'on' : ''}`} onClick={() => setBook('cafes')}><b>Les cafés</b><span>{cafeN} sur {DRINK_LIST.length}</span></button>
+      </div>
+      {book === 'fish' ? <Bestiary journal={journal} /> : <CoffeeBook />}
+    </Shell>
   );
 }

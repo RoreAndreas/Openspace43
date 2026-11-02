@@ -139,11 +139,15 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
   Les coupes de l'étagère = missions `done` du store (`world.trophies`).
 - **Les mini-jeux** (fenêtre `game`) : `ui/games/` (`PingPong.tsx`, `SpartanRun.tsx`, `Fishing.tsx`, `Coffee.tsx`, boucle à pas fixe et scores
   localStorage `bureau:jeux` dans `common.ts`). Ouverts par un clic sur la table de ping-pong, une borne ou la machine à café (`interactAnnex`).
-  **Le café parfait** (`Coffee.tsx`, la machine à café de la Pause, « E · Se faire un café ») : en solo, la Pause vue de près
-  (`annexStill`, la pièce et ses meubles sans personne, agrandie ×3 autour de la machine) ; un seul geste : tenir Espace pour
-  faire couler, lâcher au trait (la machine hoquette, quelques gouttes tombent après) ; une série de parfaits rapporte de plus
-  en plus ; trois tasses ratées et c'est fini ; record `coffee` ; trois parfaits : une tasse fumante sur le bureau de Roré et
-  un pas plus rapide pendant dix minutes (`world.coffeeUntil`, `render.ts`) ; en dev, `window.__coffee`.
+  **Le café parfait** (`Coffee.tsx`, la machine à café de la Pause, « E · Se faire un café ») : en solo ; la cuisine de la Pause de
+  près, dans ses couleurs (`drawScene` : crédence, placards verts, tableau du menu, la machine sombre, les mugs, la plante) ; on
+  choisit son café (`DRINKS` : espresso, ristretto, noisette, allongé, cappuccino, latte, mocha, chocolat ; un verre `GLASS` où l'on
+  voit les couches, `drawGlass`), puis couche après couche : tenir Espace pour faire couler, lâcher au trait (la machine hoquette,
+  quelques gouttes tombent après) ; 1 à 3 étoiles, gardées dans le livre des cafés (`cafes` dans `bureau:jeux`) ; un café
+  parfait : une tasse fumante sur le bureau de Roré et un pas plus rapide pendant dix minutes (`world.coffeeUntil`, `render.ts`) ;
+  en dev, `window.__coffee`.
+- **La bibliothèque de la Pause** (le meuble `shelf`, « E · Ouvrir la bibliothèque », fenêtre `library`, `LibraryRoom` dans
+  `Rooms.tsx`) : on y range les ouvrages, le bestiaire de la pêche (`Bestiary`) et le livre des cafés (`CoffeeBook`).
 - **Rook** (rôle `recherche`, sous-agent `rook`) : le chercheur et la veille. En ligne et avec Ollama, `runRook` (`src/local/agent.ts`)
   utilise Tavily : `tavilySearch` / `tavilyExtract` (`shared/web.ts`), routes `/api/tavily` et `/api/tavily/extract` du Worker et du
   serveur local, clé `TAVILY_KEY` ou `CLE_TAVILY` (le secret du Worker s'appelle `CLE_TAVILY`). Sans clé (501), il se rabat sur

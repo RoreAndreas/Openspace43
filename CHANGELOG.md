@@ -2,7 +2,8 @@
 
 ## À venir
 
-- **Un nouveau mini-jeu : le café parfait**, à la machine à café de la Pause (« E · Se faire un café »). La vraie machine de la Pause, vue de près. Un seul geste : tiens Espace pour faire couler le café, lâche pile au trait. La machine a ses hoquets, et quelques gouttes tombent encore après. Une série de cafés parfaits rapporte de plus en plus ; trois tasses ratées et la pause est finie. Trois cafés parfaits : une tasse fumante attend Roré sur son bureau, et il file plus vite pendant dix minutes.
+- **Un nouveau mini-jeu : le café parfait**, à la machine à café de la Pause (« E · Se faire un café »). La cuisine de la Pause, de près, dans ses couleurs. Choisis ton café : espresso, ristretto, noisette, allongé, cappuccino, latte, mocha ou chocolat chaud. Puis prépare-le couche après couche, dans un verre où l’on voit tout : tiens Espace pour faire couler, lâche pile au trait. La machine a ses hoquets, et quelques gouttes tombent encore après. Chaque café gagne de une à trois étoiles. Un café parfait : une tasse fumante attend Roré sur son bureau, et il file plus vite pendant dix minutes.
+- **La bibliothèque de la Pause** range les ouvrages (« E · Ouvrir la bibliothèque ») : le bestiaire de la pêche et le livre des cafés, avec le dessin de chaque boisson, ce qu’on en dit, une anecdote et tes étoiles.
 - **Les poissons qui approchent, comme un mirage** : on ne voit plus leur forme entière, juste une tache trouble qui ondule.
 - **Le Kraken, plus dur** : ses trois tentacules restent dressés autour de la barque. Rien ne dit lequel va frapper : celui qui attaque se cabre une fraction de seconde, puis s’abat. Il faut choisir vite (← ↑ →). Attention aux feintes : un tentacule se cabre parfois pour rien, et frapper dans le vide déséquilibre Roré un instant.
 - **Les poissons qui approchent sont troubles** : on devine leur silhouette floue qui ondule sous l’eau, au lieu d’un ovale net ; le Kraken n’est qu’une masse sombre.

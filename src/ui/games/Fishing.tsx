@@ -1410,7 +1410,7 @@ export function Fishing({ lucky = false, meet }: { lucky?: boolean; meet?: 'krak
 
 /** Le bestiaire : une grille de vignettes (le dessin, ou une silhouette ; le nom, ou « ??? »), et la fiche de celle qu'on
  *  choisit : sa rareté, où et quand, son poids, ce qu'on en dit, et ta pêche (ou un indice pour la trouver). */
-function Bestiary({ journal }: { journal: FishSave['journal'] }) {
+export function Bestiary({ journal }: { journal: FishSave['journal'] }) {
   const [pick, setPick] = useState<Kind>(() => SPECIES.find((k) => journal[k]) ?? SPECIES[0]);
   return (
     <div className="bestiary">

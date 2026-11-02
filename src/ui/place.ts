@@ -112,6 +112,8 @@ export function interactAnnex(hit: AnnexHit) {
     useOffice.setState({ driving: false, modal: { kind: 'game', game: hit.id === 'pingpong' ? 'pingpong' : hit.id === 'coffee' ? 'coffee' : 'arcade' } });
     return;
   }
+  // la bibliothèque : le bestiaire et le livre des cafés
+  if (hit.id === 'shelf') { sfx('open'); useOffice.setState({ modal: { kind: 'library' } }); return; }
   if (hit.id === 'jukebox') jukebox.toggle();
   annex.objectFx(hit.id);
   sfx(hit.id === 'coffee' ? 'pour' : 'tick');
