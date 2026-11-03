@@ -20,6 +20,7 @@ import type { TimeOfDay } from '../../engine/room.ts';
 import { useOffice } from '../../state/store.ts';
 import { loadScores, saveScores, useKeys, useLoop, type FishSave } from './common.ts';
 import { KrakenBoss, murk, NessieMeet, type GiantEvent, type KrakenKind } from './giants.ts';
+import { fishRadio } from '../../audio/fishRadio.ts';
 
 const W = 256, H = 144;
 const HORIZON = 54, SURFACE = 76;
@@ -1405,6 +1406,7 @@ export function Fishing({ lucky = false, meet }: { lucky?: boolean; meet?: 'krak
         )}
       </div>
       <p className="small">{tip[hud.phase] || ' '}</p>
+      <RadioBar />
       <div className="bestiary-head">
         <span className="muted small">📖 Bestiaire : {caught.length} sur {SPECIES.length} espèces</span>
         <button className="btn small" onClick={() => setBook(!book)}>{book ? 'Fermer le bestiaire' : 'Ouvrir le bestiaire'}</button>
@@ -1429,6 +1431,29 @@ export function Bestiary({ journal }: { journal: FishSave['journal'] }) {
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+/** La radio de la pêche : le petit lecteur YouTube, le morceau en cours, « Morceau suivant », et un bouton pour la couper
+ *  (gardé dans ce navigateur). */
+function RadioBar() {
+  const host = useRef<HTMLDivElement>(null);
+  const [on, setOn] = useState(() => { try { return localStorage.getItem('bureau:fishRadio') !== 'off'; } catch { return true; } });
+  const [title, setTitle] = useState('');
+  useEffect(() => {
+    if (!on || !host.current) return;
+    fishRadio.onChange = setTitle;
+    fishRadio.start(host.current);
+    return () => { fishRadio.onChange = null; fishRadio.stop(); };
+  }, [on]);
+  const toggle = () => { const v = !on; setOn(v); try { localStorage.setItem('bureau:fishRadio', v ? 'on' : 'off'); } catch { /* navigation privée */ } };
+  return (
+    <div className="fish-radio">
+      {on && <div className="fish-radio-screen" ref={host} />}
+      <span className="fish-radio-title">{on ? <>📻 <b>{title || '…'}</b></> : 'La radio de la pêche est coupée.'}</span>
+      {on && <button className="btn small" onClick={() => fishRadio.next()}>Morceau suivant</button>}
+      <button className="btn small" onClick={toggle}>{on ? 'Couper la radio' : 'Allumer la radio'}</button>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 // L'ambiance de Dehors : le vent dans l'herbe, la mer au loin, et une petite musique lofi.
 // Tout est fabriqué en direct avec Web Audio (du bruit filtré, quelques notes douces) : aucun fichier audio.
 // Le bouton du son coupe tout. Si le jukebox joue déjà, la petite musique se tait (le vent et la mer restent).
+import { fishRadio } from './fishRadio.ts';
 import { jukebox } from './music.ts';
 
 // Am7 – Dm7 – G7 – Cmaj7 : la boucle lofi classique, une mesure chacune (notes en demi-tons, A2 = 0)
@@ -151,7 +152,7 @@ class OutsideAudio {
     const ctx = this.ctx;
     if (!ctx) return;
     // le jukebox joue déjà : pas de petite musique par-dessus
-    this.music!.gain.value = jukebox.playing ? 0 : 0.55;
+    this.music!.gain.value = jukebox.playing || fishRadio.playing ? 0 : 0.55;
     while (this.nextBeat < ctx.currentTime + 0.4) {
       const at = this.nextBeat;
       const bar = Math.floor(this.beatNo / 4) % CHORDS.length;

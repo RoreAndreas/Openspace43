@@ -872,3 +872,7 @@ input[type='color'] { width: 34px; height: 34px; padding: 0; border: 1px solid v
 .library-open.cafes .library-cover { border-left-color: #8a5a34; }
 @media (max-width: 520px) { .coffee-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .coffee-book .bestiary-sheet canvas, .coffee-book .bestiary-tile canvas { background: linear-gradient(#e9e5ef, #d6d1de); }
+/* la radio de la pêche : le petit lecteur YouTube et le morceau en cours */
+.fish-radio { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; background: var(--surface2); border: 1px solid var(--line); }
+.fish-radio-screen { width: 128px; height: 72px; flex: none; border-radius: 6px; overflow: hidden; background: #000; }
+.fish-radio-title { flex: 1; min-width: 140px; font-size: 12px; }

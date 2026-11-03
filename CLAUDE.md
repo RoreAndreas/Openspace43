@@ -89,7 +89,11 @@ D'après « Le Bureau des agents » (VibesMoney, MIT).
   (cibles, virages, sauts, ronds et bulles) ; la zone du lancer parfait `PERFECT` ; au combat, la ligne va à la bouche
   du poisson (`mouth`), la flotte reste à la surface, Roré se débat ; le bestiaire (`Bestiary` : dessin, rareté, où, quand, poids, force, description, anecdote `fact`, record ; silhouette et
   indice sinon ; une grille de vignettes `FishPic`, cadrées sur le sprite, et la fiche `BestiarySheet` de celle qu'on choisit),
-  à partir de `fish.journal` dans `bureau:jeux`, `FishSave` dans `common.ts` ; en dev, `window.__fishing`).
+  à partir de `fish.journal` dans `bureau:jeux`, `FishSave` dans `common.ts` ; en dev, `window.__fishing` ; la radio de la pêche
+  (`audio/fishRadio.ts`, `RadioBar` sous le jeu : une longue vidéo YouTube de musiques de jeux de pêche, le lien de
+  l'utilisatrice, découpée d'après ses repères `FISH_TRACKS` ; un morceau au hasard, puis un autre à la fin ; « Morceau suivant »,
+  « Couper la radio » (`bureau:fishRadio`) ; le jukebox se met en pause pendant la pêche et reprend après, la petite musique de
+  Dehors se tait)).
 - **La mer** (`room: 'sea'`, le quatrième espace ; ⛵, touche L ; depuis le chemin de la barque, Dehors : deux poteaux et des cordes
   au bord de la falaise, « Descendre à la barque » ; X pour revenir) : même logique que le jardin, l'île est vue depuis la barque.
   `engine/sea.ts` (la barque est un angle `at` autour de l'île et une distance `dist`, 0 contre les rochers, 1 au large ; ← → pour
